@@ -11,3 +11,6 @@ def main():
     question = "What is an agent?"
     answer = search_and_answer.search_and_answer(question)
     print(answer)
+    
+if __name__ == "__main__":
+    main()
