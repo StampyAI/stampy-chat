@@ -2,7 +2,9 @@
 
 This project creates embeddings for every set of a few paragraphs from the source dataset, in order to do real-time semantic search and question answering on them.
 
-The very barebones of the project is currently in testing.ipynb.
+The very barebones of the project is currently in testingsrc/.ipynb. file which contains: 
+
+To try out, add a src/config.py file which contains your OPENAI_API_KEY.
 
 ## TODO:
 - Getting data:
