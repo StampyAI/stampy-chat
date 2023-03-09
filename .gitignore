@@ -129,5 +129,6 @@ dmypy.json
 .pyre/
 
 # Other
-*.jsonl
-config.py
+*alignment_texts.jsonl
+*config.py
+*embeddings.npy
