@@ -3,7 +3,3 @@ openai
 numpy
 langchain
 requests
-json
-
-
-
