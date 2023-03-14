@@ -116,7 +116,7 @@ class TextSplitter:
             self.blocks.append("\n\n".join(self.current_block))
 
 
-    def text_splitter(self, text: str, signature: str) -> List[str]:
+    def split(self, text: str, signature: str) -> List[str]:
         """Split text into multiple blocks and add signature to each block."""
         # signature has the format : "link, title, author"
         self.add_text_to_blocks(text)
@@ -211,6 +211,6 @@ r
 
 Anyway, at this point we’re getting into specifics of portals, so I’ll cut off the speculation. The point is: if transportation continues to get cheaper and more efficient over time, then we will converge to the world of the portal, or at least something like it. The details do matter - portals are different from teleportation or whatever might actually happen - but any method of fully relaxing transportation constraints will have qualitatively similar results, to a large extent."""
 
-    splitting = TextSplitter(500, 300)
+    splitting = TextSplitter(block_maxsize=500, block_minsize=300)
     blocks = splitting.text_splitter(text, "link: https://www.reddit.com/r/HistoryAnecdotes/comments/9x7q0j/alexander_the_greats_army_was_starved_out_of/, title: test, author: alexander the great")
     print("\n\n".join(blocks))
