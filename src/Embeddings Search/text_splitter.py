@@ -44,68 +44,85 @@ def split_into_sentences(text):
         sentences = [text.strip()]
     return sentences
 
+def select_first_n_chars(text: str, n: int) -> str:
+    """Select first n characters from a string if there are more than n characters, otherwise return the whole string"""
+    if len(text) > n:
+        return text[:n]
+    return text
 
 
-def text_splitter(text: str, block_maxsize: int = 800, block_minsize: int = 500) -> List[str]:
-    """Split text into multiple blocks."""
-    # We first split the text into multiple paragraphs.
-    # We then split each paragraph into multiple sentences.
-    # Then, we concatenate sentences until they reach max size within paragraphs.
-    # Finally, we concatenate paragraphs until they reach max size.
+
+class TextSplitter:
+    def __init__(self, block_maxsize: int = 800, block_minsize: int = 500):
+        self.block_maxsize = block_maxsize
+        self.block_minsize = block_minsize
+        self.blocks = []
+        self.current_block = []
+        self.current_block_len = 0
 
 
-    # Split text into paragraphs
-    paragraphs = text.split("\n\n")
-    
-
-
-    """sentences = split_into_sentences(text)
-    blocks = []
-    current_block = []
-    current_block_len = 0
-    for sentence in sentences:
+    def add_sentence_to_blocks(self, sentence):
         sentence_len = len(sentence)
+        sentence_fits_in_current_block = self.current_block_len + sentence_len <= self.block_maxsize
+        current_block_is_big_enough = self.current_block_len >= self.block_minsize
+        sentence_fits_in_standalone_block = sentence_len <= self.block_maxsize
 
-        if current_block_len + sentence_len > block_maxsize: # if the current block is too big to add this sentence
-            if current_block_len >= block_minsize:
-                blocks.append("".join(current_block))
-            current_block = []
-            current_block_len = 0
-        current_block.append(sentence)
-        current_block_len += sentence_len
-    if current_block_len >= block_minsize:
-        blocks.append("".join(current_block))
-        current_block = []
-        current_block_len = 0
-    if current_block_len > 0:
-        blocks.append("".join(current_block))
+        if sentence_fits_in_current_block:
+            self.current_block.append(sentence)
+            self.current_block_len += sentence_len + 1 # +1 for the space
+            return
+        
+        if current_block_is_big_enough and sentence_fits_in_standalone_block:
+            self.blocks.append(" ".join(self.current_block))
+            self.current_block = [sentence]
+            self.current_block_len = sentence_len + 1 # +1 for the space
+            return
+        
+        #special cases:TODO refactor
+        #case 1: current_block_len < block_minsize and current_block_len + sentence_len > block_maxsize
+        #case 2: current_block_len > block_minsize but sentence_len > block_maxsize
+        shorter_sentence = select_first_n_chars(sentence, self.block_maxsize - self.current_block_len)
+        self.current_block.append(shorter_sentence)
+        self.blocks.append(" ".join(self.current_block))
+        self.current_block = []
+        self.current_block_len = 0      
+        
 
-    return blocks"""
+    def add_paragraph_to_blocks(self, paragraph):
+        paragraph_len = len(paragraph)
+        if self.current_block_len + paragraph_len > self.block_maxsize:
+            sentences = split_into_sentences(paragraph)
+            for sentence in sentences:
+                self.add_sentence_to_blocks(sentence)
+            return
+        
+        if self.block_minsize <= self.current_block_len + paragraph_len <= self.block_maxsize:
+            self.current_block.append(paragraph)
+            self.blocks.append("\n\n".join(self.current_block))
+            self.current_block = []
+            self.current_block_len = 0
+            return
+        
+        if self.current_block_len + paragraph_len < self.block_minsize:
+            self.current_block.append(paragraph)
+            self.current_block_len += paragraph_len + 2 # +2 for the \n\n
+            return
+        
+    def add_text_to_blocks(self, text):
+        paragraphs = text.split("\n\n")
+        for paragraph in paragraphs:
+            self.add_paragraph_to_blocks(paragraph)
+        if self.current_block != []:
+            self.blocks.append("\n\n".join(self.current_block))
 
 
-    """paragraphs = text.split("\n\n")
-    blocks = []
-    current_block = []
-    current_block_len = 0
-    for paragraph in paragraphs:
-        sentences = split_into_sentences(paragraph)
-        for sentence in sentences:
-            sentence_len = len(sentence)
-            if current_block_len + sentence_len > block_maxsize:
-                if current_block_len >= block_minsize:
-                    blocks.append("".join(current_block))
-                current_block = []
-                current_block_len = 0
-            current_block.append(sentence)
-            current_block_len += sentence_len
-        if current_block_len >= block_minsize:
-            blocks.append("".join(current_block))
-            current_block = []
-            current_block_len = 0
-    if current_block_len > 0:
-        blocks.append("".join(current_block))
-    return blocks
-"""
+    def text_splitter(self, text: str, signature: str) -> List[str]:
+        """Split text into multiple blocks and add signature to each block."""
+        # signature has the format : "link, title, author"
+        self.add_text_to_blocks(text)
+        
+        return [f"{block}\n - {signature}" for block in self.blocks]
+        
 
 
 
@@ -194,5 +211,6 @@ r
 
 Anyway, at this point we’re getting into specifics of portals, so I’ll cut off the speculation. The point is: if transportation continues to get cheaper and more efficient over time, then we will converge to the world of the portal, or at least something like it. The details do matter - portals are different from teleportation or whatever might actually happen - but any method of fully relaxing transportation constraints will have qualitatively similar results, to a large extent."""
 
-    blocks = text_splitter(text, 200, 100)
-    print(blocks)
+    splitting = TextSplitter(500, 300)
+    blocks = splitting.text_splitter(text, "link: https://www.reddit.com/r/HistoryAnecdotes/comments/9x7q0j/alexander_the_greats_army_was_starved_out_of/, title: test, author: alexander the great")
+    print("\n\n".join(blocks))
