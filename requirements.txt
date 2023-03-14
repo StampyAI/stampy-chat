@@ -3,3 +3,4 @@ openai
 numpy
 langchain
 requests
+tiktoken
