@@ -132,3 +132,5 @@ dmypy.json
 *alignment_texts.jsonl
 *config.py
 *embeddings.npy
+*.pickle
+*.pkl

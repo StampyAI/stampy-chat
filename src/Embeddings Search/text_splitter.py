@@ -44,13 +44,6 @@ def split_into_sentences(text):
         sentences = [text.strip()]
     return sentences
 
-def select_first_n_chars(text: str, n: int) -> str:
-    """Select first n characters from a string if there are more than n characters, otherwise return the whole string"""
-    if len(text) > n:
-        return text[:n]
-    return text
-
-
 
 class TextSplitter:
     def __init__(self, block_maxsize: int = 800, block_minsize: int = 500):
@@ -81,7 +74,7 @@ class TextSplitter:
         #special cases:TODO refactor
         #case 1: current_block_len < block_minsize and current_block_len + sentence_len > block_maxsize
         #case 2: current_block_len > block_minsize but sentence_len > block_maxsize
-        shorter_sentence = select_first_n_chars(sentence, self.block_maxsize - self.current_block_len)
+        shorter_sentence = sentence[self.block_maxsize - self.current_block_len]
         self.current_block.append(shorter_sentence)
         self.blocks.append(" ".join(self.current_block))
         self.current_block = []
