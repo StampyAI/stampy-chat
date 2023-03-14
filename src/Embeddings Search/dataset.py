@@ -1,9 +1,7 @@
 import jsonlines
 import numpy as np
 from typing import List, Dict, Tuple
-import re
 import time
-import random
 import pickle
 import openai
 from tenacity import (
@@ -13,21 +11,11 @@ from tenacity import (
 )  # for exponential backoff
 
 import config
-
 from text_splitter import TextSplitter, split_into_sentences
+from settings import PATH_TO_DATA, PATH_TO_EMBEDDINGS, PATH_TO_DATASET, EMBEDDING_MODEL
 
-
-LEN_EMBEDDINGS = 1536
-PATH_TO_DATA = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\alignment_texts.jsonl"
-PATH_TO_EMBEDDINGS = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\embeddings.npy"
-PATH_TO_DATASET = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\dataset.pkl"
-
-COMPLETIONS_MODEL = "text-davinci-003"
-EMBEDDING_MODEL = "text-embedding-ada-002"
 
 openai.api_key = config.OPENAI_API_KEY
-
-MAX_LEN_PROMPT = 5000
 
 error_count_dict = {
     "Entry has no source.": 0,

@@ -1,36 +1,12 @@
-import jsonlines
 import numpy as np
-from typing import List, Dict, Tuple
-import re
-import time
-import random
 import pickle
 import openai
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential,
-)  # for exponential backoff
 
 import config
-
-from dataset import Dataset
 from semantic_search import AlignmentSearch
-
-from settings import DATA_PATH
-
-
-LEN_EMBEDDINGS = 1536
-PATH_TO_DATA = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\alignment_texts.jsonl"
-PATH_TO_EMBEDDINGS = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\embeddings.npy"
-PATH_TO_DATASET = r"C:\Users\Henri\Documents\GitHub\AlignmentSearch\src\Embeddings Search\data\dataset.pkl"
-
-COMPLETIONS_MODEL = "text-davinci-003"
-EMBEDDING_MODEL = "text-embedding-ada-002"
+from settings import PATH_TO_DATASET
 
 openai.api_key = config.OPENAI_API_KEY
-
-MAX_LEN_PROMPT = 5000
 
 
 def main():
