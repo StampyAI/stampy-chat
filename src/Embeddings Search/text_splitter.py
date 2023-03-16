@@ -1,5 +1,6 @@
 import re
 from typing import List
+import tiktoken
 
 # FROM https://stackoverflow.com/a/31505798/16185542
 # -*- coding: utf-8 -*-
@@ -45,82 +46,98 @@ def split_into_sentences(text):
     return sentences
 
 
-class TextSplitter:
-    def __init__(self, block_maxsize: int = 800, block_minsize: int = 500):
-        self.block_maxsize = block_maxsize
-        self.block_minsize = block_minsize
+class TokenSplitter:
+    """splits text into blocks of tokens according to chatgpt's tokenizer"""
+    def __init__(self, min_tokens: int = 500, max_tokens: int = 750):
+        self.encoding = tiktoken.get_encoding("cl100k_base")
+        self.min_tokens = min_tokens
+        self.max_tokens = max_tokens
         self.blocks = []
-        self.current_block = []
-        self.current_block_len = 0
-
-
-    def add_sentence_to_blocks(self, sentence):
-        sentence_len = len(sentence)
-        sentence_fits_in_current_block = self.current_block_len + sentence_len <= self.block_maxsize
-        current_block_is_big_enough = self.current_block_len >= self.block_minsize
-        sentence_fits_in_standalone_block = sentence_len <= self.block_maxsize
-
-        if sentence_fits_in_current_block:
-            self.current_block.append(sentence)
-            self.current_block_len += sentence_len + 1 # +1 for the space
-            return
-        
-        if current_block_is_big_enough and sentence_fits_in_standalone_block:
-            self.blocks.append(" ".join(self.current_block))
-            self.current_block = [sentence]
-            self.current_block_len = sentence_len + 1 # +1 for the space
-            return
-        
-        #special cases:TODO refactor
-        #case 1: current_block_len < block_minsize and current_block_len + sentence_len > block_maxsize
-        #case 2: current_block_len > block_minsize but sentence_len > block_maxsize
-        shorter_sentence = sentence[self.block_maxsize - self.current_block_len]
-        self.current_block.append(shorter_sentence)
-        self.blocks.append(" ".join(self.current_block))
-        self.current_block = []
-        self.current_block_len = 0      
+        self.signature = "{url, title, author} unknown"
         
 
-    def add_paragraph_to_blocks(self, paragraph):
-        paragraph_len = len(paragraph)
-        if self.current_block_len + paragraph_len > self.block_maxsize:
-            sentences = split_into_sentences(paragraph)
-            for sentence in sentences:
-                self.add_sentence_to_blocks(sentence)
-            return
+
+    def _text_splitter(self, text: str) -> List[str]:
+        """splits text into blocks of tokens according to chatgpt's tokenizer"""
+        # Do not call this function outside of split()      
         
-        if self.block_minsize <= self.current_block_len + paragraph_len <= self.block_maxsize:
-            self.current_block.append(paragraph)
-            self.blocks.append("\n\n".join(self.current_block))
-            self.current_block = []
-            self.current_block_len = 0
-            return
+        enc = self.encoding.encode # takes a string and returns a list of ints (tokens)
+        dec = self.encoding.decode # takes a list of ints (tokens) and returns a string
+        tok_len = lambda x: len(enc(x)) # length of a string in tokens
+
+        max_tokens = self.max_tokens - tok_len(self.signature) - 10 # 10 to be safe
+        assert max_tokens > 0, "max_tokens is too small for the signature"
         
-        if self.current_block_len + paragraph_len < self.block_minsize:
-            self.current_block.append(paragraph)
-            self.current_block_len += paragraph_len + 2 # +2 for the \n\n
-            return
-        
-    def add_text_to_blocks(self, text):
+        min_tokens = self.min_tokens - tok_len(self.signature) - 10 # 10 to be safe
+        assert min_tokens > 0, "min_tokens is too small for the signature"
+
+        current_block = ""
         paragraphs = text.split("\n\n")
         for paragraph in paragraphs:
-            self.add_paragraph_to_blocks(paragraph)
-        if self.current_block != []:
-            self.blocks.append("\n\n".join(self.current_block))
+            sentences = split_into_sentences(paragraph)
+            if current_block != "":
+                current_block += "\n\n"
 
+            for sentence in sentences:
+                potential_new_block = current_block + " " + sentence
+                
+                if tok_len(potential_new_block) <= max_tokens:
+                    current_block = potential_new_block
+                
+                else:
+                    self.blocks.append(current_block)
+                    if tok_len(sentence) < max_tokens:
+                        current_block = sentence
+                    else:
+                        self.blocks.append(dec(enc(sentence)[:max_tokens]))
+                        current_block = ""
+            
+            print(tok_len(current_block))
+            if tok_len(current_block) > min_tokens:
+                self.blocks.append(current_block)
+                current_block = ""
 
+        if current_block != "":
+            latest_block = self.blocks[-1]
+            len_cur_block = tok_len(current_block)
+            latest_plus_current = latest_block + current_block
+
+            if len_cur_block > min_tokens:
+                self.blocks.append(current_block)
+            
+            else:
+                #select the last self.max_tokens tokens from the latest block
+                last_block = dec(enc(latest_plus_current)[-max_tokens:])
+                self.blocks.append(last_block)
+
+        
+    
     def split(self, text: str, signature: str) -> List[str]:
-        """Split text into multiple blocks and add signature to each block."""
-        # signature has the format : "link, title, author"
-        self.add_text_to_blocks(text)
-        
+        self.signature = signature
+        self._text_splitter(text)
         return [f"{block}\n - {signature}" for block in self.blocks]
-        
-
 
 
 if __name__ == "__main__":
-    print("test")
+    text = """This post has been recorded as part of the LessWrong Curated Podcast, and an be listened to on Spotify, Apple Podcasts, and Libsyn.
+
+Over the last few years, deep-learning-based AI has progressed extremely rapidly in fields like natural language processing and image generation. However, self-driving cars seem stuck in perpetual beta mode, and aggressive predictions there have repeatedly been disappointing. Google's self-driving project started four years before AlexNet kicked off the deep learning revolution, and it still isn't deployed at large scale, thirteen years later. Why are these fields getting such different results?
+
+Right now, I think the biggest answer is that ML benchmarks judge models by average-case performance, while self-driving cars (and many other applications) require matching human worst-case performance. For MNIST, an easy handwriting recognition task, performance tops out at around 99.9% even for top models; it's not very practical to design for or measure higher reliability than that, because the test set is just 10,000 images and a handful are ambiguous. Redwood Research, which is exploring worst-case performance in the context of AI alignment, got reliability rates around 99.997% for their text generation models.
+
+By comparison, human drivers are ridiculously reliable. The US has around one traffic fatality per 100 million miles driven; if a human driver makes 100 decisions per mile, that gets you a worst-case reliability of ~1:10,000,000,000 or ~99.999999999%. That's around five orders of magnitude better than a very good deep learning model, and you get that even in an open environment, where data isn't pre-filtered and there are sometimes random mechanical failures. Matching that bar is hard! I'm sure future AI will get there, but each additional "nine" of reliability is typically another unit of engineering effort. (Note that current self-driving systems use a mix of different models embedded in a larger framework, not one model trained end-to-end like GPT-3.)
+
+(The numbers here are only rough Fermi estimates. I'm sure one could nitpick them by going into pre-pandemic vs. post-pandemic crash rates, laws in the US vs. other countries, what percentage of crashes are drunk drivers, do drunk drivers count, how often would a really bad decision be fatal, etc. But I'm confident that whichever way you do the math, you'll still find that humans are many orders of magnitude more reliable.)
+
+Other types of accidents are similarly rare. Eg. pre-pandemic, there were around 40 million commercial flights per year, but only a handful of fatal crashes. If each flight involves 100 chances for the pilot to crash the plane by screwing up, then that would get you a reliability rate around 1:1,000,000,000, or ~99.99999999%.
+
+Even obviously dangerous activities can have very low critical failure rates. For example, shooting is a popular hobby in the US; the US market buys around 10 billion rounds of ammunition per year. There are around 500 accidental gun deaths per year, so shooting a gun has a reliability rate against accidental death of ~1:20,000,000, or 99.999995%. In a military context, the accidental death rate was around ten per year against ~1 billion rounds fired, for a reliability rate of ~99.9999999%. Deaths by fire are very rare compared to how often humans use candles, stoves, and so on; New York subway deaths are rare compared to several billion annual rides; out of hundreds of millions of hikers, only a tiny percentage fall off of cliffs; and so forth.
+
+The 2016 AI Impacts survey asked hundreds of AI researchers when they thought AI would be capable of doing certain tasks, playing poker, proving theorems and so on. Some tasks have been solved or have a solution "in sight", but right now, we're nowhere close to an AI that can replace human surgeons; robot-assisted surgeries still have manual control by human operators. Cosmetic surgeries on healthy patients have a fatality rate around 1:300,000, even before excluding unpredictable problems like blood clots. If a typical procedure involves two hundred chances to kill the patient by messing up, then an AI surgeon would need a reliability rate of at least 99.999998%.
+
+One concern with GPT-3 has been that it might accidentally be racist or offensive. Humans are, of course, sometimes racist or offensive, but in a tightly controlled Western professional context, it's pretty rare. Eg., one McDonald's employee was fired for yelling racial slurs at a customer. But McDonald's serves 70 million people a day, ~1% of the world's population. Assuming that 10% of such incidents get a news story and there's about one story per year, a similar language model would need a reliability rate of around 1:2,500,000,000, or 99.99999996%, to match McDonald's workers. When I did AI for the McDonald's drive-thru, the language model wasn't allowed to generate text at all. All spoken dialog had to be pre-approved and then manually engineered in. Reliability is hard!
+
+On the one hand, this might seem slightly optimistic for AI alignment research, since commercial AI teams will have to get better worst-case bounds on AI behavior for immediate economic reasons. On the other hand, because so much of the risk of AI is concentrated into a small number of very bad outcomes, it seems like such engineering might get us AIs that appear safe, and almost always are safe, but will still cause catastrophic failure in conditions that weren't anticipated. That seems bad."""
     text = """Imagine it's late autumn of 332 BC. You're Alexander the Great, and your armies are marching toward Egypt from Gaza. There’s just one little problem: you need to cross the Sinai peninsula - 150 miles of hot, barren desert. How will you carry food and water for the troops?
 
 
@@ -203,7 +220,9 @@ r
 . A nuclear warhead could go off five hundred feet away and you’d feel a breeze through a fast-branching portal network. On the other hand, viruses could spread much more rapidly.
 
 Anyway, at this point we’re getting into specifics of portals, so I’ll cut off the speculation. The point is: if transportation continues to get cheaper and more efficient over time, then we will converge to the world of the portal, or at least something like it. The details do matter - portals are different from teleportation or whatever might actually happen - but any method of fully relaxing transportation constraints will have qualitatively similar results, to a large extent."""
+   
+    signature = "link: https://www.lesswrong.com/posts/28zsuPaJpKAGSX4zq, title: Humans are very reliable agents, author: alyssavance"
 
-    splitting = TextSplitter(block_maxsize=500, block_minsize=300)
-    blocks = splitting.text_splitter(text, "link: https://www.reddit.com/r/HistoryAnecdotes/comments/9x7q0j/alexander_the_greats_army_was_starved_out_of/, title: test, author: alexander the great")
-    print("\n\n".join(blocks))
+    splitting = TokenSplitter(max_tokens=500, min_tokens=400)
+    blocks = splitting.split(text, signature)
+    print("\n\n\n".join(blocks))
