@@ -134,3 +134,4 @@ dmypy.json
 *embeddings.npy
 *.pickle
 *.pkl
+src/Embeddings Search/tmp.py
