@@ -92,12 +92,14 @@ class TokenSplitter:
                         self.blocks.append(dec(enc(sentence)[:max_tokens]))
                         current_block = ""
             
-            print(tok_len(current_block))
             if tok_len(current_block) > min_tokens:
                 self.blocks.append(current_block)
                 current_block = ""
 
         if current_block != "":
+            if len(self.blocks) == 0:
+                self.blocks.append(current_block)
+                return
             latest_block = self.blocks[-1]
             len_cur_block = tok_len(current_block)
             latest_plus_current = latest_block + current_block
@@ -115,7 +117,18 @@ class TokenSplitter:
     def split(self, text: str, signature: str) -> List[str]:
         self.signature = signature
         self._text_splitter(text)
-        return [f"{block}\n - {signature}" for block in self.blocks]
+        blocks = self.blocks
+        self.blocks = []
+        self.signature = "{url, title, author} unknown"
+        
+        # check all block elements are strings
+        assert all([isinstance(block, str) for block in blocks]), "block elements are not strings"
+
+        output = [f"{block}\n - {signature}" for block in blocks]
+        #check all output elements are strings
+        assert all([isinstance(block, str) for block in output]), "output elements are not strings"
+
+        return output
 
 
 if __name__ == "__main__":
