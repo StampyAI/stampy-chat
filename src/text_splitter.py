@@ -234,7 +234,7 @@ r
 
 Anyway, at this point we’re getting into specifics of portals, so I’ll cut off the speculation. The point is: if transportation continues to get cheaper and more efficient over time, then we will converge to the world of the portal, or at least something like it. The details do matter - portals are different from teleportation or whatever might actually happen - but any method of fully relaxing transportation constraints will have qualitatively similar results, to a large extent."""
    
-    signature = "link: https://www.lesswrong.com/posts/28zsuPaJpKAGSX4zq, title: Humans are very reliable agents, author: alyssavance"
+    signature = "Title: Humans are very reliable agents, Author: alyssavance, URL: https://www.lesswrong.com/posts/28zsuPaJpKAGSX4zq"
 
     splitting = TokenSplitter(max_tokens=500, min_tokens=400)
     blocks = splitting.split(text, signature)
