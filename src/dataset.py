@@ -15,7 +15,6 @@ from tenacity import (
 )  # for exponential backoff
 import tiktoken
 
-import config
 from pathlib import Path
 import config
 from text_splitter import TokenSplitter, split_into_sentences

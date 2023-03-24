@@ -2,130 +2,104 @@ import re
 from typing import List
 import tiktoken
 
-# FROM https://stackoverflow.com/a/31505798/16185542
-# -*- coding: utf-8 -*-
-alphabets= "([A-Za-z])"
-prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
-suffixes = "(Inc|Ltd|Jr|Sr|Co)"
-starters = "(Mr|Mrs|Ms|Dr|Prof|Capt|Cpt|Lt|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
-acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
-websites = "[.](com|net|org|io|gov|edu|me)"
-digits = "([0-9])"
+import re
+from typing import List
+import nltk
 
-def split_into_sentences(text):
-    text = " " + text + "  "
-    text = text.replace("\n"," ")
-    text = text.replace("?!", "?")
-    text = re.sub(prefixes,"\\1<prd>",text)
-    text = re.sub(websites,"<prd>\\1",text)
-    text = re.sub(digits + "[.]" + digits,"\\1<prd>\\2",text)
-    if "..." in text: text = text.replace("...","<prd><prd><prd>")
-    if "Ph.D" in text: text = text.replace("Ph.D.","Ph<prd>D<prd>")
-    text = re.sub("\s" + alphabets + "[.] "," \\1<prd> ",text)
-    text = re.sub(acronyms+" "+starters,"\\1<stop> \\2",text)
-    text = re.sub(alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>\\3<prd>",text)
-    text = re.sub(alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>",text)
-    text = re.sub(" "+suffixes+"[.] "+starters," \\1<stop> \\2",text)
-    text = re.sub(" "+suffixes+"[.]"," \\1<prd>",text)
-    text = re.sub(" " + alphabets + "[.]"," \\1<prd>",text)
-    if "”" in text: text = text.replace(".”","”.")
-    if "\"" in text: text = text.replace(".\"","\".")
-    if "!" in text: text = text.replace("!\"","\"!")
-    if "?" in text: text = text.replace("?\"","\"?")
-    text = text.replace(".",".<stop>")
-    text = text.replace("?","?<stop>")
-    text = text.replace("!","!<stop>")
-    text = text.replace("<prd>",".")
 
-    sentences = text.split("<stop>")
-    sentences = sentences[:-1]
-    sentences = [s.strip() for s in sentences]
-    
-    if sentences == []:
-        sentences = [text.strip()]
+# Download the Punkt tokenizer if you haven't already
+# nltk.download("punkt")
+
+def split_into_sentences(text: str) -> List[str]:
+    """
+    Splits the input text into sentences.
+
+    :param text: The input text to be split.
+    :return: A list of sentences.
+    """
+    text = text.replace("\n", " ")    # Replace newline characters with spaces
+    sentences = nltk.sent_tokenize(text)    # Use the Punkt tokenizer from the NLTK library to split the text into sentences
+    sentences = [s.strip() for s in sentences]    # Strip leading and trailing whitespace from each sentence
     return sentences
 
 
 class TokenSplitter:
-    """splits text into blocks of tokens according to chatgpt's tokenizer"""
+    """Splits text into blocks of tokens according to chatgpt's tokenizer."""
+
     def __init__(self, min_tokens: int = 500, max_tokens: int = 750):
         self.encoding = tiktoken.get_encoding("cl100k_base")
         self.min_tokens = min_tokens
         self.max_tokens = max_tokens
-        self.blocks = []
-        self.signature = "{url, title, author} unknown"
-        
+        self.default_signature = "{url, title, author} unknown"
 
+    def _text_splitter(self, text: str, signature: str) -> List[str]:
+        """Splits text into blocks of tokens according to chatgpt's tokenizer."""
+        enc = self.encoding.encode  # takes a string and returns a list of ints (tokens)
+        dec = self.encoding.decode  # takes a list of ints (tokens) and returns a string
+        tok_len = lambda x: len(enc(x))  # length of a string in tokens
 
-    def _text_splitter(self, text: str) -> List[str]:
-        """splits text into blocks of tokens according to chatgpt's tokenizer"""
-        # Do not call this function outside of split()      
-        
-        enc = self.encoding.encode # takes a string and returns a list of ints (tokens)
-        dec = self.encoding.decode # takes a list of ints (tokens) and returns a string
-        tok_len = lambda x: len(enc(x)) # length of a string in tokens
-
-        max_tokens = self.max_tokens - tok_len(self.signature) - 10 # 10 to be safe
+        max_tokens = self.max_tokens - tok_len(signature) - 10  # 10 to be safe
         assert max_tokens > 0, "max_tokens is too small for the signature"
-        
-        min_tokens = self.min_tokens - tok_len(self.signature) - 10 # 10 to be safe
+
+        min_tokens = self.min_tokens - tok_len(signature) - 10  # 10 to be safe
         assert min_tokens > 0, "min_tokens is too small for the signature"
 
+        blocks = []
         current_block = ""
         paragraphs = text.split("\n\n")
+        
         for paragraph in paragraphs:
             sentences = split_into_sentences(paragraph)
             if current_block != "":
                 current_block += "\n\n"
 
             for sentence in sentences:
-                potential_new_block = current_block + " " + sentence
+                potential_new_block = f"{current_block} {sentence}"
                 
                 if tok_len(potential_new_block) <= max_tokens:
                     current_block = potential_new_block
                 
                 else:
-                    self.blocks.append(current_block)
+                    blocks.append(current_block)
                     if tok_len(sentence) < max_tokens:
                         current_block = sentence
                     else:
-                        self.blocks.append(dec(enc(sentence)[:max_tokens]))
+                        blocks.append(dec(enc(sentence)[:max_tokens]))
                         current_block = ""
             
             if tok_len(current_block) > min_tokens:
-                self.blocks.append(current_block)
+                blocks.append(current_block)
                 current_block = ""
 
         if current_block != "":
-            if len(self.blocks) == 0:
-                self.blocks.append(current_block)
-                return
-            latest_block = self.blocks[-1]
-            len_cur_block = tok_len(current_block)
-            latest_plus_current = latest_block + current_block
-
-            if len_cur_block > min_tokens:
-                self.blocks.append(current_block)
-            
+            if len(blocks) == 0:
+                blocks.append(current_block)
             else:
-                #select the last self.max_tokens tokens from the latest block
-                last_block = dec(enc(latest_plus_current)[-max_tokens:])
-                self.blocks.append(last_block)
+                latest_block = blocks[-1]
+                len_cur_block = tok_len(current_block)
+                latest_plus_current = latest_block + current_block
 
-        
-    
-    def split(self, text: str, signature: str) -> List[str]:
-        self.signature = signature
-        self._text_splitter(text)
-        blocks = self.blocks
-        self.blocks = []
-        self.signature = "{url, title, author} unknown"
-        
-        # check all block elements are strings
+                if len_cur_block > min_tokens:
+                    blocks.append(current_block)
+                
+                else:
+                    # select the last self.max_tokens tokens from the latest block
+                    last_block = dec(enc(latest_plus_current)[-max_tokens:])
+                    blocks.append(last_block)
+
+        return blocks
+
+    def split(self, text: str, signature: str = None) -> List[str]:
+        if signature is None:
+            signature = self.default_signature
+
+        blocks = self._text_splitter(text, signature)
+
+        # Check all block elements are strings
         assert all([isinstance(block, str) for block in blocks]), "block elements are not strings"
 
         output = [f"{block}\n - {signature}" for block in blocks]
-        #check all output elements are strings
+        # Check all output elements are strings
         assert all([isinstance(block, str) for block in output]), "output elements are not strings"
 
         return output
@@ -236,6 +210,6 @@ Anyway, at this point we’re getting into specifics of portals, so I’ll cut o
    
     signature = "Title: Humans are very reliable agents, Author: alyssavance, URL: https://www.lesswrong.com/posts/28zsuPaJpKAGSX4zq"
 
-    splitting = TokenSplitter(max_tokens=500, min_tokens=400)
+    splitting = TokenSplitter(max_tokens=250, min_tokens=330)
     blocks = splitting.split(text, signature)
     print("\n\n\n".join(blocks))

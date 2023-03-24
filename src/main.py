@@ -16,7 +16,6 @@ def main():
     prompt = "What would be an idea to solve the Alignment Problem? Name the Lesswrong post by Quintin Pope that discusses this idea."
     answer = AS.search_and_answer(prompt, 3, HyDE=False)
     print(answer)
-
     
 if __name__ == "__main__":
     main()
