@@ -98,12 +98,11 @@ class TokenSplitter:
         # Check all block elements are strings
         assert all([isinstance(block, str) for block in blocks]), "block elements are not strings"
 
-        output = [f"{block}\n - {signature}" for block in blocks]
+        output = [f'"{block}"\n- {signature}' for block in blocks]
         # Check all output elements are strings
         assert all([isinstance(block, str) for block in output]), "output elements are not strings"
 
         return output
-
 
 if __name__ == "__main__":
     text = """This post has been recorded as part of the LessWrong Curated Podcast, and an be listened to on Spotify, Apple Podcasts, and Libsyn.

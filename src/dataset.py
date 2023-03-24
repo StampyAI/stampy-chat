@@ -56,7 +56,8 @@ class Dataset:
         
         self.metadata: List[Tuple[str]] = []  # List of tuples, each containing the title of an article, its URL, and text. E.g.: [('title', 'url', 'text'), ...]
         self.embedding_strings: List[str] = []  # List of strings, each being a few paragraphs from a single article (not exceeding 1000 words).
-        
+        self.embeddings_metadata: List[int] # List of integers, each being the index of the article from which the embedding string was taken.
+
         self.articles_count: DefaultDict[str, int] = defaultdict(int)  # Number of articles per source. E.g.: {'source1': 10, 'source2': 20, 'total': 30}
 
         if self.custom_sources is not None:
@@ -82,28 +83,28 @@ class Dataset:
         Returns:
             Tuple[str]: a tuple containing the title, author, date, URL, tags, and text of the article.
         """
-        title = None
-        author = None
-        date_published = None
-        url = None
-        tags = None
-        text = None
+        title: str = ""
+        author: str = ""
+        date_published: str = None
+        url: str = None
+        tags: str = None
+        text: str = None
         
         # Get title
         if 'title' in article and 'book_title' in article and article['title']: title = article['title']
         elif 'book_title' in article and 'title' not in article and article['book_title']: 
             title = article['book_title']
-            if title[-1] == '\n': title = title[:-1]
         elif 'title' in article and article['title']: 
             title = article['title']
-            if title[-1] == '\n': title = title[:-1]
-        else: title = None
+        title = title.strip('\n').replace('\n', ' ')[:100]
 
         # Get author
         if 'author' in article and 'authors' in article and article['author']: author = article['author']
         elif 'authors' in article and article['authors']: author = article['authors']
         elif 'author' in article and article['author']: author = article['author']
-        else: author = None
+        if type(author) == str: author = get_authors_list(author)
+        if type(author) == list: author = ', '.join(author)
+        author = author.strip('\n').replace('\n', ' ')[:100]
 
         # Get date published
         if 'date_published' in article and article['date_published'] and len(article['date_published']) >= 10: date_published = article['date_published'][:10]
@@ -156,6 +157,7 @@ class Dataset:
                     # if we specified custom sources, only include articles from those sources
                     if (self.custom_sources is not None) and (entry['source'] not in self.custom_sources):
                         continue
+                    
                     self.articles_count[entry['source']] += 1
                     self.total_articles_count += 1
                     
@@ -165,16 +167,20 @@ class Dataset:
                     # Get signature
                     signature = ""
                     if title: signature += f"Title: {title}, "
-                    if author: signature += f"Author: {author}, "
-                    if date_published: signature += f"Date published: {date_published}, "
-                    if url: signature += f"URL: {url}, "
+                    else: signature += f"Title: None, "
+                    if author: signature += f"Author: {author}"
+                    else: signature += f"Author: None"
+                    # if date_published: signature += f"Date published: {date_published}, "
+                    # if url: signature += f"URL: {url}, "
                     # if tags: signature += f"Tags: {tags}, "  # Temporary decision to not include tags in the signature
-                    if signature: signature = signature[:-2]
+                    # if signature: signature = signature[:-2]
+                    signature = signature.replace("\n", " ")
                     
                     # Add info to metadata and embedding strings
-                    self.metadata.append((title, author, date_published, url, tags, text))
+                    self.metadata.append((title, author, date_published, url, tags))
                     blocks = text_splitter.split(text, signature)
                     self.embedding_strings.extend(blocks)
+                    self.embeddings_metadata.extend([self.total_articles_count] * len(blocks))
                     
                     # Update counts
                     self.total_char_count += len(text)
@@ -221,6 +227,29 @@ class Dataset:
     def save_class(self, path: str):
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+
+
+
+
+
+def get_authors_list(authors_string: str) -> List[str]:
+    """
+    Given a string of authors, return a list of the authors, even if the string contains a single author.
+    """
+    authors_string = authors_string.replace(" and ", ",")
+    authors_string = authors_string.replace('\n', ' ')
+    authors = []
+    if authors_string is None:
+        return []
+    if "," in authors_string:
+        authors = [author.strip() for author in authors_string.split(",")]
+    else:
+        authors = [authors_string.strip()]
+    return authors
+
+
+
+
 
 if __name__ == "__main__":
     # List of possible sources:
