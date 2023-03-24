@@ -4,3 +4,4 @@ numpy
 langchain
 requests
 tiktoken
+pinecone
