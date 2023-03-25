@@ -38,58 +38,16 @@ const Home: NextPage = () => {
 // them back from OpenAI - I think we can just do this with a websocket, which
 // shouldn't be too different.
 
-const ApiButton: React.FC = () => {
-    const [response, setResponse] = useState("");
-    const [num, setNum] = useState(12);
-    const [loading, setLoading] = useState(false);
-
-    const calculate = async () => {
-
-        setLoading(true);
-
-        const res = await fetch("/api", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({number: num}),
-        })
-
-        const data = await res.json();
-
-        setLoading(false);
-
-        return data.result || "error";
-
-    };
-
-    return (
-        <>
-            <span>
-                <button className="mr-2"
-                onClick={async () => setResponse(JSON.stringify(await calculate()))} disabled={loading}>
-                    {loading ? "Loading..." : "Calculate"}
-                </button>
-                the factorial of
-                <input 
-                    type = "number" 
-                    className = "w-10 border border-gray-300 px-1 mx-1" value={num} onChange={(e) => setNum(parseInt(e.target.value))} />
-                = {loading ? "..." : response}
-            </span>
-        </>
-    );
-};
-
-
 // a search-box the person can type in, where they then can hit enter to search.
 // The query gets sent to api/search, and a list of links is returned, which are
 // then displayed below.
 
 const SearchBox: React.FC = () => {
     const [query, setQuery] = useState("");
-    // const [results, setResults] = useState([]);
-    const [result, setResult] = useState("");
+    const [results, setResults] = useState<{title: string, url: string}[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const search = async () => {
+    const embeddings = async (query: String) => {
         
         setLoading(true);
 
@@ -103,22 +61,24 @@ const SearchBox: React.FC = () => {
 
         setLoading(false);
 
-        // return data.results || [];
-        console.log(data);
-        return String(data);
+        // data looks like 
+        // { 0: "{'url' : 'https://foo.com', 'title' : 'foo'}", 
+        //   1: "{'url' : 'https://bar.com', 'title' : 'bar'}" }
+        // so we need to convert it to a list of objects
 
+        return Object.keys(data).map((key) => JSON.parse(data[key])) || [{title: "error", url: "error"}];
     };
 
     return (
         <>
-            <form onSubmit={async (e) => {
+            <form className="flex" onSubmit={async (e) => {
                 e.preventDefault();
-                setResult(await search());
+                setResults(await embeddings(query));
             }}>
 
                 <input
                     type="text"
-                    className="w-64 border border-gray-300 px-1"
+                    className="border border-gray-300 px-1 flex-1"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />
@@ -126,16 +86,15 @@ const SearchBox: React.FC = () => {
                     {loading ? "Loading..." : "Search"}
                 </button>
             </form>
-            <p>{loading ? "..." : result}</p>
-            {/*
-            <ul>
-                {results.map((result, i) => (
-                    <li key={i}>
-                        <a href={result.url}>{result.title}</a>
-                    </li>
-                ))}
-            </ul>
-            */}
+            {loading ? <p>loading...</p> : (
+                <ul>
+                    {results.map((result) => (
+                        <li key={result.url}>
+                            <a href={result.url}>{result.title}</a>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </>
     );
 };
