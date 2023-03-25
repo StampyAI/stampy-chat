@@ -59,8 +59,8 @@ class Dataset:
         self.min_tokens_per_block = min_tokens_per_block  # for the text splitter
         self.max_tokens_per_block = max_tokens_per_block  # for the text splitter
         
-        self.metadata: List[Tuple[str]] = []  # List of tuples, each containing the title of an article, its URL, and text. E.g.: [('title', 'url', 'text'), ...]
-        self.embedding_strings: List[str] = []  # List of strings, each being a few paragraphs from a single article (not exceeding 1000 words).
+        self.metadata: List[Tuple[str]] = []  # List of tuples, each containing the title, author, date, URL, and tags of an article.
+        self.embedding_strings: List[str] = []  # List of strings, each being a few paragraphs from a single article (not exceeding max_tokens_per_block tokens).
         self.embeddings_metadata_index: List[int] = [] # List of integers, each being the index of the article from which the embedding string was taken.
 
         self.articles_count: DefaultDict[str, int] = defaultdict(int)  # Number of articles per source. E.g.: {'source1': 10, 'source2': 20, 'total': 30}

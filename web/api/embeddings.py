@@ -15,18 +15,12 @@ class handler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
 
-        results = {};
+        results = {}
 
         for i, link in enumerate(embeddings(data['query'])):
             results[i] = json.dumps(link.__dict__)
 
         self.wfile.write(json.dumps(results).encode('utf-8'))
-
-
-class Link:
-    def __init__(self, url, title):
-        self.url = url
-        self.title = title
 
 
 # -------------------------------- non-web-code --------------------------------
@@ -65,6 +59,18 @@ PATH_TO_EMBEDDINGS = project_path / "web" / "api" / "data" / "embeddings.npy" # 
 PATH_TO_DATASET = project_path / "web" / "api" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
 
 
+class Dataset:
+    pass
+
+class Block:
+    def __init__(self, title: str, author: str, date: str, url: str, tags: str, text: str):
+        self.title = title
+        self.author = author
+        self.date = date
+        self.url = url
+        self.tags = tags
+        self.text = text
+
 def retry_on_exception_types(exception_types: List[Type[Exception]], stop_after_attempt: int, max_wait_time: int) -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -98,10 +104,7 @@ def get_embedding(text: str) -> np.ndarray:
     )
     return result["data"][0]["embedding"]
 
-class Dataset:
-    pass
-
-def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
+def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[Block]:
     """Get the top k blocks that are most semantically similar to the query, using the provided dataset. 
 
     Args:
@@ -110,10 +113,9 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
         HyDE (bool, optional): Whether to use HyDE or not. Defaults to False.
 
     Returns:
-        List[str]: A list of the top k blocks that are most semantically similar to the query.
+        List[Block]: A list of the top k blocks that are most semantically similar to the query.
     """
     # Get the dataset
-    print(f"\n\nLoading {PATH_TO_DATASET}...\n\n")
     with open(PATH_TO_DATASET, "rb") as f:
         metadataset = pickle.load(f)
     
@@ -139,30 +141,37 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
         similarity_scores = np.dot(metadataset.embeddings, query_embedding)
     
     ordered_blocks = np.argsort(similarity_scores)[::-1]  # Sort the blocks by similarity score
-    top_k_indices = ordered_blocks[:k]  # Get the top k indices
+    top_k_text_indices = ordered_blocks[:k]  # Get the top k indices of the blocks
+    top_k_metadata_indexes = [metadataset.embeddings_metadata_index[i] for i in top_k_text_indices]
     
-    # Get associated strings
-    top_k_strings = [metadataset.embedding_strings[i] for i in top_k_indices]  # Get the top k strings
+    # Get the top k blocks (title, author, date, url, tags, text)
+    top_k_texts = [metadataset.embedding_strings[i] for i in top_k_text_indices]  # Get the top k texts
+    top_k_metadata = [metadataset.metadata[i] for i in top_k_metadata_indexes]  # Get the top k metadata (title, author, date, url, tags)
     
-    # Get associated links
-    top_k_links = [metadataset.metadata[metadataset.embeddings_metadata_index[i]][3] for i in top_k_indices]  # Get the top k sources
+    # Combine the top k texts and metadata into a list of Block objects
+    top_k_metadata_and_text = [list(top_k_metadata[i]) + [top_k_texts[i]] for i in range(k)]
     
-    links = []
-    for string, link in zip(top_k_strings, top_k_links):
-        links.append(Link(link, string))
+    top_k_blocks = [Block(*block) for block in top_k_metadata_and_text]
         
-    return links
+    return top_k_blocks
 
 def embeddings(query):
     # write a function here that takes a query, returns a bunch of semantically similar links
     
-    link_list = get_top_k_blocks(query, 8, HyDE=False)
+    top_k_blocks = get_top_k_blocks(query, 8, HyDE=False)
     
-    return link_list
+    return top_k_blocks
 
 
 if __name__ == "__main__":
     # Test the embeddings function
-    links = embeddings("The last enemy that shall be destroyed is death.")
-    for link in links:
-        print(link.title, link.url)
+    blocks = embeddings("Artificial Intelligence stinks.")
+    for link in blocks:
+        print(f"Title: {link.title}")
+        print(f"Author: {link.author}")
+        print(f"Date: {link.date}")
+        print(f"URL: {link.url}")
+        print(f"Tags: {link.tags}")
+        print(f"Text: {link.text}")
+        print()
+        print()
