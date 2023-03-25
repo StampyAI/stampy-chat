@@ -48,7 +48,7 @@ const ApiButton: React.FC = () => {
 
         setLoading(true);
 
-        const res = await fetch("/api/embeddings", {
+        const res = await fetch("/api", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({number: num}),
@@ -89,7 +89,7 @@ const ApiButton2: React.FC = () => {
 
         setLoading(true);
 
-        const res = await fetch("/api", {
+        const res = await fetch("/api/embeddings", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({query: query}),

@@ -15,6 +15,15 @@ class handler(BaseHTTPRequestHandler):
         results = { 'results'  : 'foo' }
         self.wfile.write(json.dumps(results).encode('utf-8'))
 
+    # get request: hello world
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+        message = 'Hello world!'
+        self.wfile.write(message.encode('utf-8'))
+        return
+
 def embeddings(query):
 
     # write a function here that takes a query, returns a bunch of semantically similar links
