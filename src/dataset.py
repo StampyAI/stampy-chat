@@ -7,6 +7,7 @@ import time
 import random
 import pickle
 import openai
+#from tqdm.auto import tqdm 
 import concurrent.futures
 from tenacity import (
     retry,
@@ -14,6 +15,7 @@ from tenacity import (
     wait_random_exponential,
 )  # for exponential backoff
 import tiktoken
+from time import sleep
 
 from pathlib import Path
 import config
@@ -195,6 +197,9 @@ class Dataset:
 
     def get_embeddings(self):
         # Get an embedding for each text, with retries if necessary
+        #TODO: check batch size stuff at https://github.com/openai/openai-cookbook/blob/main/examples/vector_databases/pinecone/Gen_QA.ipynb
+        # to speed up the process 
+
         @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
         def get_embedding_at_index(text: str, i: int, delay_in_seconds: float = 0) -> np.ndarray:
             time.sleep(delay_in_seconds)
@@ -217,7 +222,28 @@ class Dataset:
                 if num_completed % 50 == 0:
                     print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
         print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
-    
+
+    #TODO: complete this to speed up embeddings
+    """ def get_embeddings_in_batches(self):
+        # Get an embedding for each text, with retries if necessary
+        
+        @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
+        def get_embedding_in_batches(batch: List[str], i: int, delay_in_seconds: float = 0) -> np.ndarray:
+                try:
+                    res = openai.Embedding.create(input=batch, engine=EMBEDDING_MODEL)
+                except:
+                    done = False
+                    while not done:
+                        time.sleep(5)
+                        try:
+                            res = openai.Embedding.create(input=batch, engine=EMBEDDING_MODEL)
+                            done = True
+                        except:
+                            pass
+                """
+
+            
+
     def save_embeddings(self, path: str):
         np.save(path, self.embeddings)
         
