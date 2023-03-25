@@ -17,9 +17,11 @@ from tenacity import (
 
 from text_splitter import TokenSplitter, split_into_sentences
 from settings import PATH_TO_DATA, PATH_TO_EMBEDDINGS, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
+import os
+from tqdm.auto import tqdm
 
-import openai
 openai.api_key = os.environ.get('OPENAI_API_KEY')
+
 
 error_count_dict = {
     "Entry has no source.": 0,
@@ -131,7 +133,7 @@ class Dataset:
     def get_alignment_texts(self):
         text_splitter = TokenSplitter(self.min_tokens_per_block, self.max_tokens_per_block)
         with jsonlines.open(self.jsonl_data_path, "r") as reader:
-            for entry in reader:
+            for entry in tqdm(reader):
                 try:
                     if 'source' not in entry: 
                         if 'url' in entry and entry['url'] == "https://www.cold-takes.com/": 
@@ -238,8 +240,6 @@ class Dataset:
                             pass
                 """
 
-            
-
     def save_embeddings(self, path: str):
         np.save(path, self.embeddings)
         
@@ -280,22 +280,22 @@ if __name__ == "__main__":
 
     # List of sources we are using for the test run:
     custom_sources = [
-        "https://aipulse.org", 
-        "ebook", 
+        # "https://aipulse.org", 
+        # "ebook", 
         # "https://qualiacomputing.com", 
         # "alignment forum", 
         # "lesswrong", 
         "manual", 
         # "arxiv", 
-        "https://deepmindsafetyresearch.medium.com", 
+        # "https://deepmindsafetyresearch.medium.com", 
         "waitbutwhy.com", 
         "GitHub", 
         # "https://aiimpacts.org", 
         # "arbital.com", 
-        "carado.moe", 
+        # "carado.moe", 
         # "nonarxiv_papers", 
-        "https://vkrakovna.wordpress.com", 
-        "https://jsteinhardt.wordpress.com", 
+        # "https://vkrakovna.wordpress.com", 
+        # "https://jsteinhardt.wordpress.com", 
         "audio-transcripts", 
         # "https://intelligence.org", 
         # "youtube", 

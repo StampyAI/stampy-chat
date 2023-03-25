@@ -8,7 +8,7 @@ import nltk
 
 
 # Download the Punkt tokenizer if you haven't already
-# nltk.download("punkt")
+nltk.download("punkt")
 
 def split_into_sentences(text: str) -> List[str]:
     """
