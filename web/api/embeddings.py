@@ -11,18 +11,9 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
-        # results = embeddings(data['query'])
-        results = { 'results'  : 'foo' }
+        results = embeddings(data['query'])
         self.wfile.write(json.dumps(results).encode('utf-8'))
 
-    # get request: hello world
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        message = 'Hello world!'
-        self.wfile.write(message.encode('utf-8'))
-        return
 
 def embeddings(query):
 
@@ -31,5 +22,6 @@ def embeddings(query):
     return [ \
         'https://www.lesswrong.com/posts/FinfRNLMfbq5ESxB9/microsoft-research-paper-claims-sparks-of-artificial', \
         'https://www.lesswrong.com/posts/XhfBRM7oRcpNZwjm8/abstracts-should-be-either-actually-short-tm-or-broken-into', \
-        'https://www.lesswrong.com/posts/ohXcBjGvazPAxq2ex/continue-working-on-hard-alignment-don-t-give-up'
+        'https://www.lesswrong.com/posts/ohXcBjGvazPAxq2ex/continue-working-on-hard-alignment-don-t-give-up', \
+        'https://www.lesswrong.com/posts/' + query + '/this-is-a-test'
     ]
