@@ -26,25 +26,23 @@ const Home: NextPage = () => {
                     so if anyone else is considering this, you can message us to 
                     coordinate sharing the embeddings to avoid redundancy.
                 </p>
-                <p>Python serverless test:</p>
+
+                <p className="mt-4">Get the most semantic similar results to a query:</p>
                 <SearchBox />
             </main>
         </>
     );
 };
 
-// round trip test. If this works, our heavier usecase probably will (famous last words)
+// Round trip test. If this works, our heavier usecase probably will (famous last words)
 // The one real difference is we'll want to send back a series of results as we get
 // them back from OpenAI - I think we can just do this with a websocket, which
-// shouldn't be too different.
-
-// a search-box the person can type in, where they then can hit enter to search.
-// The query gets sent to api/search, and a list of links is returned, which are
-// then displayed below.
+// shouldn't be too much harder.
 
 const SearchBox: React.FC = () => {
-    const [query, setQuery] = useState("");
-    const [results, setResults] = useState<{title: string, url: string}[]>([]);
+
+    const [query,   setQuery]   = useState("");
+    const [results, setResults] = useState<{title: string,  url: string}[]>([]);
     const [loading, setLoading] = useState(false);
 
     const embeddings = async (query: String) => {
@@ -71,7 +69,7 @@ const SearchBox: React.FC = () => {
 
     return (
         <>
-            <form className="flex" onSubmit={async (e) => {
+            <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
                 e.preventDefault();
                 setResults(await embeddings(query));
             }}>
@@ -86,10 +84,11 @@ const SearchBox: React.FC = () => {
                     {loading ? "Loading..." : "Search"}
                 </button>
             </form>
-            {loading ? <p>loading...</p> : (
+
+            {loading ? <p>loading...</p> : ( // display results in list
                 <ul>
                     {results.map((result) => (
-                        <li key={result.url}>
+                        <li key={result.url} className="my-1">
                             <a href={result.url}>{result.title}</a>
                         </li>
                     ))}
