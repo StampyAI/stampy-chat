@@ -21,7 +21,11 @@ import os
 from tqdm.auto import tqdm
 import openai
 
-openai.api_key = os.environ.get('OPENAI_API_KEY')
+try:
+    import config
+    openai.api_key = config.OPENAI_API_KEY
+except ImportError:
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 
 error_count_dict = {
@@ -217,7 +221,7 @@ class Dataset:
                 i, embedding = future.result()
                 self.embeddings[i] = embedding
                 num_completed += 1
-                if num_completed % 20 == 0:
+                if num_completed % 50 == 0:
                     print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
         print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
 
@@ -247,11 +251,10 @@ class Dataset:
         self.embeddings = np.load(path)
         
     def save_class(self, path: str):
+        # Save the class to a pickle file
+        print(f"Saving class to {path}...")
         with open(path, 'wb') as f:
             pickle.dump(self, f)
-
-
-
 
 
 def get_authors_list(authors_string: str) -> List[str]:
@@ -270,13 +273,9 @@ def get_authors_list(authors_string: str) -> List[str]:
     return authors
 
 
-
-
-
 if __name__ == "__main__":
     # List of possible sources:
-    all_sources = ["https://aipulse.org", "ebook", "https://qualiacomputing.com", "alignment forum", "lesswrong", "manual", "arxiv", "https://deepmindsafetyresearch.medium.com", "waitbutwhy.com", "GitHub", "https://aiimpacts.org", "arbital.com", "carado.moe", "nonarxiv_papers", "https://vkrakovna.wordpress.com", "https://jsteinhardt.wordpress.com", "audio-transcripts", "https://intelligence.org", "youtube", "reports", "https://aisafety.camp", "curriculum", "https://www.yudkowsky.net", "distill",
-                "Cold Takes", "printouts", "gwern.net", "generative.ink", "greaterwrong.com"] # These sources do not have a source field in the .jsonl file
+    all_sources = ["https://aipulse.org", "ebook", "https://qualiacomputing.com", "alignment forum", "lesswrong", "manual", "arxiv", "https://deepmindsafetyresearch.medium.com", "waitbutwhy.com", "GitHub", "https://aiimpacts.org", "arbital.com", "carado.moe", "nonarxiv_papers", "https://vkrakovna.wordpress.com", "https://jsteinhardt.wordpress.com", "audio-transcripts", "https://intelligence.org", "youtube", "reports", "https://aisafety.camp", "curriculum", "https://www.yudkowsky.net", "distill", "Cold Takes", "printouts", "gwern.net", "generative.ink", "greaterwrong.com"] # These sources do not have a source field in the .jsonl file
 
     # List of sources we are using for the test run:
     custom_sources = [
@@ -289,20 +288,20 @@ if __name__ == "__main__":
         # "arxiv", 
         # "https://deepmindsafetyresearch.medium.com", 
         "waitbutwhy.com", 
-        "GitHub", 
+        # "GitHub", 
         # "https://aiimpacts.org", 
         # "arbital.com", 
         # "carado.moe", 
         # "nonarxiv_papers", 
         # "https://vkrakovna.wordpress.com", 
-        # "https://jsteinhardt.wordpress.com", 
+        "https://jsteinhardt.wordpress.com", 
         # "audio-transcripts", 
         # "https://intelligence.org", 
         # "youtube", 
         # "reports", 
-        # "https://aisafety.camp", 
+        "https://aisafety.camp", 
         "curriculum", 
-        # "https://www.yudkowsky.net", 
+        "https://www.yudkowsky.net", 
         # "distill",
         # "Cold Takes",
         # "printouts",
@@ -310,7 +309,6 @@ if __name__ == "__main__":
         # "generative.ink",
         # "greaterwrong.com"
     ]
-
     
     dataset = Dataset(
         jsonl_data_path=PATH_TO_DATA.resolve(), 
@@ -319,15 +317,11 @@ if __name__ == "__main__":
         min_tokens_per_block=200, max_tokens_per_block=300, 
         # fraction_of_articles_to_use=1/2000
     )
-    # Test get_embedding
-    dataset.embedding_strings = ["This is a test", "This is another test"]
+    dataset.get_alignment_texts()
     dataset.get_embeddings()
-    
-    # dataset.get_alignment_texts()
-    # dataset.get_embeddings()
     # dataset.save_embeddings("data/embeddings.npy")
     
-    # dataset.save_class("data/dataset.pkl")
+    dataset.save_class(PATH_TO_DATASET.resolve())
     # # dataset = pickle.load(open("dataset.pkl", "rb"))
     
     
