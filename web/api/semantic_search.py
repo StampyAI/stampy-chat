@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
 
         results = {}
 
-        for i, link in enumerate(embeddings(data['query'])):
+        for i, link in enumerate(get_top_k_blocks(data['query'])):
             results[i] = json.dumps(link.__dict__)
 
         self.wfile.write(json.dumps(results).encode('utf-8'))
@@ -104,12 +104,12 @@ def get_embedding(text: str) -> np.ndarray:
     )
     return result["data"][0]["embedding"]
 
-def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[Block]:
+def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[Block]:
     """Get the top k blocks that are most semantically similar to the query, using the provided dataset. 
 
     Args:
         query (str): The query to be searched for.
-        k (int): The number of blocks to return.
+        k (int, optional): The number of blocks to return.
         HyDE (bool, optional): Whether to use HyDE or not. Defaults to False.
 
     Returns:
@@ -155,17 +155,21 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[Block]
         
     return top_k_blocks
 
-def embeddings(query):
-    # write a function here that takes a query, returns a bunch of semantically similar links
+# def embeddings(query):
+#     # write a function here that takes a query, returns a bunch of semantically similar links
     
-    top_k_blocks = get_top_k_blocks(query, 8, HyDE=False)
+#     top_k_blocks = get_top_k_blocks(query, 8, HyDE=False)
     
-    return top_k_blocks
+#     return top_k_blocks
 
 
 if __name__ == "__main__":
     # Test the embeddings function
-    blocks = embeddings("Artificial Intelligence stinks.")
+    query = "What is the best way to learn about AI alignment?"
+    k = 8
+    HyDE = True
+    
+    blocks = get_top_k_blocks(query, k, HyDE)
     for link in blocks:
         print(f"Title: {link.title}")
         print(f"Author: {link.author}")
