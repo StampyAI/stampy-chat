@@ -5,3 +5,4 @@ langchain
 requests
 tiktoken
 tqdm
+nltk
