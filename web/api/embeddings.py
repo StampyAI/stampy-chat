@@ -36,14 +36,13 @@ from typing import List, Tuple
 import os
 
 
-import numpy as np  # TODO: Add to requirements.txt
-from tenacity import (  # TODO: Add to requirements.txt
+import numpy as np
+from tenacity import (
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )
-import openai  # TODO: Add to requirements.txt
-
+import openai
 
 os.environ.get('OPENAI_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY') 
@@ -61,12 +60,14 @@ PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to
 PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.  # BAD
 PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.  # BAD
 
+
 @retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(4))
 def get_embedding(text: str) -> np.ndarray:
     result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
     return result["data"][0]["embedding"]
 
-def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[str]:
+
+def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[Link]:
     """Get the top k blocks that are most semantically similar to the query, using the provided dataset. 
 
     Args:
@@ -79,7 +80,7 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[str]:
     """
     # Get the dataset
     with open(PATH_TO_DATASET, "rb") as f:
-        dataset = pickle.load(f)
+        metadataset = pickle.load(f)
     
     # Get the embedding for the query.
     query_embedding = get_embedding(user_query)
@@ -98,30 +99,29 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[str]:
         )["choices"][0]["text"]
         HyDe_completion_embedding = get_embedding(f"Question: {user_query}\n\nAnswer: {HyDE_completion}")
         
-        similarity_scores = np.dot(dataset.metadataset.embeddings, HyDe_completion_embedding)        
+        similarity_scores = np.dot(metadataset.embeddings, HyDe_completion_embedding)        
     else:
-        similarity_scores = np.dot(dataset.metadataset.embeddings, query_embedding)
+        similarity_scores = np.dot(metadataset.embeddings, query_embedding)
     
     ordered_blocks = np.argsort(similarity_scores)[::-1]  # Sort the blocks by similarity score
     top_k_indices = ordered_blocks[:k]  # Get the top k indices
-    top_k = [dataset.metadataset.embedding_strings[i] for i in top_k_indices]  # Get the top k strings
+    
+    # Get associated strings
+    top_k_strings = [metadataset.embedding_strings[i] for i in top_k_indices]  # Get the top k strings
     
     # Get associated links
+    top_k_links = [metadataset.metadata[metadataset.embeddings_metadata_index[i]][3] for i in top_k_indices]  # Get the top k sources
     
-    return top_k
+    links = []
+    for string, link in zip(top_k_strings, top_k_links):
+        links.append(Link(link, string))
+        
+    return links
 
 def embeddings(query):
     # write a function here that takes a query, returns a bunch of semantically similar links
-
     
-    return [ \
-        Link('https://www.lesswrong.com/posts/FinfRNLMfbq5ESxB9/microsoft-research-paper-claims-sparks-of-artificial', \
-            'Microsoft Research Paper Claims Sparks of Artificial Intelligence'), \
-        Link('https://www.lesswrong.com/posts/XhfBRM7oRcpNZwjm8/abstracts-should-be-either-actually-short-tm-or-broken-into', \
-            'Abstracts should be either actually short™ or broken into'), \
-        Link('https://www.lesswrong.com/posts/ohXcBjGvazPAxq2ex/continue-working-on-hard-alignment-don-t-give-up', \
-            'Continue working on hard alignment, don\'t give up'), \
-        Link('https://www.lesswrong.com/posts/' + query + '/this-is-a-test', \
-            'This is a test of ' + query), \
-    ]
+    link_list = get_top_k_blocks(query, 4)
+    
+    return link_list
 
