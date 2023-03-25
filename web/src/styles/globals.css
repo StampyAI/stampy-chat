@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+h1 {
+  @apply text-4xl font-bold mb-4;
+}
+
+main {
+  @apply flex flex-col justify-center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+a {
+  @apply underline;
+}
+
+p {
+  @apply my-2;
+}
