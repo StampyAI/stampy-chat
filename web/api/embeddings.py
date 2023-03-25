@@ -1,4 +1,36 @@
+# ---------------------------------- web code ----------------------------------
+
 import json
+
+from http.server import BaseHTTPRequestHandler
+
+class handler(BaseHTTPRequestHandler):
+
+    # post request = calculate factorial of passed number
+    def do_POST(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data)
+
+        results = {};
+
+        for i, link in enumerate(embeddings(data['query'])):
+            results[i] = json.dumps(link.__dict__)
+
+        self.wfile.write(json.dumps(results).encode('utf-8'))
+
+
+class Link:
+    def __init__(self, url, title):
+        self.url = url
+        self.title = title
+
+
+# -------------------------------- non-web-code --------------------------------
+
 import pickle
 from typing import List, Tuple
 import os
@@ -28,33 +60,6 @@ project_path = Path(__file__).parent.parent.parent
 PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.  # BAD
 PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.  # BAD
 PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.  # BAD
-
-from http.server import BaseHTTPRequestHandler
-
-class handler(BaseHTTPRequestHandler):
-
-    # post request = calculate factorial of passed number
-    def do_POST(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        data = json.loads(post_data)
-
-        results = {};
-
-        for i, link in enumerate(embeddings(data['query'])):
-            results[i] = json.dumps(link.__dict__)
-
-        self.wfile.write(json.dumps(results).encode('utf-8'))
-
-
-class Link:
-    def __init__(self, url, title):
-        self.url = url
-        self.title = title
-
 
 @retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(4))
 def get_embedding(text: str) -> np.ndarray:
