@@ -28,6 +28,7 @@ const Home: NextPage = () => {
                 </p>
                 <p>Python serverless test:</p>
                 <ApiButton />
+                <ApiButton2 />
             </main>
         </>
     );
@@ -47,7 +48,7 @@ const ApiButton: React.FC = () => {
 
         setLoading(true);
 
-        const res = await fetch("/api", {
+        const res = await fetch("/api/embeddings", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({number: num}),
@@ -64,13 +65,56 @@ const ApiButton: React.FC = () => {
     return (
         <>
             <span>
-            <button className="mr-2"
-            onClick={async () => setResponse(JSON.stringify(await calculate()))} disabled={loading}>
-                {loading ? "Loading..." : "Calculate"}
-            </button>
-            the factorial of
-            <input type="number" className="w-10 border border-gray-300 px-1 mx-1" value={num} onChange={(e) => setNum(parseInt(e.target.value))} />
-            = {loading ? "..." : response}
+                <button className="mr-2"
+                onClick={async () => setResponse(JSON.stringify(await calculate()))} disabled={loading}>
+                    {loading ? "Loading..." : "Calculate"}
+                </button>
+                the factorial of
+                <input 
+                    type = "number" 
+                    className = "w-10 border border-gray-300 px-1 mx-1" value={num} onChange={(e) => setNum(parseInt(e.target.value))} />
+                = {loading ? "..." : response}
+            </span>
+        </>
+    );
+};
+
+
+const ApiButton2: React.FC = () => {
+    const [response, setResponse] = useState("");
+    const [query, setQuery] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const getEmbeddings = async () => {
+
+        setLoading(true);
+
+        const res = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({query: query}),
+        })
+
+        const data = await res.json();
+
+        setLoading(false);
+
+        return data;
+
+        // return data.result || "error";
+
+    };
+
+    return (
+        <>
+            <span>
+                <button className="mr-2"
+                onClick={async () => setResponse(JSON.stringify(await getEmbeddings()))} disabled={loading}> {loading ? "Loading..." : "Calculate"} </button>
+                the factorial of
+                <input 
+                    type = "number" 
+                    className = "w-10 border border-gray-300 px-1 mx-1" value={query} onChange={(e) => setQuery(e.target.value)} />
+                = {loading ? "..." : response}
             </span>
         </>
     );
