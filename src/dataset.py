@@ -198,8 +198,7 @@ class Dataset:
         # Get an embedding for each text, with retries if necessary
         #TODO: check batch size stuff at https://github.com/openai/openai-cookbook/blob/main/examples/vector_databases/pinecone/Gen_QA.ipynb
         # to speed up the process 
-
-        @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
+        # @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
         def get_embedding_at_index(text: str, i: int, delay_in_seconds: float = 0) -> np.ndarray:
             time.sleep(delay_in_seconds)
             embedding = openai.Embedding.create(
@@ -214,11 +213,11 @@ class Dataset:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [executor.submit(get_embedding_at_index, text, i) for i, text in enumerate(self.embedding_strings)]
             num_completed = 0
-            for future in tqdm(concurrent.futures.as_completed(futures)):
+            for future in concurrent.futures.as_completed(futures):
                 i, embedding = future.result()
                 self.embeddings[i] = embedding
                 num_completed += 1
-                if num_completed % 50 == 0:
+                if num_completed % 20 == 0:
                     print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
         print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
 
@@ -297,13 +296,13 @@ if __name__ == "__main__":
         # "nonarxiv_papers", 
         # "https://vkrakovna.wordpress.com", 
         # "https://jsteinhardt.wordpress.com", 
-        "audio-transcripts", 
+        # "audio-transcripts", 
         # "https://intelligence.org", 
         # "youtube", 
         # "reports", 
-        "https://aisafety.camp", 
+        # "https://aisafety.camp", 
         "curriculum", 
-        "https://www.yudkowsky.net", 
+        # "https://www.yudkowsky.net", 
         # "distill",
         # "Cold Takes",
         # "printouts",
@@ -320,11 +319,15 @@ if __name__ == "__main__":
         min_tokens_per_block=200, max_tokens_per_block=300, 
         # fraction_of_articles_to_use=1/2000
     )
-    dataset.get_alignment_texts()
+    # Test get_embedding
+    dataset.embedding_strings = ["This is a test", "This is another test"]
     dataset.get_embeddings()
-    dataset.save_embeddings("embeddings.npy")
     
-    dataset.save_class("data/dataset.pkl")
-    # dataset = pickle.load(open("dataset.pkl", "rb"))
+    # dataset.get_alignment_texts()
+    # dataset.get_embeddings()
+    # dataset.save_embeddings("data/embeddings.npy")
+    
+    # dataset.save_class("data/dataset.pkl")
+    # # dataset = pickle.load(open("dataset.pkl", "rb"))
     
     
