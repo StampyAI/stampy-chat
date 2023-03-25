@@ -43,8 +43,11 @@ from functools import wraps
 from typing import Callable, List, Type, Union
 
 # OpenAI API key
-os.environ.get('OPENAI_API_KEY')
-openai.api_key = os.environ.get('OPENAI_API_KEY') 
+try:
+    import config
+    openai.api_key = config.OPENAI_API_KEY
+except ImportError:
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -57,9 +60,9 @@ MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 # Paths
 from pathlib import Path
 project_path = Path(__file__).parent.parent.parent
-PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
-PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
-PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
+PATH_TO_DATA = project_path / "web" / "api" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
+PATH_TO_EMBEDDINGS = project_path / "web" / "api" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
+PATH_TO_DATASET = project_path / "web" / "api" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
 
 
 def retry_on_exception_types(exception_types: List[Type[Exception]], stop_after_attempt: int, max_wait_time: int) -> Callable:
@@ -80,20 +83,23 @@ def retry_on_exception_types(exception_types: List[Type[Exception]], stop_after_
     return decorator
 
 @retry_on_exception_types(exception_types=[RateLimitError], stop_after_attempt=4, max_wait_time=10)
-def get_embedding_batch(texts: List[str]) -> np.ndarray:
-    result = openai.Embedding.create(
-        model=EMBEDDING_MODEL,
-        input=texts
-    )
-    return result["data"][0]["embedding"]
-
-@retry_on_exception_types(exception_types=[RateLimitError], stop_after_attempt=4, max_wait_time=10)
 def get_embedding(text: str) -> np.ndarray:
+    """Get the embedding for a given text. The wrapper function will retry with exponential backoffthe request if the API rate limit is reached, up to 4 times.
+
+    Args:
+        text (str): The text to get the embedding for.
+
+    Returns:
+        np.ndarray: The embedding for the given text.
+    """
     result = openai.Embedding.create(
         model=EMBEDDING_MODEL,
         input=text
     )
     return result["data"][0]["embedding"]
+
+class Dataset:
+    pass
 
 def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
     """Get the top k blocks that are most semantically similar to the query, using the provided dataset. 
@@ -107,6 +113,7 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
         List[str]: A list of the top k blocks that are most semantically similar to the query.
     """
     # Get the dataset
+    print(f"\n\nLoading {PATH_TO_DATASET}...\n\n")
     with open(PATH_TO_DATASET, "rb") as f:
         metadataset = pickle.load(f)
     
@@ -149,7 +156,13 @@ def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
 def embeddings(query):
     # write a function here that takes a query, returns a bunch of semantically similar links
     
-    link_list = get_top_k_blocks(query, 4)
+    link_list = get_top_k_blocks(query, 8, HyDE=False)
     
     return link_list
 
+
+if __name__ == "__main__":
+    # Test the embeddings function
+    links = embeddings("The last enemy that shall be destroyed is death.")
+    for link in links:
+        print(link.title, link.url)
