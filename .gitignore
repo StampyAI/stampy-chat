@@ -136,3 +136,5 @@ dmypy.json
 *.pkl
 src/Embeddings Search/tmp.py
 *.DS_Store
+
+.vercel/
