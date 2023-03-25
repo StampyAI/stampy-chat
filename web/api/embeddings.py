@@ -1,14 +1,17 @@
 import json
 import pickle
-import openai  # TODO: Add to requirements.txt
-from typing import List, Tuple  # TODO: Add to requirements.txt
+from typing import List, Tuple
+import os
+
+
 import numpy as np  # TODO: Add to requirements.txt
 from tenacity import (  # TODO: Add to requirements.txt
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )
-import os
+import openai  # TODO: Add to requirements.txt
+
 
 os.environ.get('OPENAI_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY') 
