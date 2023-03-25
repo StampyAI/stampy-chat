@@ -133,7 +133,7 @@ dmypy.json
 *config.py
 *embeddings.npy
 *.pickle
-*.pkl
+src/data/dataset.pkl
 src/tmp.py
 *.DS_Store
 
