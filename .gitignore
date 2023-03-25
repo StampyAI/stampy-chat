@@ -134,7 +134,7 @@ dmypy.json
 *embeddings.npy
 *.pickle
 *.pkl
-src/Embeddings Search/tmp.py
+src/tmp.py
 *.DS_Store
 
 .vercel/
