@@ -1,4 +1,3 @@
 openai
-typing
 numpy
 tenacity
