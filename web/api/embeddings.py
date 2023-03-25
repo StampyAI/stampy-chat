@@ -32,16 +32,16 @@ class Link:
 # -------------------------------- non-web-code --------------------------------
 
 import pickle
-from typing import List, Tuple
+from typing import List
 import os
 
-
+import time
 import numpy as np
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential,
-)
+# from tenacity import (
+#     retry,
+#     stop_after_attempt,
+#     wait_random_exponential,
+# )
 import openai
 
 os.environ.get('OPENAI_API_KEY')
@@ -61,10 +61,23 @@ PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to 
 PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.  # BAD
 
 
-@retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(4))
+# @retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(4))
+# def get_embedding(text: str) -> np.ndarray:
+#     result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
+#     return result["data"][0]["embedding"]
 def get_embedding(text: str) -> np.ndarray:
-    result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
-    return result["data"][0]["embedding"]
+    attempts = 0
+    max_attempts = 4
+    while attempts < max_attempts:
+        try:
+            result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
+            return result["data"][0]["embedding"]
+        except Exception as e:
+            if attempts + 1 == max_attempts:
+                raise e
+            wait_time = min(10, (2 ** attempts))  # Exponential backoff
+            time.sleep(wait_time)
+            attempts += 1
 
 
 def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False) -> List[Link]:
