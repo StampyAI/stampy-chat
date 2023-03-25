@@ -30,54 +30,70 @@ class Link:
 
 
 # -------------------------------- non-web-code --------------------------------
-
+import time
 import pickle
 import os
 
-import time
 import numpy as np
-# from tenacity import (
-#     retry,
-#     stop_after_attempt,
-#     wait_random_exponential,
-# )
-import openai
 
+import openai
+from openai.error import RateLimitError
+
+from functools import wraps
+from typing import Callable, List, Type, Union
+
+# OpenAI API key
 os.environ.get('OPENAI_API_KEY')
 openai.api_key = os.environ.get('OPENAI_API_KEY') 
 
-from pathlib import Path  # BAD
+# OpenAI models
+EMBEDDING_MODEL = "text-embedding-ada-002"
+COMPLETIONS_MODEL = "text-davinci-003"
 
-EMBEDDING_MODEL = "text-embedding-ada-002"  # BAD
-COMPLETIONS_MODEL = "text-davinci-003"  # BAD
+# OpenAI parameters
+LEN_EMBEDDINGS = 1536
+MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 
-LEN_EMBEDDINGS = 1536  # BAD
-MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.  # BAD
-
+# Paths
+from pathlib import Path
 project_path = Path(__file__).parent.parent.parent
-PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.  # BAD
-PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.  # BAD
-PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.  # BAD
+PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
+PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
+PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
 
 
-# @retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(4))
-# def get_embedding(text: str) -> np.ndarray:
-#     result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
-#     return result["data"][0]["embedding"]
+def retry_on_exception_types(exception_types: List[Type[Exception]], stop_after_attempt: int, max_wait_time: int) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < stop_after_attempt:
+                try:
+                    return func(*args, **kwargs)
+                except tuple(exception_types) as e:
+                    if attempts + 1 == stop_after_attempt:
+                        raise e
+                    wait_time = min(max_wait_time, (2 ** attempts))  # Exponential backoff
+                    time.sleep(wait_time)
+                    attempts += 1
+        return wrapper
+    return decorator
+
+@retry_on_exception_types(exception_types=[RateLimitError], stop_after_attempt=4, max_wait_time=10)
+def get_embedding_batch(texts: List[str]) -> np.ndarray:
+    result = openai.Embedding.create(
+        model=EMBEDDING_MODEL,
+        input=texts
+    )
+    return result["data"][0]["embedding"]
+
+@retry_on_exception_types(exception_types=[RateLimitError], stop_after_attempt=4, max_wait_time=10)
 def get_embedding(text: str) -> np.ndarray:
-    attempts = 0
-    max_attempts = 4
-    while attempts < max_attempts:
-        try:
-            result = openai.Embedding.create(model=EMBEDDING_MODEL, input=text)
-            return result["data"][0]["embedding"]
-        except Exception as e:
-            if attempts + 1 == max_attempts:
-                raise e
-            wait_time = min(10, (2 ** attempts))  # Exponential backoff
-            time.sleep(wait_time)
-            attempts += 1
-
+    result = openai.Embedding.create(
+        model=EMBEDDING_MODEL,
+        input=text
+    )
+    return result["data"][0]["embedding"]
 
 def get_top_k_blocks(user_query: str, k: int, HyDE: bool = False):
     """Get the top k blocks that are most semantically similar to the query, using the provided dataset. 
