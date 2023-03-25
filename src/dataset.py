@@ -19,6 +19,7 @@ from text_splitter import TokenSplitter, split_into_sentences
 from settings import PATH_TO_DATA, PATH_TO_EMBEDDINGS, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
 import os
 from tqdm.auto import tqdm
+import openai
 
 openai.api_key = os.environ.get('OPENAI_API_KEY')
 
@@ -56,7 +57,7 @@ class Dataset:
         
         self.metadata: List[Tuple[str]] = []  # List of tuples, each containing the title of an article, its URL, and text. E.g.: [('title', 'url', 'text'), ...]
         self.embedding_strings: List[str] = []  # List of strings, each being a few paragraphs from a single article (not exceeding 1000 words).
-        self.embeddings_metadata_index: List[int] # List of integers, each being the index of the article from which the embedding string was taken.
+        self.embeddings_metadata_index: List[int] = [] # List of integers, each being the index of the article from which the embedding string was taken.
 
         self.articles_count: DefaultDict[str, int] = defaultdict(int)  # Number of articles per source. E.g.: {'source1': 10, 'source2': 20, 'total': 30}
 
@@ -213,7 +214,7 @@ class Dataset:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [executor.submit(get_embedding_at_index, text, i) for i, text in enumerate(self.embedding_strings)]
             num_completed = 0
-            for future in concurrent.futures.as_completed(futures):
+            for future in tqdm(concurrent.futures.as_completed(futures)):
                 i, embedding = future.result()
                 self.embeddings[i] = embedding
                 num_completed += 1
@@ -320,10 +321,10 @@ if __name__ == "__main__":
         # fraction_of_articles_to_use=1/2000
     )
     dataset.get_alignment_texts()
-    # dataset.get_embeddings()
-    # dataset.save_embeddings("embeddings.npy")
+    dataset.get_embeddings()
+    dataset.save_embeddings("embeddings.npy")
     
-    # dataset.save_class("dataset.pkl")
+    dataset.save_class("data/dataset.pkl")
     # dataset = pickle.load(open("dataset.pkl", "rb"))
     
     
