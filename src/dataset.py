@@ -15,7 +15,6 @@ from tenacity import (
     wait_random_exponential,
 )  # for exponential backoff
 import tiktoken
-from time import sleep
 
 from pathlib import Path
 import config
