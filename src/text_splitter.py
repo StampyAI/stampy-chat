@@ -26,7 +26,7 @@ def split_into_sentences(text: str) -> List[str]:
 class TokenSplitter:
     """Splits text into blocks of tokens according to chatgpt's tokenizer."""
 
-    def __init__(self, min_tokens: int = 500, max_tokens: int = 750):
+    def __init__(self, min_tokens: int = 200, max_tokens: int = 300):
         self.encoding = tiktoken.get_encoding("cl100k_base")
         self.min_tokens = min_tokens
         self.max_tokens = max_tokens
