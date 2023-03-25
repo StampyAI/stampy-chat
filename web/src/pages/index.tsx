@@ -1,6 +1,7 @@
 import { type NextPage } from "next";
+import React from "react";
+import { useState } from "react";
 import Head from "next/head";
-import Link from "next/link";
 
 const Home: NextPage = () => {
     return (
@@ -25,10 +26,55 @@ const Home: NextPage = () => {
                     so if anyone else is considering this, you can message us to 
                     coordinate sharing the embeddings to avoid redundancy.
                 </p>
-                <p>work in progress.</p>
+                <p>Python serverless test:</p>
+                <ApiButton />
             </main>
         </>
     );
 };
+
+// round trip test. If this works, our heavier usecase probably will (famous last words)
+// The one real difference is we'll want to send back a series of results as we get
+// them back from OpenAI - I think we can just do this with a websocket, which
+// shouldn't be too different.
+
+const ApiButton: React.FC = () => {
+    const [response, setResponse] = useState("");
+    const [num, setNum] = useState(12);
+    const [loading, setLoading] = useState(false);
+
+    const calculate = async () => {
+
+        setLoading(true);
+
+        const res = await fetch("/api", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({number: num}),
+        })
+
+        const data = await res.json();
+
+        setLoading(false);
+
+        return data.result || "error";
+
+    };
+
+    return (
+        <>
+            <span>
+            <button className="mr-2"
+            onClick={async () => setResponse(JSON.stringify(await calculate()))} disabled={loading}>
+                {loading ? "Loading..." : "Calculate"}
+            </button>
+            the factorial of
+            <input type="number" className="w-10 border border-gray-300 px-1 mx-1" value={num} onChange={(e) => setNum(parseInt(e.target.value))} />
+            = {loading ? "..." : response}
+            </span>
+        </>
+    );
+};
+
 
 export default Home;
