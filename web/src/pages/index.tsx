@@ -27,8 +27,7 @@ const Home: NextPage = () => {
                     coordinate sharing the embeddings to avoid redundancy.
                 </p>
                 <p>Python serverless test:</p>
-                <ApiButton />
-                <ApiButton2 />
+                <SearchBox />
             </main>
         </>
     );
@@ -80,13 +79,18 @@ const ApiButton: React.FC = () => {
 };
 
 
-const ApiButton2: React.FC = () => {
-    const [response, setResponse] = useState("");
+// a search-box the person can type in, where they then can hit enter to search.
+// The query gets sent to api/search, and a list of links is returned, which are
+// then displayed below.
+
+const SearchBox: React.FC = () => {
     const [query, setQuery] = useState("");
+    // const [results, setResults] = useState([]);
+    const [result, setResult] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const getEmbeddings = async () => {
-
+    const search = async () => {
+        
         setLoading(true);
 
         const res = await fetch("/api/embeddings", {
@@ -99,23 +103,39 @@ const ApiButton2: React.FC = () => {
 
         setLoading(false);
 
-        return data;
-
-        // return data.result || "error";
+        // return data.results || [];
+        console.log(data);
+        return String(data);
 
     };
 
     return (
         <>
-            <span>
-                <button className="mr-2"
-                onClick={async () => setResponse(JSON.stringify(await getEmbeddings()))} disabled={loading}> {loading ? "Loading..." : "Calculate"} </button>
-                the factorial of
-                <input 
-                    type = "number" 
-                    className = "w-10 border border-gray-300 px-1 mx-1" value={query} onChange={(e) => setQuery(e.target.value)} />
-                = {loading ? "..." : response}
-            </span>
+            <form onSubmit={async (e) => {
+                e.preventDefault();
+                setResult(await search());
+            }}>
+
+                <input
+                    type="text"
+                    className="w-64 border border-gray-300 px-1"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                />
+                <button className="ml-2" type="submit" disabled={loading}>
+                    {loading ? "Loading..." : "Search"}
+                </button>
+            </form>
+            <p>{loading ? "..." : result}</p>
+            {/*
+            <ul>
+                {results.map((result, i) => (
+                    <li key={i}>
+                        <a href={result.url}>{result.title}</a>
+                    </li>
+                ))}
+            </ul>
+            */}
         </>
     );
 };
