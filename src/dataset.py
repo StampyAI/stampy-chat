@@ -2,27 +2,24 @@ import jsonlines
 import numpy as np
 from typing import List, Dict, Tuple, DefaultDict, Any
 from collections import defaultdict
-import re
 import time
 import random
 import pickle
-import openai
-#from tqdm.auto import tqdm 
+import os
 import concurrent.futures
+from pathlib import Path
+
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )  # for exponential backoff
-import tiktoken
 
-from pathlib import Path
-import config
 from text_splitter import TokenSplitter, split_into_sentences
 from settings import PATH_TO_DATA, PATH_TO_EMBEDDINGS, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
 
-
-openai.api_key = config.OPENAI_API_KEY
+import openai
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 error_count_dict = {
     "Entry has no source.": 0,
@@ -57,7 +54,7 @@ class Dataset:
         
         self.metadata: List[Tuple[str]] = []  # List of tuples, each containing the title of an article, its URL, and text. E.g.: [('title', 'url', 'text'), ...]
         self.embedding_strings: List[str] = []  # List of strings, each being a few paragraphs from a single article (not exceeding 1000 words).
-        self.embeddings_metadata: List[int] # List of integers, each being the index of the article from which the embedding string was taken.
+        self.embeddings_metadata_index: List[int] # List of integers, each being the index of the article from which the embedding string was taken.
 
         self.articles_count: DefaultDict[str, int] = defaultdict(int)  # Number of articles per source. E.g.: {'source1': 10, 'source2': 20, 'total': 30}
 
@@ -181,7 +178,7 @@ class Dataset:
                     self.metadata.append((title, author, date_published, url, tags))
                     blocks = text_splitter.split(text, signature)
                     self.embedding_strings.extend(blocks)
-                    self.embeddings_metadata.extend([self.total_articles_count] * len(blocks))
+                    self.embeddings_metadata_index.extend([self.total_articles_count] * len(blocks))
                     
                     # Update counts
                     self.total_char_count += len(text)
@@ -314,11 +311,12 @@ if __name__ == "__main__":
         # "greaterwrong.com"
     ]
 
+    
     dataset = Dataset(
         jsonl_data_path=PATH_TO_DATA.resolve(), 
         custom_sources=custom_sources, 
         rate_limit_per_minute=3500, 
-        min_tokens_per_block=500, max_tokens_per_block=600, 
+        min_tokens_per_block=200, max_tokens_per_block=300, 
         # fraction_of_articles_to_use=1/2000
     )
     dataset.get_alignment_texts()
