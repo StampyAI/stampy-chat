@@ -139,10 +139,10 @@ def generate_prompt(user_query: str, previous_dialogue: List[Dict[str, str]] = [
         mode (str): The mode of the assistant. Can be "standard", etc. Defaults to "standard".
 
     Returns:
-        Dict[str, str]: The prompt for the ChatCompletions API.
+        List[Dict[str, str]]: The prompt in messages format.
     """
     # Initialize prompt
-    prompt = {}
+    prompt = []
     
     # Generate system description
     if mode == "standard":
@@ -233,7 +233,7 @@ async def stream_completion(prompt: List[Dict[str, str]], stream_delay: float = 
             time.sleep(stream_delay)
             yield f"{word} "
 
-def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: str = "standard", HyDE: bool = False, stream: bool = True, stream_delay: float = 0.1) -> str:
+def informed_assistant(user_query: str, previous_dialogue: List[Dict[str, str]] = [], k: str = 10, mode: str = "standard", HyDE: bool = False, stream: bool = True, stream_delay: float = 0.1) -> str:
     """
     This function uses the OpenAI ChatCompletions API to answer a user query.
     It first checks if the query is offensive, and if so, raises an exception.
@@ -243,6 +243,7 @@ def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: st
 
     Args:
         user_query (str): The user query.
+        previous_dialogue (List[Dict[str, str]]): The previous dialogue. Defaults to [].
         k (str): The number of blocks to use as context.
         mode (str): The mode to use for the ChatCompletions API. Defaults to "standard".
         HyDE (bool): Whether to use the HyDE technique for semantic search. This makes search slower, but better. Defaults to False.
@@ -287,8 +288,8 @@ if __name__ == "__main__":
     ]
     k = 5
     mode = "standard"
-    HyDE = True
-    stream = True
+    HyDE = False
+    stream = False
     
     for response in informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream):
         print(response, end="")

@@ -125,14 +125,12 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     # If HyDE is enabled, produce a no-context ChatCompletion to the query.
     if HyDE:
         messages = [
-            {"role": "system", "content": "You are a knowledgeable AI Alignment assistant. Do your best to answer the user's question, even if you don't know the answer for sure."},
-            {"role": "user", "content": user_query},
+            {"role": "system", "content": "You are a knowledgeable AI Alignment assistant."},
+            {"role": "user", "content": f"Do your best to answer the question/instruction, even if you don't know the correct answer or action for sure.\nQ: {user_query}"},
         ]
         HyDE_completion = openai.ChatCompletion.create(
             model=COMPLETIONS_MODEL,
-            messages=messages,
-            temperature=0.0,
-            max_tokens=200
+            messages=messages
         )["choices"][0]["text"]
         HyDe_completion_embedding = get_embedding(f"Question: {user_query}\n\nAnswer: {HyDE_completion}")
         
@@ -154,13 +152,6 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     top_k_blocks = [Block(*block) for block in top_k_metadata_and_text]
         
     return top_k_blocks
-
-# def embeddings(query):
-#     # write a function here that takes a query, returns a bunch of semantically similar links
-    
-#     top_k_blocks = get_top_k_blocks(query, 8, HyDE=False)
-    
-#     return top_k_blocks
 
 
 if __name__ == "__main__":
