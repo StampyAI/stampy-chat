@@ -352,6 +352,34 @@ def moderate_query(query: str) -> List[str]:
 
     return flagged_categories
 
+def generate_prompt(user_query: str, previous_dialogue: List[Dict[str, str]] = [], blocks: List[Block] = [], mode: str = "standard") -> List[Dict[str, str]]:
+    """
+    This function generates a prompt in messages format for the OpenAI ChatCompletions API.
+    First, it picks a system description using the mode.
+    Second, it adds the previous dialogue to the prompt.
+    Third, it adds an instruction to the prompt based on the mode.
+    Fourth, it adds the context from the top-k most relevant blocks from the Alignment Research Dataset to the prompt.
+    Fifth, it adds the user query to the prompt.
+
+    Messages take the following format:
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Who won the world series in 2020?"},
+        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+        {"role": "user", "content": "Where was it played?"}
+    ]
+    
+    Args:
+        user_query (str): The user query.
+        previous_dialogue (List[Dict[str, str]]): The previous dialogue. Defaults to [].
+        blocks (List[Block]): The top-k most relevant blocks from the Alignment Research Dataset. Defaults to [].
+        mode (str): The mode of the assistant. Can be "standard", etc. Defaults to "standard".
+
+    Returns:
+        Dict[str, str]: The prompt for the ChatCompletions API.
+    """
+    pass
+
 
 def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: str = "standard", HyDE: bool = False, stream: bool = True, stream_delay: float = 0.1) -> str:
     """
@@ -386,6 +414,11 @@ def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: st
         else:
             return response
     
+    # 2. Find the top-k most relevant blocks from the Alignment Research Dataset
+    top_k_blocks: List[Block] = get_top_k_blocks(user_query, k, HyDE)
+
+    # 3. Generate a prompt for the ChatCompletions API
+    prompt: List[Dict[str, str]] = generate_prompt(user_query, previous_dialogue, top_k_blocks, mode)
 
 
 if __name__ == "__main__":
