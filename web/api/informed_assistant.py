@@ -317,7 +317,41 @@ class Block:
         self.text = text
 
 
-        
+MODERATION_ENDPOINT = "https://api.openai.com/v1/moderations"
+def moderate_query(query: str) -> List[str]:
+    """This function uses the OpenAI Moderation API to check if a query contains any offensive language.
+
+    Args:
+        query (str): The query to be checked.
+
+    Raises:
+        Exception: If the API call fails.
+
+    Returns:
+        List[str]: A list of categories that the query was flagged for.
+    """
+    
+    headers = {"Content-Type": "application/json","Authorization": f"Bearer {OPENAI_API_KEY}"}
+
+    data = {"input": query}
+
+    response = requests.post(MODERATION_ENDPOINT, headers=headers, data=json.dumps(data))
+    flagged_categories = []
+
+    if response.status_code == 200:
+        moderation_results = response.json()
+        flagged = moderation_results['results'][0]['flagged']
+        categories = moderation_results['results'][0]['categories']
+
+        if flagged:
+            for category, is_flagged in categories.items():
+                if is_flagged:
+                    flagged_categories.append(category)
+    else:
+        raise Exception(f"Error: {response.status_code} {response.reason}")
+
+    return flagged_categories
+
 
 def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: str = "standard", HyDE: bool = False, stream: bool = True, stream_delay: float = 0.1) -> str:
     """
@@ -339,9 +373,19 @@ def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: st
         str: The answer to the user query.
     
     Raises:
-        Exception: [description]
+        Exception: If the query is offensive.
     """
-    pass    
+    # 1. Check if the query is offensive
+    flagged_categories: List[str] = moderate_query(user_query)
+    if len(flagged_categories) > 0:
+        response = f"Your query contains offensive language. Please try again."
+        if stream:
+            for word in response.split():
+                time.sleep(stream_delay)
+                yield f"{word} "
+        else:
+            return response
+    
 
 
 if __name__ == "__main__":
