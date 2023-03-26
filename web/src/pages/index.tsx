@@ -45,11 +45,11 @@ const SearchBox: React.FC = () => {
     const [results, setResults] = useState<{title: string,  url: string}[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const embeddings = async (query: String) => {
+    const semantic_search = async (query: String) => {
         
         setLoading(true);
 
-        const res = await fetch("/api/embeddings", {
+        const res = await fetch("/api/semantic_search", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
             body: JSON.stringify({query: query}),
@@ -60,18 +60,18 @@ const SearchBox: React.FC = () => {
         setLoading(false);
 
         // data looks like 
-        // { 0: "{'url' : 'https://foo.com', 'title' : 'foo'}", 
-        //   1: "{'url' : 'https://bar.com', 'title' : 'bar'}" }
+        // { 0: "{'title': 'First Title', 'author': 'Bob Miles', 'date': 'March 1st, 2023', 'url': 'https://example.com', 'tags': ['tag1', 'tag2'], 'text': 'This is the content of the article'}",
+        //   1: "{'title': 'Second Title', 'author': 'Frank Ocean', 'date': 'March 6th, 2023', 'url': 'https://ai.com', 'tags': ['tag3', 'tag4'], 'text': 'This is the content of the article'}",
         // so we need to convert it to a list of objects
 
-        return Object.keys(data).map((key) => JSON.parse(data[key])) || [{title: "error", url: "error"}];
+        return Object.keys(data).map((key) => JSON.parse(data[key])) || [{title: "error", author: "error", date: "error", url: "error", tags: ["error"], text: "error"}];
     };
 
     return (
         <>
             <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
                 e.preventDefault();
-                setResults(await embeddings(query));
+                setResults(await semantic_search(query));
             }}>
 
                 <input

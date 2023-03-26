@@ -17,8 +17,8 @@ class handler(BaseHTTPRequestHandler):
 
         results = {}
 
-        for i, link in enumerate(get_top_k_blocks(data['query'])):
-            results[i] = json.dumps(link.__dict__)
+        for i, block in enumerate(get_top_k_blocks(data['query'])):
+            results[i] = json.dumps(block.__dict__)
 
         self.wfile.write(json.dumps(results).encode('utf-8'))
 
@@ -34,7 +34,7 @@ import openai
 from openai.error import RateLimitError
 
 from functools import wraps
-from typing import Callable, List, Type, Union
+from typing import Callable, List, Type
 
 # OpenAI API key
 try:
@@ -146,6 +146,10 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     top_k_texts = [metadataset.embedding_strings[i] for i in top_k_text_indices]  # Get the top k texts
     top_k_metadata = [metadataset.metadata[i] for i in top_k_metadata_indexes]  # Get the top k metadata (title, author, date, url, tags)
     
+    print(f"Top {k} blocks for query: '{user_query}'")
+    print("=========================================")
+    print(f"Top_{k}_metadata: {top_k_metadata}")
+    
     # Combine the top k texts and metadata into a list of Block objects
     top_k_metadata_and_text = [list(top_k_metadata[i]) + [top_k_texts[i]] for i in range(k)]
     
@@ -156,25 +160,17 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 if __name__ == "__main__":
     # Test the embeddings function
-    # query = "What is the best way to learn about AI alignment?"
-    # k = 8
-    # HyDE = True
+    query = "What is the best way to learn about AI alignment?"
+    k = 8
+    HyDE = True
     
-    # blocks = get_top_k_blocks(query, k, HyDE)
-    # for link in blocks:
-    #     print(f"Title: {link.title}")
-    #     print(f"Author: {link.author}")
-    #     print(f"Date: {link.date}")
-    #     print(f"URL: {link.url}")
-    #     print(f"Tags: {link.tags}")
-    #     print(f"Text: {link.text}")
-    #     print()
-    #     print()
-    
-    openai.ChatCompletion.create(
-        model=COMPLETIONS_MODEL,
-        messages=[
-            {"role": "system", "content": "You are a knowledgeable AI Alignment assistant."},
-            {"role": "user", "content": f"Do your best to answer the question/instruction, even if you don't know the correct answer or action for sure.\nQ: What is the best way to learn about AI alignment?"},
-        ]
-    )
+    blocks = get_top_k_blocks(query, k, HyDE)
+    for block in blocks:
+        print(f"Title: {block.title}")
+        print(f"Author: {block.author}")
+        print(f"Date: {block.date}")
+        print(f"URL: {block.url}")
+        print(f"Tags: {block.tags}")
+        print(f"Text: {block.text}")
+        print()
+        print()

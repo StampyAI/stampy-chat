@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
 
         results = {}
 
-        for i, link in enumerate(get_top_k_blocks(data['query'])):
+        for i, link in enumerate(informed_assistant(data['query'])):
             results[i] = json.dumps(link.__dict__)
 
         self.wfile.write(json.dumps(results).encode('utf-8'))
@@ -27,6 +27,16 @@ class handler(BaseHTTPRequestHandler):
 import time
 import os
 import openai
+
+import requests
+from typing import List, Dict
+import openai
+import tiktoken
+import asyncio
+
+import config
+from semantic_search import get_top_k_blocks
+
 
 # OpenAI API key
 try:
@@ -50,16 +60,6 @@ project_path = Path(__file__).parent.parent.parent
 PATH_TO_DATA = project_path / "web" / "api" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
 PATH_TO_EMBEDDINGS = project_path / "web" / "api" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
 PATH_TO_DATASET = project_path / "web" / "api" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
-
-import numpy as np
-import requests
-from typing import List, Dict
-import pickle
-import openai
-import tiktoken
-
-import config
-from semantic_search import get_top_k_blocks
 
 
 class Dataset:
@@ -291,9 +291,7 @@ if __name__ == "__main__":
     HyDE = True
     stream = False # Doesn't quite work yet
     
-    import asyncio
-    chat_completion = asyncio.run(informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream))
-    print(chat_completion)
+    print(asyncio.run(informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream)))
         
     # if stream:
     #     for part in informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream):
