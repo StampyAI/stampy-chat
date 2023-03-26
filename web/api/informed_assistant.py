@@ -352,6 +352,11 @@ def moderate_query(query: str) -> List[str]:
 
     return flagged_categories
 
+def limit_tokens(text: str, max_tokens: int, encoding_name: str = "cl100k_base") -> str:
+    encoding = tiktoken.get_encoding(encoding_name)
+    tokens = encoding.encode(text)[:max_tokens]
+    return encoding.decode(tokens)
+
 def generate_prompt(user_query: str, previous_dialogue: List[Dict[str, str]] = [], blocks: List[Block] = [], mode: str = "standard") -> List[Dict[str, str]]:
     """
     This function generates a prompt in messages format for the OpenAI ChatCompletions API.
@@ -378,7 +383,43 @@ def generate_prompt(user_query: str, previous_dialogue: List[Dict[str, str]] = [
     Returns:
         Dict[str, str]: The prompt for the ChatCompletions API.
     """
-    pass
+    # Initialize prompt
+    prompt = {}
+    
+    # Generate system description
+    if mode == "standard":
+        prompt.append({"role": "system", "content": "You are a helpful assistant knowledgeable about AI Alignment and Safety."})
+    # elif mode == "other":
+    else:
+        raise Exception(f"Invalid mode: {mode}")
+
+    # Add previous dialogue
+    for message in previous_dialogue:
+        prompt.append(message)
+    
+    # Add instruction
+    if mode == "standard":
+        instruction_prompt = "Please answer my question (after the Q:) using the provided context."
+        prompt.append({"role": "assistant", "content": instruction_prompt})
+    # elif mode == "other":
+    else:
+        raise Exception(f"Invalid mode: {mode}")
+    
+    # Add context from top-k blocks
+    if blocks is None:
+        return "Context missing."
+    context_prompt = "Context:\n\n"
+    for i, block in enumerate(blocks):
+        context_prompt += f"[{i}] {block.text}\n\n"
+    context_prompt = context_prompt[:-2]
+    context_prompt = limit_tokens(context_prompt, 2000)
+    prompt.append({"role": "user", "content": f"{context_prompt}"})
+    
+    # Add user query
+    prompt.append({"role": "user", "content": f"Q: {user_query}"})
+    
+    return prompt
+
 
 
 def informed_assistant(user_query: str, previous_dialogue: str, k: str, mode: str = "standard", HyDE: bool = False, stream: bool = True, stream_delay: float = 0.1) -> str:
