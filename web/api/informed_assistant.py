@@ -38,7 +38,7 @@ openai.api_key = OPENAI_API_KEY
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
-COMPLETIONS_MODEL = "text-davinci-003"
+COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 # OpenAI parameters
 LEN_EMBEDDINGS = 1536
@@ -286,10 +286,17 @@ if __name__ == "__main__":
     previous_dialogue = [
         {"role": "assistant", "content": "Hi! I know all about AI Alignment. Ask me a question!"},
     ]
-    k = 5
+    k = 10
     mode = "standard"
-    HyDE = False
-    stream = False
+    HyDE = True
+    stream = False # Doesn't quite work yet
     
-    for response in informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream):
-        print(response, end="")
+    import asyncio
+    chat_completion = asyncio.run(informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream))
+    print(chat_completion)
+        
+    # if stream:
+    #     for part in informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream):
+    #         print(part, end="")
+    # else:
+    #     print(informed_assistant(user_query, previous_dialogue, k, mode, HyDE, stream))

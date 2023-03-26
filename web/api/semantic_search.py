@@ -45,7 +45,7 @@ except ImportError:
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
-COMPLETIONS_MODEL = "text-davinci-003"
+COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 # OpenAI parameters
 LEN_EMBEDDINGS = 1536
@@ -131,7 +131,7 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
         HyDE_completion = openai.ChatCompletion.create(
             model=COMPLETIONS_MODEL,
             messages=messages
-        )["choices"][0]["text"]
+        )["choices"][0]["message"]["content"]
         HyDe_completion_embedding = get_embedding(f"Question: {user_query}\n\nAnswer: {HyDE_completion}")
         
         similarity_scores = np.dot(metadataset.embeddings, HyDe_completion_embedding)        
@@ -156,17 +156,25 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 if __name__ == "__main__":
     # Test the embeddings function
-    query = "What is the best way to learn about AI alignment?"
-    k = 8
-    HyDE = True
+    # query = "What is the best way to learn about AI alignment?"
+    # k = 8
+    # HyDE = True
     
-    blocks = get_top_k_blocks(query, k, HyDE)
-    for link in blocks:
-        print(f"Title: {link.title}")
-        print(f"Author: {link.author}")
-        print(f"Date: {link.date}")
-        print(f"URL: {link.url}")
-        print(f"Tags: {link.tags}")
-        print(f"Text: {link.text}")
-        print()
-        print()
+    # blocks = get_top_k_blocks(query, k, HyDE)
+    # for link in blocks:
+    #     print(f"Title: {link.title}")
+    #     print(f"Author: {link.author}")
+    #     print(f"Date: {link.date}")
+    #     print(f"URL: {link.url}")
+    #     print(f"Tags: {link.tags}")
+    #     print(f"Text: {link.text}")
+    #     print()
+    #     print()
+    
+    openai.ChatCompletion.create(
+        model=COMPLETIONS_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a knowledgeable AI Alignment assistant."},
+            {"role": "user", "content": f"Do your best to answer the question/instruction, even if you don't know the correct answer or action for sure.\nQ: What is the best way to learn about AI alignment?"},
+        ]
+    )
