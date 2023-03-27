@@ -81,7 +81,7 @@ const SearchBox: React.FC = () => {
                     onChange={(e) => setQuery(e.target.value)}
                 />
                 <button className="ml-2" type="submit" disabled={loading}>
-                    {loading ? "Loading..." : "Search"}
+                    {loading ? "Loading.." : "Search"}
                 </button>
             </form>
 
