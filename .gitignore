@@ -136,5 +136,10 @@ dmypy.json
 src/data/dataset.pkl
 src/tmp.py
 *.DS_Store
+src/*
+src/semantic_search.py
+src/settings.py
+src/testing.ipynb
+src/text_splitter.py
 
 .vercel/
