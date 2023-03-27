@@ -8,15 +8,9 @@ import pickle
 import os
 import concurrent.futures
 from pathlib import Path
-
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential,
-)  # for exponential backoff
+import json
 
 from text_splitter import TokenSplitter, split_into_sentences
-from settings import PATH_TO_DATA, PATH_TO_EMBEDDINGS, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
 import os
 from tqdm.auto import tqdm
 import openai
@@ -26,6 +20,27 @@ try:
     openai.api_key = config.OPENAI_API_KEY
 except ImportError:
     openai.api_key = os.environ.get('OPENAI_API_KEY')
+
+
+from pathlib import Path
+
+EMBEDDING_MODEL = "text-embedding-ada-002"
+COMPLETIONS_MODEL = "text-davinci-003"
+
+LEN_EMBEDDINGS = 1536
+MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
+
+project_path = Path(__file__).parent.parent
+PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
+PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
+PATH_TO_DATASET_PKL = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
+PATH_TO_DATASET_JSON = project_path / "src" / "data" / "dataset.json" # Path to the saved dataset (.json) file, containing the dataset class object.
+
+# print(f"PATH_TO_DATA: {PATH_TO_DATA}")
+# print(f"PATH_TO_EMBEDDINGS: {PATH_TO_EMBEDDINGS}")
+# print(f"PATH_TO_DATASET_PKL: {PATH_TO_DATASET_PKL}")
+# print(f"PATH_TO_DATASET_JSON: {PATH_TO_DATASET_JSON}")
+
 
 
 error_count_dict = {
@@ -185,7 +200,7 @@ class Dataset:
                     self.metadata.append((title, author, date_published, url, tags))
                     blocks = text_splitter.split(text, signature)
                     self.embedding_strings.extend(blocks)
-                    self.embeddings_metadata_index.extend([self.total_articles_count] * len(blocks))
+                    self.embeddings_metadata_index.extend([self.total_articles_count-1] * len(blocks))
                     
                     # Update counts
                     self.total_char_count += len(text)
@@ -202,7 +217,6 @@ class Dataset:
         # Get an embedding for each text, with retries if necessary
         #TODO: check batch size stuff at https://github.com/openai/openai-cookbook/blob/main/examples/vector_databases/pinecone/Gen_QA.ipynb
         # to speed up the process 
-        # @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
         def get_embedding_at_index(text: str, i: int, delay_in_seconds: float = 0) -> np.ndarray:
             time.sleep(delay_in_seconds)
             embedding = openai.Embedding.create(
@@ -225,24 +239,28 @@ class Dataset:
                     print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
         print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
 
-    #TODO: complete this to speed up embeddings
-    """ def get_embeddings_in_batches(self):
-        # Get an embedding for each text, with retries if necessary
+    # #TODO: complete this to speed up embeddings
+    # def get_embeddings_in_batches(self):
+    #     # Get an embedding for each text, with retries if necessary
+    #     batch_size = 100
         
-        @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
-        def get_embedding_in_batches(batch: List[str], i: int, delay_in_seconds: float = 0) -> np.ndarray:
-                try:
-                    res = openai.Embedding.create(input=batch, engine=EMBEDDING_MODEL)
-                except:
-                    done = False
-                    while not done:
-                        time.sleep(5)
-                        try:
-                            res = openai.Embedding.create(input=batch, engine=EMBEDDING_MODEL)
-                            done = True
-                        except:
-                            pass
-                """
+    #     def get_embedding_in_batches(batch: List[str], i: int, delay_in_seconds: float = 0) -> np.ndarray:
+    #         res = openai.Embedding.create(input=batch, engine=EMBEDDING_MODEL)
+    #         return i, res["data"][0]["embedding"]
+        
+    #     start = time.time()
+    #     self.embeddings = np.zeros((len(self.embedding_strings), LEN_EMBEDDINGS))
+        
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         futures = [executor.submit(get_embedding_in_batches, batch, i) for i, batch in enumerate(self.embedding_strings)]
+    #         num_completed = 0
+    #         for future in concurrent.futures.as_completed(futures):
+    #             i, embedding = future.result()
+    #             self.embeddings[i] = embedding
+    #             num_completed += 1
+    #             if num_completed % 50 == 0:
+    #                 print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
+    #     print(f"Completed {num_completed}/{len(self.embedding_strings)} embeddings in {time.time() - start:.2f} seconds.")
 
     def save_embeddings(self, path: str):
         np.save(path, self.embeddings)
@@ -255,6 +273,27 @@ class Dataset:
         print(f"Saving class to {path}...")
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+            
+    def save_json(self, path: str):
+        # Save the class to a json file
+        dataset_dict = {
+            'metadata': self.metadata,
+            'embedding_strings': self.embedding_strings,
+            'embeddings_metadata_index': self.embeddings_metadata_index,
+            'articles_count': self.articles_count,
+            'total_articles_count': self.total_articles_count,
+            'total_char_count': self.total_char_count,
+            'total_word_count': self.total_word_count,
+            'total_sentence_count': self.total_sentence_count,
+            'total_block_count': self.total_block_count,
+            'sources_so_far': self.sources_so_far,
+            'info_types': self.info_types,
+            'embeddings': self.embeddings.tolist()
+        }
+
+        print(f"Saving class to {path}...")
+        with open(path, 'w') as f:
+            json.dump(dataset_dict, f)
 
 
 def get_authors_list(authors_string: str) -> List[str]:
@@ -287,21 +326,21 @@ if __name__ == "__main__":
         "manual", 
         # "arxiv", 
         # "https://deepmindsafetyresearch.medium.com", 
-        "waitbutwhy.com", 
+        # "waitbutwhy.com", 
         # "GitHub", 
         # "https://aiimpacts.org", 
         # "arbital.com", 
         # "carado.moe", 
         # "nonarxiv_papers", 
         # "https://vkrakovna.wordpress.com", 
-        "https://jsteinhardt.wordpress.com", 
+        # "https://jsteinhardt.wordpress.com", 
         # "audio-transcripts", 
         # "https://intelligence.org", 
         # "youtube", 
         # "reports", 
         "https://aisafety.camp", 
-        "curriculum", 
-        "https://www.yudkowsky.net", 
+        # "curriculum", 
+        # "https://www.yudkowsky.net", 
         # "distill",
         # "Cold Takes",
         # "printouts",
@@ -319,9 +358,7 @@ if __name__ == "__main__":
     )
     dataset.get_alignment_texts()
     dataset.get_embeddings()
-    # dataset.save_embeddings("data/embeddings.npy")
     
-    dataset.save_class(PATH_TO_DATASET.resolve())
-    # # dataset = pickle.load(open("dataset.pkl", "rb"))
+    dataset.save_json(PATH_TO_DATASET_JSON.resolve())
     
     
