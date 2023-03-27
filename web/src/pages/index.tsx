@@ -42,7 +42,7 @@ const Home: NextPage = () => {
 const SearchBox: React.FC = () => {
 
     const [query,   setQuery]   = useState("");
-    const [results, setResults] = useState<{title: string,  url: string}[]>([]);
+    const [results, setResults] = useState<{title: string, author: string, date: string, url: string, tags: string, text: string}[]>([]);
     const [loading, setLoading] = useState(false);
 
     const semantic_search = async (query: String) => {
@@ -61,7 +61,8 @@ const SearchBox: React.FC = () => {
 
         // data looks like 
         // { 0: "{'title': 'First Title', 'author': 'Bob Miles', 'date': 'March 1st, 2023', 'url': 'https://example.com', 'tags': ['tag1', 'tag2'], 'text': 'This is the content of the article'}",
-        //   1: "{'title': 'Second Title', 'author': 'Frank Ocean', 'date': 'March 6th, 2023', 'url': 'https://ai.com', 'tags': ['tag3', 'tag4'], 'text': 'This is the content of the article'}",
+        //   1: "{'title': 'Second Title', 'author': 'Frank Ocean', 'date': 'March 6th, 2023', 'url': 'https://ai.com', 'tags': ['tag3', 'tag4'], 'text': 'This is the content of the article'}"
+        // }
         // so we need to convert it to a list of objects
 
         return Object.keys(data).map((key) => JSON.parse(data[key])) || [{title: "error", author: "error", date: "error", url: "error", tags: ["error"], text: "error"}];
@@ -81,7 +82,7 @@ const SearchBox: React.FC = () => {
                     onChange={(e) => setQuery(e.target.value)}
                 />
                 <button className="ml-2" type="submit" disabled={loading}>
-                    {loading ? "Loading.." : "Search"}
+                    {loading ? "Loading..." : "Search"}
                 </button>
             </form>
 
@@ -89,7 +90,7 @@ const SearchBox: React.FC = () => {
                 <ul>
                     {results.map((result) => (
                         <li key={result.url} className="my-1">
-                            <a href={result.url}>{result.title}</a>
+                            <a href={result.url}>{result.text}</a>
                         </li>
                     ))}
                 </ul>
