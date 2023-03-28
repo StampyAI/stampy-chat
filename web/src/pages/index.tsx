@@ -39,10 +39,19 @@ const Home: NextPage = () => {
 // them back from OpenAI - I think we can just do this with a websocket, which
 // shouldn't be too much harder.
 
+type SemanticEntry = {
+    title: string;
+    author: string;
+    date: string;
+    url: string;
+    tags: string;
+    text: string;
+};
+
 const SearchBox: React.FC = () => {
 
     const [query,   setQuery]   = useState("");
-    const [results, setResults] = useState<{title: string, author: string, date: string, url: string, tags: string, text: string}[]>([]);
+    const [results, setResults] = useState<SemanticEntry[] | string>([]);
     const [loading, setLoading] = useState(false);
 
     const semantic_search = async (query: String) => {
@@ -55,18 +64,17 @@ const SearchBox: React.FC = () => {
             body: JSON.stringify({query: query}),
         })
 
+        if (!res.ok) {
+            setLoading(false);
+            return "load failure: " + res.status;
+        }
+
         const data = await res.json();
-
         setLoading(false);
-
-        // data looks like 
-        // { 0: "{'title': 'First Title', 'author': 'Bob Miles', 'date': 'March 1st, 2023', 'url': 'https://example.com', 'tags': ['tag1', 'tag2'], 'text': 'This is the content of the article'}",
-        //   1: "{'title': 'Second Title', 'author': 'Frank Ocean', 'date': 'March 6th, 2023', 'url': 'https://ai.com', 'tags': ['tag3', 'tag4'], 'text': 'This is the content of the article'}"
-        // }
-        // so we need to convert it to a list of objects
-
-        return Object.keys(data).map((key) => JSON.parse(data[key])) || [{title: "error", author: "error", date: "error", url: "error", tags: ["error"], text: "error"}];
+        return data;
     };
+
+        
 
     return (
         <>
@@ -86,15 +94,17 @@ const SearchBox: React.FC = () => {
                 </button>
             </form>
 
-            {loading ? <p>loading...</p> : ( // display results in list
+            {
+                loading ? <p>loading...</p> :
+                typeof results === "string" ? <p className="text-red-500">{results}</p> :
                 <ul>
-                    {results.map((result) => (
-                        <li key={result.url} className="my-1">
+                    {results.map((result, i) => (
+                        <li key={i} className="my-3">
                             <a href={result.url}>{result.text}</a>
                         </li>
                     ))}
                 </ul>
-            )}
+            }
         </>
     );
 };

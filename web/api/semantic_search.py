@@ -1,3 +1,37 @@
+# ---------------------------------- web code ----------------------------------
+
+import json
+import dataclasses
+from http.server import BaseHTTPRequestHandler
+
+@dataclasses.dataclass
+class Block:
+    title: str
+    author: str
+    date: str
+    url: str
+    tags: str
+    text: str
+
+class Encoder(json.JSONEncoder):
+    def default(self, o):
+        return dataclasses.asdict(o) if dataclasses.is_dataclass(o) else super().default(o)
+
+class handler(BaseHTTPRequestHandler):
+
+    def do_POST(self):
+
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        data = json.loads(post_data)
+
+        self.wfile.write(json.dumps(get_top_k_blocks(data['query']), cls = Encoder).encode('utf-8'))
+        
+
 # -------------------------------- non-web-code --------------------------------
 import time
 import os
@@ -47,15 +81,6 @@ class Dataset:
         self.sources_so_far = dataset_dict['sources_so_far']
         self.info_types = dataset_dict['info_types']
         self.embeddings = np.array(dataset_dict['embeddings'])
-
-class Block:
-    def __init__(self, title: str, author: str, date: str, url: str, tags: str, text: str):
-        self.title = title
-        self.author = author
-        self.date = date
-        self.url = url
-        self.tags = tags
-        self.text = text
 
 def get_embedding(text: str) -> np.ndarray:
     """Get the embedding for a given text. The function will retry with exponential backoff if the API rate limit is reached, up to 4 times.
@@ -129,34 +154,3 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     
     return blocks
 
-# ---------------------------------- web code ----------------------------------
-from http.server import BaseHTTPRequestHandler
-
-
-class handler(BaseHTTPRequestHandler):
-
-    def do_POST(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        data = json.loads(post_data)
-
-        results = {}
-        
-        query = data['query']
-        if 'k' in data:
-            k = data['k']
-        else:
-            k=10
-        if 'HyDE' in data:
-            HyDE = data['HyDE']
-        else:
-            HyDE = False
-
-        for i, block in enumerate(get_top_k_blocks(query, k=k, HyDE=HyDE)):
-            results[i] = json.dumps(block.__dict__)
-
-        self.wfile.write(json.dumps(results).encode('utf-8'))
-        
