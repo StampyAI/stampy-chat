@@ -48,6 +48,23 @@ type SemanticEntry = {
     text: string;
 };
 
+const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
+    return (
+        <div className="my-3">
+
+            {/* horizontally split first row, title on left, author on right */}
+            <div className="flex">
+                <h3 className="text-xl flex-1">{entry.title}</h3>
+                <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
+            </div>
+
+            <p className="text-sm">{entry.text}</p>
+
+            <a href={entry.url}>Read more</a>
+        </div>
+    );
+};
+
 const SearchBox: React.FC = () => {
 
     const [query,   setQuery]   = useState("");
@@ -99,8 +116,8 @@ const SearchBox: React.FC = () => {
                 typeof results === "string" ? <p className="text-red-500">{results}</p> :
                 <ul>
                     {results.map((result, i) => (
-                        <li key={i} className="my-3">
-                            <a href={result.url}>{result.text}</a>
+                        <li key={i}>
+                            <ShowSemanticEntry entry={result} />
                         </li>
                     ))}
                 </ul>
