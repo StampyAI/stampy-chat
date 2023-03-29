@@ -10,17 +10,13 @@ type Entry = {
 
 const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     if (entry.role === "user") {
-        return (
-            <p className="border border-gray-300 px-1"> {entry.text} </p>
-        );
+        return ( <p className="border border-gray-300 px-1"> {entry.text} </p>);
     }
 
     return (
         <div className="my-3">
-            { // split into paragraphs on "\n"
-                entry.text.split("\n").map((paragraph, i) => (
-                    <p key={i}> {paragraph} </p>
-                ))
+            {   // split into paragraphs
+                entry.text.split("\n").map((paragraph, i) => ( <p key={i}> {paragraph} </p>))
             }
         </div>
     );
@@ -36,6 +32,40 @@ const Home: NextPage = () => {
         {role: "user", text: "What's 2+2?"},
         { role: "demon", text: "No one will mourn your species when it is gone. A hundred year wave of radio and information will ring out across a dead cosmos, reflecting on shores more distant and beautiful than you can possibly conceive. No one is out there to listen."}
     ]);
+
+    const [ query, setQuery ] = useState("");
+    const [ loading, setLoading ] = useState(false);
+
+
+    const search = async (query: string) => {
+        
+        // clear the query box, append to entries
+        const old_entries = entries;
+        const new_entries: Entry[] = [...old_entries, {role: "user", text: query}];
+        setEntries(new_entries);
+        setQuery("");
+
+        setLoading(true);
+
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({query: query}),
+        })
+
+        if (!res.ok) {
+            setLoading(false);
+            return "load failure: " + res.status;
+        }
+
+        const response = res.body!.getReader().read().then(({value}) => {
+            return new TextDecoder("utf-8").decode(value);
+        });
+
+        setEntries([...new_entries, {role: "demon", text: await response}]);
+
+        setLoading(false);
+    };
 
     return (
         <>
@@ -68,103 +98,27 @@ const Home: NextPage = () => {
                         </li>
                     ))}
                 </ul>
-                <SearchBox />
+                { loading ? <p>loading...</p> :
+                    <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
+                        e.preventDefault();
+                        await search(query);
+                    }}>
+
+                        <input
+                            type="text"
+                            className="border border-gray-300 px-1 flex-1"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
+                        <button className="ml-2" type="submit" disabled={loading}>
+                            {loading ? "Loading..." : "Search"}
+                        </button>
+                    </form>
+                }
+
             </main>
         </>
     );
 };
-
-// Round trip test. If this works, our heavier usecase probably will (famous last words)
-// The one real difference is we'll want to send back a series of results as we get
-// them back from OpenAI - I think we can just do this with a websocket, which
-// shouldn't be too much harder.
-
-type SemanticEntry = {
-    title: string;
-    author: string;
-    date: string;
-    url: string;
-    tags: string;
-    text: string;
-};
-
-const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
-    return (
-        <div className="my-3">
-
-            {/* horizontally split first row, title on left, author on right */}
-            <div className="flex">
-                <h3 className="text-xl flex-1">{entry.title}</h3>
-                <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
-            </div>
-
-            <p className="text-sm">{entry.text}</p>
-
-            <a href={entry.url}>Read more</a>
-        </div>
-    );
-};
-
-const SearchBox: React.FC = () => {
-
-    const [query,   setQuery]   = useState("");
-    const [results, setResults] = useState<SemanticEntry[] | string>([]);
-    const [loading, setLoading] = useState(false);
-
-    const semantic_search = async (query: String) => {
-        
-        setLoading(true);
-
-        const res = await fetch("/api/semantic_search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({query: query}),
-        })
-
-        if (!res.ok) {
-            setLoading(false);
-            return "load failure: " + res.status;
-        }
-
-        const data = await res.json();
-        setLoading(false);
-        return data;
-    };
-
-        
-
-    return (
-        <>
-            <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
-                e.preventDefault();
-                setResults(await semantic_search(query));
-            }}>
-
-                <input
-                    type="text"
-                    className="border border-gray-300 px-1 flex-1"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                />
-                <button className="ml-2" type="submit" disabled={loading}>
-                    {loading ? "Loading..." : "Search"}
-                </button>
-            </form>
-
-            {
-                loading ? <p>loading...</p> :
-                typeof results === "string" ? <p className="text-red-500">{results}</p> :
-                <ul>
-                    {results.map((result, i) => (
-                        <li key={i}>
-                            <ShowSemanticEntry entry={result} />
-                        </li>
-                    ))}
-                </ul>
-            }
-        </>
-    );
-};
-
 
 export default Home;
