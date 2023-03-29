@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import dataclasses
 import itertools
 import json
@@ -119,21 +119,28 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 
 # for all blocks that are "the same" (same title, author, date, url, tags),
-# combine their text with "\n\n[...]\n\n" in between.
+# combine their text with "\n\n[...]\n\n" in between. Return them in order such
+# that the combined block has the minimum index of the blocks combined.
+
 def unify(blocks: List[Block]) -> List[Block]:
 
-    key = lambda block: (block.title, block.author, block.date, block.url, block.tags)
+    blocks_plus_old_index = [(block, i) for i, block in enumerate(blocks)]
 
-    blocks.sort(key=key)
-    unified_blocks: List[Block] = []
+    key = lambda bi: (bi[0].title, bi[0].author, bi[0].date, bi[0].url, bi[0].tags, bi[1])
 
-    for key, group in itertools.groupby(blocks, key=key):
+    blocks_plus_old_index.sort(key=key)
 
-        text = "\n\n\n[...]\n\n\n".join([block.text for block in group])
+    unified_blocks: List[Tuple[Block, int]] = []
 
-        unified_blocks.append(Block(key[0], key[1], key[2], key[3], key[4], text))
+    for key, group in itertools.groupby(blocks_plus_old_index, key=key):
 
-    return unified_blocks
+        text = "\n\n\n[...]\n\n\n".join([block[0].text for block in group])
+
+        unified_blocks.append((Block(key[0], key[1], key[2], key[3], key[4], text), key[5]))
+
+    unified_blocks.sort(key=lambda bi: bi[1])
+    blocks = [block for block, _ in unified_blocks]
+    return blocks
 
 
 # we the title and authors inside the contents of the block, so that searches for
