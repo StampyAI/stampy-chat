@@ -127,7 +127,7 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 
 # for all blocks that are "the same" (same title, author, date, url, tags),
-# combine their text with "\n\n[...]\n\n" in between. Return them in order such
+# combine their text with "\n\n.....\n\n" in between. Return them in order such
 # that the combined block has the minimum index of the blocks combined.
 
 def unify(blocks: List[Block]) -> List[Block]:
@@ -142,7 +142,7 @@ def unify(blocks: List[Block]) -> List[Block]:
 
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
 
-        text = "\n\n\n[...]\n\n\n".join([block[0].text for block in group])
+        text = "\n\n\n.....\n\n\n".join([block[0].text for block in group])
 
         unified_blocks.append((Block(key[0], key[1], key[2], key[3], key[4], text), key[5]))
 
