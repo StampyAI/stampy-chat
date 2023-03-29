@@ -4,6 +4,7 @@ import itertools
 import json
 import numpy as np
 import openai
+import regex as re
 import time
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -110,7 +111,7 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     top_k_metadata = [metadataset.metadata[i] for i in top_k_metadata_indexes]  # Get the top k metadata (title, author, date, url, tags)
     
     # Combine the top k texts and metadata into a list of Block objects
-    top_k_metadata_and_text = [list(top_k_metadata[i]) + [top_k_texts[i]] for i in range(k)]
+    top_k_metadata_and_text = [list(top_k_metadata[i]) + [strip_block(top_k_texts[i])] for i in range(k)]
     blocks = [Block(*block) for block in top_k_metadata_and_text]
     
     return unify(blocks)
@@ -118,8 +119,7 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 
 # for all blocks that are "the same" (same title, author, date, url, tags),
-# combine their text with "\n\n...\n\n" in between, returning the list.
-
+# combine their text with "\n\n[...]\n\n" in between.
 def unify(blocks: List[Block]) -> List[Block]:
 
     key = lambda block: (block.title, block.author, block.date, block.url, block.tags)
@@ -127,14 +127,22 @@ def unify(blocks: List[Block]) -> List[Block]:
     blocks.sort(key=key)
     unified_blocks: List[Block] = []
 
-    for k, g in itertools.groupby(blocks, key=key):
+    for key, group in itertools.groupby(blocks, key=key):
 
-        text = "\n\n\n[...]\n\n\n".join([block.text for block in g])
+        text = "\n\n\n[...]\n\n\n".join([block.text for block in group])
 
-        unified_blocks.append(Block(k[0], k[1], k[2], k[3], k[4], text))
+        unified_blocks.append(Block(key[0], key[1], key[2], key[3], key[4], text))
 
     return unified_blocks
 
 
+# we the title and authors inside the contents of the block, so that searches for
+# the title or author will pull it up. This strips it back out.
+def strip_block(text: str) -> str:
+    r = re.match(r"^\"(.*)\"\s*-\s*Title:.*$", text, re.DOTALL)
+    if not r:
+        print("Warning: couldn't strip block")
+        print(text)
+    return r.group(1) if r else text
 
 
