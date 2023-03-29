@@ -2,6 +2,8 @@ import { type NextPage } from "next";
 import React from "react";
 import { useState } from "react";
 import Head from "next/head";
+import Header from "../header";
+import TextareaAutosize from 'react-textarea-autosize';
 
 const Semantic: NextPage = () => {
     return (
@@ -10,7 +12,8 @@ const Semantic: NextPage = () => {
                 <title>Alignment Search</title>
             </Head>
             <main>
-                <h2>Get the most semantic similar results to a query:</h2>
+                <Header page="semantic" />
+                <h2>See the raw results of a semantic search</h2>
                 <SearchBox />
             </main>
         </>
@@ -88,11 +91,14 @@ const SearchBox: React.FC = () => {
                 setResults(await semantic_search(query));
             }}>
 
-                <input
-                    type="text"
-                    className="border border-gray-300 px-1 flex-1"
+                <TextareaAutosize
+                    className="border border-gray-300 px-1 flex-1 resize-none"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                        // if <esc>, blur the input box
+                        if (e.key === "Escape") e.currentTarget.blur();
+                    }}
                 />
                 <button className="ml-2" type="submit" disabled={loading}>
                     {loading ? "Loading..." : "Search"}
