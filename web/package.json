@@ -9,9 +9,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "autosize": "^6.0.1",
     "next": "^13.2.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-textarea-autosize": "^8.4.1",
     "zod": "^3.20.6"
   },
   "devDependencies": {

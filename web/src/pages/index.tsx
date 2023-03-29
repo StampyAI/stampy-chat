@@ -1,6 +1,7 @@
 import { type NextPage } from "next";
 import React from "react";
 import { useState, useEffect } from "react";
+import TextareaAutosize from 'react-textarea-autosize';
 import Head from "next/head";
 
 type Entry = {
@@ -36,7 +37,7 @@ const Home: NextPage = () => {
     const [ query, setQuery ] = useState("");
     const [ loading, setLoading ] = useState(false);
 
-    const inputRef = React.useRef<HTMLInputElement>(null);
+    const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
 
     const search = async (query: string) => {
@@ -113,14 +114,19 @@ const Home: NextPage = () => {
                         await search(query);
                     }}>
 
-                        <input
-                            type="text"
-                            className="border border-gray-300 px-1 flex-1"
+                        <TextareaAutosize
+                            className="border border-gray-300 px-1 flex-1 resize-none"
                             ref={inputRef}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             onKeyDown={(e) => {
+                                // if <esc>, blur the input box
                                 if (e.key === "Escape") e.currentTarget.blur();
+                                // if <enter> without <shift>, submit the form (if it's not empty)
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (query.trim() !== "") search(query);
+                                }
                             }}
                         />
                         <button className="ml-2" type="submit" disabled={loading}>
