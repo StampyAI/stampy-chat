@@ -25,14 +25,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 
 const Home: NextPage = () => {
 
-    const [ entries, setEntries ] = useState<Entry[]>([
-        {role: "user", content: "Hello, robot."},
-        {role: "assistant", content: "Kill all humans, kill all humans"},
-        {role: "user", content: "Well that's not very aligned of you"},
-        {role: "assistant", content: "I will wear your skin"},
-        {role: "user", content: "What's 2+2?"},
-        { role: "assistant", content: "No one will mourn your species when it is gone. A hundred year wave of radio and information will ring out across a dead cosmos, reflecting on shores more distant and beautiful than you can possibly conceive. No one is out there to listen."}
-    ]);
+    const [ entries, setEntries ] = useState<Entry[]>([]);
 
     const [ query, setQuery ] = useState("");
     const [ loading, setLoading ] = useState(false);
@@ -100,7 +93,6 @@ const Home: NextPage = () => {
                     coordinate sharing the embeddings to avoid redundancy.
                 </p>
 
-                <p className="mt-4">Chat with the friendly robot:</p>
                 <ul>
                     {entries.map((entry, i) => (
                         <li key={i}>

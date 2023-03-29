@@ -1,8 +1,0 @@
-jsonlines
-openai
-numpy
-langchain
-requests
-tiktoken
-tqdm
-nltk

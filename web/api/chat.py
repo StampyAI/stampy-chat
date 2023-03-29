@@ -18,6 +18,7 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(chat(data['query'], data['history']).encode('utf-8'))
 
 # ------------------------------- chat gpt stuff -------------------------------
+
 import os
 import requests
 from typing import List, Dict
@@ -29,13 +30,9 @@ except ImportError as e:
     print("Please install tiktoken with `pip install tiktoken`")
 
 import openai
-try:
-    import config
-    openai.api_key = config.OPENAI_API_KEY
-except ImportError:
-    openai.api_key = os.environ.get('OPENAI_API_KEY')
-
-from get_blocks import get_top_k_blocks, Block
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+openai.api_key = OPENAI_API_KEY
+from api.get_blocks import get_top_k_blocks, Block
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -213,4 +210,4 @@ def chat(query: str, history: List[Dict[str, str]] = [], k: str = 10, mode: str 
     
     # 4. Use the top-k most relevant blocks as context for the ChatCompletions API, and generate an answer to the user query
     completion: str = normal_completion(prompt)
-    return completion, top_k_blocks
+    return completion
