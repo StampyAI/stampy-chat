@@ -1,6 +1,6 @@
 import { type NextPage } from "next";
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 
 type Entry = {
@@ -36,6 +36,8 @@ const Home: NextPage = () => {
     const [ query, setQuery ] = useState("");
     const [ loading, setLoading ] = useState(false);
 
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
 
     const search = async (query: string) => {
         
@@ -65,7 +67,14 @@ const Home: NextPage = () => {
         setEntries([...new_entries, {role: "assistant", content: await response}]);
 
         setLoading(false);
+
     };
+
+    useEffect(() => {
+        // set focus on the input box
+        if (!loading) inputRef.current?.focus();
+    }, [loading]);
+
 
     return (
         <>
@@ -107,6 +116,7 @@ const Home: NextPage = () => {
                         <input
                             type="text"
                             className="border border-gray-300 px-1 flex-1"
+                            ref={inputRef}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                         />

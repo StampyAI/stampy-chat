@@ -1,7 +1,6 @@
 # ---------------------------------- web code ----------------------------------
 
 import json
-import dataclasses
 from http.server import BaseHTTPRequestHandler
 
 class handler(BaseHTTPRequestHandler):
@@ -15,8 +14,6 @@ class handler(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
-
-        print(data)
 
         self.wfile.write(chat(data['history'], data['query']).encode('utf-8'))
 
