@@ -105,22 +105,46 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
         )["choices"][0]["message"]["content"]
         HyDe_completion_embedding = get_embedding(f"Question: {user_query}\n\nAnswer: {HyDE_completion}")
         
-        similarity_scores = np.dot(metadataset.embeddings, HyDe_completion_embedding)        
+        similarity_scores = np.dot(metadataset["embeddings"], HyDe_completion_embedding)        
     else:
-        similarity_scores = np.dot(metadataset.embeddings, query_embedding)
+        similarity_scores = np.dot(metadataset["embeddings"], query_embedding)
     
     ordered_blocks = np.argsort(similarity_scores)[::-1]  # Sort the blocks by similarity score
+
     top_k_block_indices = ordered_blocks[:k]  # Get the top k indices of the blocks
-    top_k_metadata_indexes = [metadataset.embeddings_metadata_index[i] for i in top_k_block_indices]
-    
-    # Get the top k blocks (title, author, date, url, tags, text)
-    top_k_texts = [metadataset.embedding_strings[i] for i in top_k_block_indices]  # Get the top k texts
-    top_k_metadata = [metadataset.metadata[i] for i in top_k_metadata_indexes]  # Get the top k metadata (title, author, date, url, tags)
-    
+    top_k_metadata_indexes = [metadataset["embeddings_metadata_index"][i] for i in top_k_block_indices]
+
+    # --------------------------------------------------------------------------
+
+    # we've got some sort of truncation issue with the dataset. Ideally, delete these lines
+
+    tkbi = []
+    tkmi = []
+
+    bl = len(metadataset["embedding_strings"])
+    ml = len(metadataset["metadata"])
+
+    for i in range(len(top_k_block_indices)):
+        if top_k_block_indices[i] >= bl or top_k_metadata_indexes[i] >= ml:
+            print("!!!TRUNCATION ERROR!!!")
+            print(f"- top_k_block_indices: {top_k_block_indices}, sampling array of length {bl}")
+            print(f"- top_k_metadata_indexes: {top_k_metadata_indexes}, sampling array of length {ml}")
+        else:
+            tkbi.append(top_k_block_indices[i])
+            tkmi.append(top_k_metadata_indexes[i])
+
+
+
+    # --------------------------------------------------------------------------
+
+    top_k_texts = [metadataset["embedding_strings"][i] for i in tkbi]
+    top_k_metadata = [metadataset["metadata"][i] for i in tkmi]
+
+
     # Combine the top k texts and metadata into a list of Block objects
-    top_k_metadata_and_text = [list(top_k_metadata[i]) + [strip_block(top_k_texts[i])] for i in range(k)]
+    top_k_metadata_and_text = [list(top_k_metadata[i]) + [strip_block(top_k_texts[i])] for i in range(len(top_k_metadata))]
     blocks = [Block(*block) for block in top_k_metadata_and_text]
-    
+
     return unify(blocks)
 
 
@@ -131,19 +155,22 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
 
 def unify(blocks: List[Block]) -> List[Block]:
 
+    key = lambda bi: (bi[0].title or "", bi[0].author or "", bi[0].date or "", bi[0].url or "", bi[0].tags or "")
+
     blocks_plus_old_index = [(block, i) for i, block in enumerate(blocks)]
-
-    key = lambda bi: (bi[0].title, bi[0].author, bi[0].date, bi[0].url, bi[0].tags, bi[1])
-
     blocks_plus_old_index.sort(key=key)
 
     unified_blocks: List[Tuple[Block, int]] = []
 
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
+        group = list(group)
+        if len(group) == 0: continue
 
         text = "\n\n\n.....\n\n\n".join([block[0].text for block in group])
 
-        unified_blocks.append((Block(key[0], key[1], key[2], key[3], key[4], text), key[5]))
+        min_index = min([block[1] for block in group])
+
+        unified_blocks.append((Block(key[0], key[1], key[2], key[3], key[4], text), min_index))
 
     unified_blocks.sort(key=lambda bi: bi[1])
     blocks = [block for block, _ in unified_blocks]
