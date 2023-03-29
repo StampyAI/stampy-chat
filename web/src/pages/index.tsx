@@ -119,6 +119,9 @@ const Home: NextPage = () => {
                             ref={inputRef}
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") e.currentTarget.blur();
+                            }}
                         />
                         <button className="ml-2" type="submit" disabled={loading}>
                             {loading ? "Loading..." : "Search"}
