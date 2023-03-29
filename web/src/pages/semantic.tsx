@@ -40,8 +40,13 @@ const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
                 <h3 className="text-xl flex-1">{entry.title}</h3>
                 <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
             </div>
-
-            <p className="text-sm">{entry.text}</p>
+            { entry.text.split("\n").map((paragraph, i) => {
+                const p = paragraph.trim();
+                if (p === "") return <></>;
+                if (p === "[...]") return <hr key={i} />;
+                return <p className="text-sm" key={i}> {paragraph} </p>
+              })
+            }
 
             <a href={entry.url}>Read more</a>
         </div>

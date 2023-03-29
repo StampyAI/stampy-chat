@@ -17,22 +17,15 @@ class handler(BaseHTTPRequestHandler):
 
         self.wfile.write(chat(data['query'], data['history']).encode('utf-8'))
 
-# ------------------------------- chat gpt stuff -------------------------------
+# --------------------------------- chat stuff ---------------------------------
 
+from api.get_blocks import get_top_k_blocks, Block
+
+from typing import List, Dict
+import openai
 import os
 import requests
-from typing import List, Dict
-
-try:
-    import tiktoken
-except ImportError as e:
-    print(e)
-    print("Please install tiktoken with `pip install tiktoken`")
-
-import openai
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
-from api.get_blocks import get_top_k_blocks, Block
+import tiktoken
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -44,39 +37,10 @@ LEN_EMBEDDINGS = 1536
 MAX_TOKEN_LEN_PROMPT = 4095 # This may be 8191, unsure.
 TRUNCATE_CONTEXT = 2000
 
-def moderate_query(query: str) -> List[str]:
-    """This function uses the OpenAI Moderation API to check if a query contains any offensive language.
+# OpenAI API key
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+openai.api_key = OPENAI_API_KEY
 
-    Args:
-        query (str): The query to be checked.
-
-    Raises:
-        Exception: If the API call fails.
-
-    Returns:
-        List[str]: A list of categories that the query was flagged for.
-    """
-    
-    headers = {"Content-Type": "application/json","Authorization": f"Bearer {OPENAI_API_KEY}"}
-
-    data = {"input": query}
-
-    response = requests.post(MODERATION_ENDPOINT, headers=headers, data=json.dumps(data))
-    flagged_categories = []
-
-    if response.status_code == 200:
-        moderation_results = response.json()
-        flagged = moderation_results['results'][0]['flagged']
-        categories = moderation_results['results'][0]['categories']
-
-        if flagged:
-            for category, is_flagged in categories.items():
-                if is_flagged:
-                    flagged_categories.append(category)
-    else:
-        raise Exception(f"Error: {response.status_code} {response.reason}")
-
-    return flagged_categories
 
 def limit_tokens(text: str, max_tokens: int, encoding_name: str = "cl100k_base") -> str:
     encoding = tiktoken.get_encoding(encoding_name)
@@ -197,10 +161,6 @@ def chat(query: str, history: List[Dict[str, str]] = [], k: str = 10, mode: str 
     """
 
     
-    # 1. Check if the query is offensive
-    flagged_categories: List[str] = moderate_query(query)
-    if len(flagged_categories) > 0:
-        return f"Your query contains offensive language. Please try again."
 
     # 2. Find the top-k most relevant blocks from the Alignment Research Dataset
     top_k_blocks: List[Block] = get_top_k_blocks(query, k, HyDE)

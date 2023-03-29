@@ -1,8 +1,10 @@
-import time
-import numpy as np
-import json
 from typing import List
+import dataclasses
+import itertools
+import json
+import numpy as np
 import openai
+import time
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
 COMPLETIONS_MODEL = "gpt-3.5-turbo"
@@ -32,14 +34,14 @@ class Dataset:
         self.info_types = dataset_dict['info_types']
         self.embeddings = np.array(dataset_dict['embeddings'])
 
+@dataclasses.dataclass
 class Block:
-    def __init__(self, title: str, author: str, date: str, url: str, tags: str, text: str):
-        self.title = title
-        self.author = author
-        self.date = date
-        self.url = url
-        self.tags = tags
-        self.text = text
+    title: str
+    author: str
+    date: str
+    url: str
+    tags: str
+    text: str
 
 def get_embedding(text: str) -> np.ndarray:
     """Get the embedding for a given text. The function will retry with exponential backoff if the API rate limit is reached, up to 4 times.
@@ -111,4 +113,28 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     top_k_metadata_and_text = [list(top_k_metadata[i]) + [top_k_texts[i]] for i in range(k)]
     blocks = [Block(*block) for block in top_k_metadata_and_text]
     
-    return blocks
+    return unify(blocks)
+
+
+
+# for all blocks that are "the same" (same title, author, date, url, tags),
+# combine their text with "\n\n...\n\n" in between, returning the list.
+
+def unify(blocks: List[Block]) -> List[Block]:
+
+    key = lambda block: (block.title, block.author, block.date, block.url, block.tags)
+
+    blocks.sort(key=key)
+    unified_blocks: List[Block] = []
+
+    for k, g in itertools.groupby(blocks, key=key):
+
+        text = "\n\n\n[...]\n\n\n".join([block.text for block in g])
+
+        unified_blocks.append(Block(k[0], k[1], k[2], k[3], k[4], text))
+
+    return unified_blocks
+
+
+
+
