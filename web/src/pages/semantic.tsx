@@ -84,7 +84,7 @@ const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
             { entry.text.split("\n").map((paragraph, i) => {
                 const p = paragraph.trim();
                 if (p === "") return <></>;
-                if (p === "[...]") return <hr key={i} />;
+                if (p === ".....") return <hr key={i} />;
                 return <p className="text-sm" key={i}> {paragraph} </p>
               })
             }
