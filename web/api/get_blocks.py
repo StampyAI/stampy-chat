@@ -13,8 +13,7 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 import pathlib
 project_path = pathlib.Path(__file__).parent
-PATH_TO_DATASET_JSON = project_path / "data" / "dataset.json" # Path to the saved dataset (.json) file, containing the dataset class object.
-PATH_TO_DATASET_PKL = project_path / "data" / "dataset_5percent.pkl" # Path to the saved dataset (.json) file, containing the dataset class object.
+PATH_TO_DATASET_DICT = project_path / "data" / "dataset_5percent_dict.pkl"
 
 class Dataset:
     pass
@@ -88,7 +87,7 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
     # Get the dataset (in data/dataset.json)
     # metadataset = Dataset()
     # Get the dataset (in data/dataset_5percent.pkl)
-    with open(PATH_TO_DATASET_PKL, 'rb') as f:
+    with open(PATH_TO_DATASET_DICT, 'rb') as f:
         metadataset = pickle.load(f)
     
     # Get the embedding for the query.
