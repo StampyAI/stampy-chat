@@ -53,10 +53,20 @@ MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 
 # Paths
 from pathlib import Path
-project_path = Path(__file__).parent.parent.parent
-PATH_TO_DATA = project_path / "web" / "api" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
-PATH_TO_EMBEDDINGS = project_path / "web" / "api" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
-PATH_TO_DATASET = project_path / "web" / "api" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
+#current_file = Path(__file__).parent.parent.parent
+#PATH_TO_DATA = project_path / "web" / "api" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
+#PATH_TO_EMBEDDINGS = project_path / "web" / "api" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
+#PATH_TO_DATASET = project_path / "web" / "api" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
+
+
+# Get the path from the environment variable
+PATH_TO_DATASET = os.environ.get("PATH_TO_DATASET")
+
+# Fallback to the local path if the environment variable is not set
+if PATH_TO_DATASET is None:
+    PATH_TO_DATASET = Path(__file__).parent / "data" / "dataset.pkl"
+else:
+    PATH_TO_DATASET = Path(PATH_TO_DATASET)
 
 
 class Dataset:

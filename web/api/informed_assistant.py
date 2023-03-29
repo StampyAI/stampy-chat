@@ -35,7 +35,7 @@ import tiktoken
 import asyncio
 
 import config
-from semantic_search import get_top_k_blocks
+from assistant.semantic_search import get_top_k_blocks
 
 
 # OpenAI API key

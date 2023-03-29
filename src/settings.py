@@ -1,12 +1,24 @@
 from pathlib import Path
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
-COMPLETIONS_MODEL = "text-davinci-003"
+COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 LEN_EMBEDDINGS = 1536
 MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 
-project_path = Path(__file__).parent.parent#.parent
-PATH_TO_DATA = project_path / "src" / "data" / "alignment_texts.jsonl" # Path to the dataset .jsonl file.
-PATH_TO_EMBEDDINGS = project_path / "src" / "data" / "embeddings.npy" # Path to the saved embeddings (.npy) file.
-PATH_TO_DATASET = project_path / "src" / "data" / "dataset.pkl" # Path to the saved dataset (.pkl) file, containing the dataset class object.
+
+def get_rawdata_file_path():
+    current_file_path = Path(__file__).resolve()
+    data_file_path = current_file_path.parent / 'dataset' / 'data' / 'alignment_texts.jsonl'
+    return str(data_file_path)
+
+def get_dataset_file_path():
+    current_file_path = Path(__file__).resolve()
+    data_file_path = current_file_path.parent / 'dataset' / 'data' / 'dataset.pkl'
+    return str(data_file_path)
+
+
+PATH_TO_RAW_DATA = get_rawdata_file_path()
+
+PATH_TO_DATASET = get_dataset_file_path()
+
