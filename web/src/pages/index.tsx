@@ -26,7 +26,6 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
-
     const [ query, setQuery ] = useState("");
     const [ loading, setLoading ] = useState(false);
 
@@ -126,7 +125,6 @@ const Home: NextPage = () => {
                         </button>
                     </form>
                 }
-
             </main>
         </>
     );

@@ -17,7 +17,7 @@ class handler(BaseHTTPRequestHandler):
 
         self.wfile.write(chat(data['query'], data['history']).encode('utf-8'))
 
-# --------------------------------- chat stuff ---------------------------------
+# ------------------------------- env, constants -------------------------------
 
 from api.get_blocks import get_top_k_blocks, Block
 
@@ -41,63 +41,71 @@ TRUNCATE_CONTEXT = 2000
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
 
+# --------------------------------- prompt code --------------------------------
+
+
+
 
 def limit_tokens(text: str, max_tokens: int, encoding_name: str = "cl100k_base") -> str:
     encoding = tiktoken.get_encoding(encoding_name)
     tokens = encoding.encode(text)[:max_tokens]
     return encoding.decode(tokens)
 
-def generate_prompt(query: str, history: List[Dict[str, str]] = [], blocks: List[Block] = [], mode: str = "standard") -> List[Dict[str, str]]:
-    """
-    This function generates a prompt in messages format for the OpenAI ChatCompletions API.
-    First, it picks a system description using the mode.
-    Second, it adds the previous dialogue to the prompt.
-    Third, it adds an instruction to the prompt based on the mode.
-    Fourth, it adds the context from the top-k most relevant blocks from the Alignment Research Dataset to the prompt.
-    Fifth, it adds the user query to the prompt.
 
-    Messages take the following format:
-    messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Who won the world series in 2020?"},
-        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-        {"role": "user", "content": "Where was it played?"}
-    ]
+
+
+
+
+def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
+    """
     
     Args:
         query (str): The user query.
         history (List[Dict[str, str]]): The previous dialogue. Defaults to [].
         blocks (List[Block]): The top-k most relevant blocks from the Alignment Research Dataset. Defaults to [].
-        mode (str): The mode of the assistant. Can be "standard", etc. Defaults to "standard".
 
-    Returns:
-        List[Dict[str, str]]: The prompt in messages format.
+    History takes the format: history=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Who won the world series in 2020?"},
+        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+        {"role": "user", "content": "Where was it played?"}
+        {"role": "assistant", "content": "Los Angeles, California."}
+    ]
+
+    Returns: List[Dict[str, str]]: The prompt in messages format.
     """
+
     # Initialize prompt with system description
     prompt = [{"role": "system", "content": "You are a helpful assistant knowledgeable about AI Alignment and Safety."}]
+    # Add previous dialogue
+    prompt.extend(history) 
 
-    prompt.extend(history) # Add previous dialogue
-
-    instruction_prompt = "Please answer my question (after the Q:) using the provided context."
+    instruction_prompt = "Please give a clear and coherent answer to my question (written after \"Q:\") using the following sources:"
     prompt.append({"role": "user", "content": instruction_prompt})
     
-
     # Add context from top-k blocks
-    context_prompt = "Context:\n\n"
-    for i, block in enumerate(blocks):
-        context_prompt += f"[{i}] {block.text}\n\n"
-    context_prompt = context_prompt[:-2]
-    
-    try:
-        context_prompt = limit_tokens(context_prompt, TRUNCATE_CONTEXT)
-    except: # If the tokenizer does not work, just truncate the context prompt to 8000 characters
-        context_prompt = context_prompt[:TRUNCATE_CONTEXT*4]
+    context_prompt = ""
+    for i, block in enumerate(context):
+        context_prompt += f"[{chr(ord('a') + i)}] {block.title} - {block.author} - {block.date}\n\n{block.text}\n\n"
+
+    context_prompt = context_prompt[:-2] # trim last two newlines
+
+    context_prompt = limit_tokens(context_prompt, TRUNCATE_CONTEXT) # truncate to about 2k tokens
+
     prompt.append({"role": "user", "content": f"{context_prompt}"})
     
     # Add user query
-    prompt.append({"role": "user", "content": f"Q: {query}"})
+    question_prompt = "In your answer, please cite any claims you make back to each source using the format: [a], [b], etc."
+    question_prompt += "\n\nQ: " + query
+    prompt.append({"role": "user", "content": question_prompt})
     
     return prompt
+
+
+
+
+# ------------------------------------------------------------------------------
+
         
 def normal_completion(prompt: List[Dict[str, str]]) -> str:
     """
@@ -121,7 +129,7 @@ def normal_completion(prompt: List[Dict[str, str]]) -> str:
         print(e)
         return "I'm sorry, I failed to process your query. Please try again. If the problem persists, please contact the administrator."
 
-def chat(query: str, history: List[Dict[str, str]] = [], k: str = 10, mode: str = "standard", HyDE: bool = False) -> str:
+def chat(query: str, history: List[Dict[str, str]] = [], k: str = 10, HyDE: bool = False) -> str:
     """
     This function uses the OpenAI ChatCompletions API to answer a user query.
     It first checks if the query is offensive, and if so, raises an exception.
@@ -151,7 +159,7 @@ def chat(query: str, history: List[Dict[str, str]] = [], k: str = 10, mode: str 
     top_k_blocks: List[Block] = get_top_k_blocks(query, k, HyDE)
     
     # 3. Generate a prompt for the ChatCompletions API
-    prompt: List[Dict[str, str]] = generate_prompt(query, history, top_k_blocks, mode)
+    prompt: List[Dict[str, str]] = construct_prompt(query, history, top_k_blocks)
     
     # 4. Use the top-k most relevant blocks as context for the ChatCompletions API, and generate an answer to the user query
     completion: str = normal_completion(prompt)

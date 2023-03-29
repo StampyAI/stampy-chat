@@ -83,7 +83,7 @@ const SearchBox: React.FC = () => {
 
     return (
         <>
-            <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
+            <form className="flex mb-2" onSubmit={async (e) => {
                 e.preventDefault();
                 setResults(await semantic_search(query));
             }}>
