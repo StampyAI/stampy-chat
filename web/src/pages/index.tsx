@@ -72,7 +72,6 @@ const Home: NextPage = () => {
             </Head>
             <main>
                 <Header page="index" />
-                <SearchBox search={search} />
                 <ul>
                     {entries.map((entry, i) => (
                         <li key={i}>
@@ -80,6 +79,7 @@ const Home: NextPage = () => {
                         </li>
                     ))}
                 </ul>
+                <SearchBox search={search} />
             </main>
         </>
     );
