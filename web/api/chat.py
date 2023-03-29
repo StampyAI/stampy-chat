@@ -73,31 +73,16 @@ def generate_prompt(query: str, history: List[Dict[str, str]] = [], blocks: List
     Returns:
         List[Dict[str, str]]: The prompt in messages format.
     """
-    # Initialize prompt
-    prompt = []
-    
-    # Generate system description
-    if mode == "standard":
-        prompt.append({"role": "system", "content": "You are a helpful assistant knowledgeable about AI Alignment and Safety."})
-    # elif mode == "other":
-    else:
-        raise Exception(f"Invalid mode: {mode}")
+    # Initialize prompt with system description
+    prompt = [{"role": "system", "content": "You are a helpful assistant knowledgeable about AI Alignment and Safety."}]
 
-    # Add previous dialogue
-    for message in history:
-        prompt.append(message)
+    prompt.extend(history) # Add previous dialogue
+
+    instruction_prompt = "Please answer my question (after the Q:) using the provided context."
+    prompt.append({"role": "user", "content": instruction_prompt})
     
-    # Add instruction
-    if mode == "standard":
-        instruction_prompt = "Please answer my question (after the Q:) using the provided context."
-        prompt.append({"role": "assistant", "content": instruction_prompt})
-    # elif mode == "other":
-    else:
-        raise Exception(f"Invalid mode: {mode}")
-    
+
     # Add context from top-k blocks
-    if blocks is None:
-        return "Context missing."
     context_prompt = "Context:\n\n"
     for i, block in enumerate(blocks):
         context_prompt += f"[{i}] {block.text}\n\n"
