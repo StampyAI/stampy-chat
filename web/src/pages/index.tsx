@@ -4,19 +4,19 @@ import { useState } from "react";
 import Head from "next/head";
 
 type Entry = {
-    role: "user" | "demon";
-    text: string;
+    role: "user" | "assistant";
+    content: string;
 };
 
 const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     if (entry.role === "user") {
-        return ( <p className="border border-gray-300 px-1"> {entry.text} </p>);
+        return ( <p className="border border-gray-300 px-1"> {entry.content} </p>);
     }
 
     return (
         <div className="my-3">
             {   // split into paragraphs
-                entry.text.split("\n").map((paragraph, i) => ( <p key={i}> {paragraph} </p>))
+                entry.content.split("\n").map((paragraph, i) => ( <p key={i}> {paragraph} </p>))
             }
         </div>
     );
@@ -25,12 +25,12 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([
-        {role: "user", text: "Hello, robot."},
-        {role: "demon", text: "Kill all humans, kill all humans"},
-        {role: "user", text: "Well that's not very aligned of you"},
-        {role: "demon", text: "I will wear your skin"},
-        {role: "user", text: "What's 2+2?"},
-        { role: "demon", text: "No one will mourn your species when it is gone. A hundred year wave of radio and information will ring out across a dead cosmos, reflecting on shores more distant and beautiful than you can possibly conceive. No one is out there to listen."}
+        {role: "user", content: "Hello, robot."},
+        {role: "assistant", content: "Kill all humans, kill all humans"},
+        {role: "user", content: "Well that's not very aligned of you"},
+        {role: "assistant", content: "I will wear your skin"},
+        {role: "user", content: "What's 2+2?"},
+        { role: "assistant", content: "No one will mourn your species when it is gone. A hundred year wave of radio and information will ring out across a dead cosmos, reflecting on shores more distant and beautiful than you can possibly conceive. No one is out there to listen."}
     ]);
 
     const [ query, setQuery ] = useState("");
@@ -41,7 +41,7 @@ const Home: NextPage = () => {
         
         // clear the query box, append to entries
         const old_entries = entries;
-        const new_entries: Entry[] = [...old_entries, {role: "user", text: query}];
+        const new_entries: Entry[] = [...old_entries, {role: "user", content: query}];
         setEntries(new_entries);
         setQuery("");
 
@@ -50,7 +50,7 @@ const Home: NextPage = () => {
         const res = await fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({query: query}),
+            body: JSON.stringify({query: query, history: old_entries}),
         })
 
         if (!res.ok) {
@@ -62,7 +62,7 @@ const Home: NextPage = () => {
             return new TextDecoder("utf-8").decode(value);
         });
 
-        setEntries([...new_entries, {role: "demon", text: await response}]);
+        setEntries([...new_entries, {role: "assistant", content: await response}]);
 
         setLoading(false);
     };

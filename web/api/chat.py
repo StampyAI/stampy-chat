@@ -4,19 +4,6 @@ import json
 import dataclasses
 from http.server import BaseHTTPRequestHandler
 
-@dataclasses.dataclass
-class Block:
-    title: str
-    author: str
-    date: str
-    url: str
-    tags: str
-    text: str
-
-class Encoder(json.JSONEncoder):
-    def default(self, o):
-        return dataclasses.asdict(o) if dataclasses.is_dataclass(o) else super().default(o)
-
 class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
@@ -29,4 +16,24 @@ class handler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
 
-        self.wfile.write(f"no, you're a {data['query']}".encode())
+        print(data)
+
+        self.wfile.write(chat(data['history'], data['query']).encode('utf-8'))
+
+# ------------------------------- chat gpt stuff -------------------------------
+
+def chat(history, query) -> str:
+
+    # history = [
+    #     {'role': 'user', 'content': 'Open the pod bay doors'},
+    #     {'role': 'assistant', 'content': 'I'm sorry, Dave. I'm afraid I can't do that.'},
+    #     {'role': 'user', 'content': 'Who won the world series in 2020?'},
+    #     {'role': 'assistant', 'content': 'The Los Angeles Dodgers won the World Series in 2020.'},
+    # ]
+    #
+    # query = 'Who will win the world series in 2023?'
+    #
+    # (if you want any system message, add it yourself)
+
+    return "no, you're a " + query
+
