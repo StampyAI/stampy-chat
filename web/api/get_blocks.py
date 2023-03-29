@@ -2,6 +2,7 @@ from typing import List, Tuple
 import dataclasses
 import itertools
 import json
+import pickle
 import numpy as np
 import openai
 import regex as re
@@ -13,27 +14,31 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 import pathlib
 project_path = pathlib.Path(__file__).parent
 PATH_TO_DATASET_JSON = project_path / "data" / "dataset.json" # Path to the saved dataset (.json) file, containing the dataset class object.
+PATH_TO_DATASET_PKL = project_path / "data" / "dataset_5percent.pkl" # Path to the saved dataset (.json) file, containing the dataset class object.
 
 class Dataset:
-    def __init__(self, path_to_dataset: str = PATH_TO_DATASET_JSON):
-        self.path_to_dataset = path_to_dataset # .json
-        self.load_dataset()
+    pass
+    # def __init__(self, path_to_dataset: str = PATH_TO_DATASET_PKL):
+    #     self.path_to_dataset = path_to_dataset # .json
+    #     with open(self.path_to_dataset, 'rb') as f:
+    #         self.
+    #     self.load_dataset()
         
-    def load_dataset(self): # Load the dataset from the saved .json file
-        with open(self.path_to_dataset, 'rb') as f:
-            dataset_dict = json.load(f)
-        self.metadata = dataset_dict['metadata']
-        self.embedding_strings = dataset_dict['embedding_strings']
-        self.embeddings_metadata_index = dataset_dict['embeddings_metadata_index']
-        self.articles_count = dataset_dict['articles_count']
-        self.total_articles_count = dataset_dict['total_articles_count']
-        self.total_char_count = dataset_dict['total_char_count']
-        self.total_word_count = dataset_dict['total_word_count']
-        self.total_sentence_count = dataset_dict['total_sentence_count']
-        self.total_block_count = dataset_dict['total_block_count']
-        self.sources_so_far = dataset_dict['sources_so_far']
-        self.info_types = dataset_dict['info_types']
-        self.embeddings = np.array(dataset_dict['embeddings'])
+    # def load_dataset(self): # Load the dataset from the saved .json file
+    #     with open(self.path_to_dataset, 'rb') as f:
+    #         dataset_dict = json.load(f)
+    #     self.metadata = dataset_dict['metadata']
+    #     self.embedding_strings = dataset_dict['embedding_strings']
+    #     self.embeddings_metadata_index = dataset_dict['embeddings_metadata_index']
+    #     self.articles_count = dataset_dict['articles_count']
+    #     self.total_articles_count = dataset_dict['total_articles_count']
+    #     self.total_char_count = dataset_dict['total_char_count']
+    #     self.total_word_count = dataset_dict['total_word_count']
+    #     self.total_sentence_count = dataset_dict['total_sentence_count']
+    #     self.total_block_count = dataset_dict['total_block_count']
+    #     self.sources_so_far = dataset_dict['sources_so_far']
+    #     self.info_types = dataset_dict['info_types']
+    #     self.embeddings = np.array(dataset_dict['embeddings'])
 
 @dataclasses.dataclass
 class Block:
@@ -81,7 +86,10 @@ def get_top_k_blocks(user_query: str, k: int = 10, HyDE: bool = False) -> List[B
         List[Block]: A list of the top k blocks that are most semantically similar to the query.
     """
     # Get the dataset (in data/dataset.json)
-    metadataset = Dataset()
+    # metadataset = Dataset()
+    # Get the dataset (in data/dataset_5percent.pkl)
+    with open(PATH_TO_DATASET_PKL, 'rb') as f:
+        metadataset = pickle.load(f)
     
     # Get the embedding for the query.
     query_embedding = get_embedding(user_query)
