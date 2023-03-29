@@ -7,7 +7,7 @@ h1 {
 }
 
 h2 {
-  @apply text-xl font-bold my-4;
+  @apply text-xl font-semibold my-4;
 }
 
 main {

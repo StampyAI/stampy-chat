@@ -1,11 +1,41 @@
 import { type NextPage } from "next";
 import React from "react";
-import { useState } from "react";
 import Head from "next/head";
 import Header from "../header";
-import TextareaAutosize from 'react-textarea-autosize';
+import SearchBox from "../searchbox";
+import { useState } from "react";
 
 const Semantic: NextPage = () => {
+
+    const [results, setResults] = useState<SemanticEntry[]>([]);
+
+    const semantic_search = async (
+        query: string,
+        setQuery: (query: string) => void,
+        setLoading: (loading: boolean) => void
+    ) => {
+        
+        setLoading(true);
+        setQuery("");
+
+        const res = await fetch("/api/semantic_search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", },
+            body: JSON.stringify({query: query}),
+        })
+
+        if (!res.ok) {
+            setLoading(false);
+            console.log("load failure: " + res.status);
+        }
+
+        const data = await res.json();
+
+        setResults(data);
+        setLoading(false);
+
+    };
+
     return (
         <>
             <Head>
@@ -14,7 +44,14 @@ const Semantic: NextPage = () => {
             <main>
                 <Header page="semantic" />
                 <h2>See the raw results of a semantic search</h2>
-                <SearchBox />
+                <SearchBox search={semantic_search} />
+                <ul>
+                    {results.map((entry, i) => (
+                        <li key={i}>
+                            <ShowSemanticEntry entry={entry} />
+                        </li>
+                    ))}
+                </ul>
             </main>
         </>
     );
@@ -35,6 +72,7 @@ type SemanticEntry = {
 };
 
 const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
+
     return (
         <div className="my-3">
 
@@ -53,70 +91,6 @@ const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
 
             <a href={entry.url}>Read more</a>
         </div>
-    );
-};
-
-const SearchBox: React.FC = () => {
-
-    const [query,   setQuery]   = useState("");
-    const [results, setResults] = useState<SemanticEntry[] | string>([]);
-    const [loading, setLoading] = useState(false);
-
-    const semantic_search = async (query: String) => {
-        
-        setLoading(true);
-
-        const res = await fetch("/api/semantic_search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", },
-            body: JSON.stringify({query: query}),
-        })
-
-        if (!res.ok) {
-            setLoading(false);
-            return "load failure: " + res.status;
-        }
-
-        const data = await res.json();
-        setLoading(false);
-        return data;
-    };
-
-        
-
-    return (
-        <>
-            <form className="flex mb-2" onSubmit={async (e) => {
-                e.preventDefault();
-                setResults(await semantic_search(query));
-            }}>
-
-                <TextareaAutosize
-                    className="border border-gray-300 px-1 flex-1 resize-none"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                        // if <esc>, blur the input box
-                        if (e.key === "Escape") e.currentTarget.blur();
-                    }}
-                />
-                <button className="ml-2" type="submit" disabled={loading}>
-                    {loading ? "Loading..." : "Search"}
-                </button>
-            </form>
-
-            {
-                loading ? <p>loading...</p> :
-                typeof results === "string" ? <p className="text-red-500">{results}</p> :
-                <ul>
-                    {results.map((result, i) => (
-                        <li key={i}>
-                            <ShowSemanticEntry entry={result} />
-                        </li>
-                    ))}
-                </ul>
-            }
-        </>
     );
 };
 

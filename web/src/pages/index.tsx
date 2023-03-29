@@ -1,9 +1,9 @@
 import { type NextPage } from "next";
 import React from "react";
 import { useState, useEffect } from "react";
-import TextareaAutosize from 'react-textarea-autosize';
 import Head from "next/head";
 import Header from "../header";
+import SearchBox from "../searchbox";
 
 type Entry = {
     role: "user" | "assistant";
@@ -27,13 +27,13 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
-    const [ query, setQuery ] = useState("");
-    const [ loading, setLoading ] = useState(false);
-
-    const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
 
-    const search = async (query: string) => {
+    const search = async (
+        query: string,
+        setQuery: (query: string) => void,
+        setLoading: (loading: boolean) => void
+    ) => {
         
         // clear the query box, append to entries
         const old_entries = entries;
@@ -51,7 +51,8 @@ const Home: NextPage = () => {
 
         if (!res.ok) {
             setLoading(false);
-            return "load failure: " + res.status;
+            console.log("load failure: " + res.status);
+            return;
         }
 
         const response = res.body!.getReader().read().then(({value}) => {
@@ -64,12 +65,6 @@ const Home: NextPage = () => {
 
     };
 
-    useEffect(() => {
-        // set focus on the input box
-        if (!loading) inputRef.current?.focus();
-    }, [loading]);
-
-
     return (
         <>
             <Head>
@@ -77,6 +72,7 @@ const Home: NextPage = () => {
             </Head>
             <main>
                 <Header page="index" />
+                <SearchBox search={search} />
                 <ul>
                     {entries.map((entry, i) => (
                         <li key={i}>
@@ -84,32 +80,6 @@ const Home: NextPage = () => {
                         </li>
                     ))}
                 </ul>
-                { loading ? <p>loading...</p> :
-                    <form className="flex mb-2" onSubmit={async (e) => { // store in a form so that <enter> submits
-                        e.preventDefault();
-                        await search(query);
-                    }}>
-
-                        <TextareaAutosize
-                            className="border border-gray-300 px-1 flex-1 resize-none"
-                            ref={inputRef}
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            onKeyDown={(e) => {
-                                // if <esc>, blur the input box
-                                if (e.key === "Escape") e.currentTarget.blur();
-                                // if <enter> without <shift>, submit the form (if it's not empty)
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    if (query.trim() !== "") search(query);
-                                }
-                            }}
-                        />
-                        <button className="ml-2" type="submit" disabled={loading}>
-                            {loading ? "Loading..." : "Search"}
-                        </button>
-                    </form>
-                }
             </main>
         </>
     );
