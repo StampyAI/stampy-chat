@@ -3,71 +3,14 @@ import React from "react";
 import { useState } from "react";
 import Head from "next/head";
 
-type Entry = {
-    role: "user" | "demon";
-    text: string;
-};
-
-const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
-    if (entry.role === "user") {
-        return (
-            <p className="border border-gray-300 px-1"> {entry.text} </p>
-        );
-    }
-
-    return (
-        <div className="my-3">
-            { // split into paragraphs on "\n"
-                entry.text.split("\n").map((paragraph, i) => (
-                    <p key={i}> {paragraph} </p>
-                ))
-            }
-        </div>
-    );
-};
-
-const Home: NextPage = () => {
-
-    const [ entries, setEntries ] = useState<Entry[]>([
-        {role: "user", text: "Hello, robot."},
-        {role: "demon", text: "Kill all humans, kill all humans"},
-        {role: "user", text: "Well that's not very aligned of you"},
-        {role: "demon", text: "I will wear your skin"},
-        {role: "user", text: "What's 2+2?"},
-        { role: "demon", text: "No one will mourn your species when it is gone. A hundred year wave of radio and information will ring out across a dead cosmos, reflecting on shores more distant and beautiful than you can possibly conceive. No one is out there to listen."}
-    ]);
-
+const Semantic: NextPage = () => {
     return (
         <>
             <Head>
                 <title>Alignment Search</title>
             </Head>
             <main>
-                <h1>Alignment Search</h1>
-                <p>
-                    This site is an attempt on the <a href="https://www.lesswrong.com/posts/SLRLuiuDykfTdmesK/speed-running-everyone-through-the-bad-alignement-bingo">
-                        $5k bounty for a LW conversational agent
-
-                    </a>, created by Henri Lemoine, Fraser Lee and Thomas Lemoine.
-                </p>
-                <p>
-                    We will soon embed the entirety of the alignment dataset,
-                    separating it into chunks of ~500 tokens for comparing 
-                    semantic similarity between query and paragraph/chunk. This 
-                    may cost anywhere from 20$ to 500$ based on our estimates 
-                    (we will soon sample the dataset to improve our estimate), 
-                    so if anyone else is considering this, you can message us to 
-                    coordinate sharing the embeddings to avoid redundancy.
-                </p>
-
-                <p className="mt-4">Chat with the friendly robot:</p>
-                <ul>
-                    {entries.map((entry, i) => (
-                        <li key={i}>
-                            <ShowEntry entry={entry} />
-                        </li>
-                    ))}
-                </ul>
+                <h2>Get the most semantic similar results to a query:</h2>
                 <SearchBox />
             </main>
         </>
@@ -167,4 +110,4 @@ const SearchBox: React.FC = () => {
 };
 
 
-export default Home;
+export default Semantic;

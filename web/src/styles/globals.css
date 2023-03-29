@@ -23,6 +23,7 @@ p {
 
 button {
   @apply bg-white hover:bg-gray-300 px-0.5 py-0 w-fit h-fit;
-  @apply border border-black;
+  @apply border border-gray-300;
+  @apply text-gray-700;
 }
 
