@@ -135,5 +135,6 @@ dmypy.json
 *.pickle
 *.pkl
 *.DS_Store
+src/tmp.py
 
 .vercel/
