@@ -89,7 +89,7 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     # Add context from top-k blocks
     context_prompt = ""
     for i, block in enumerate(context):
-        context_prompt += f"[{chr(ord('a') + i)}] {block.title} - {block.author} - {block.date}\n\n{block.text}\n\n"
+        context_prompt += f"[{chr(ord('a') + i)}] {block.title} - {block.author} - {block.date}\n\n{block.text}\n\n\n"
 
     context_prompt = context_prompt[:-2] # trim last two newlines
 
@@ -100,9 +100,9 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     # Add user query
     question_prompt = "In your answer, please cite any claims you make back to each source " \
                       "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                      "cite all of them. For example: \"AGI is concerning [c][d][e]\".\n\n"
+                      "cite all of them. For example: \"AGI is concerning [c, d, e].\""
 
-    question_prompt += "\n\nQ: " + query
+    question_prompt += "\n\n\nQ: " + query
 
     prompt.append({"role": "user", "content": question_prompt})
     
