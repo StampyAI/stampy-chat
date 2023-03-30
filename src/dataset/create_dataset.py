@@ -10,13 +10,6 @@ import concurrent.futures
 from pathlib import Path
 from tqdm.auto import tqdm
 from dateutil.parser import parse, ParserError
-
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential,
-)  # for exponential backoff
-
 import openai
 
 try:
@@ -177,28 +170,28 @@ class Dataset:
                     # E.g.: {'arxiv': 0.5, 'youtube': 0.5, 'lesswrong': 1.0}
                     desired_source_proportions = {
                         "https://aipulse.org": 1,
-                        "ebook": 0.2,
+                        "ebook": 0,
                         "https://qualiacomputing.com": 0.02,
-                        "alignment forum": 1,
+                        "alignment forum": .7,
                         "lesswrong": .5,
                         "manual": 1,
                         "arxiv": 0.1,
                         "https://deepmindsafetyresearch.medium.com/": 1,
                         "waitbutwhy.com": 1,
                         "GitHub": 1,
-                        "https://aiimpacts.org": 0.3,
+                        "https://aiimpacts.org": 0.2,
                         "arbital.com": 0.2,
                         "carado.moe": 0.3,
-                        "nonarxiv_papers": 0.3,
+                        "nonarxiv_papers": 0.1,
                         "https://vkrakovna.wordpress.com": .5,
                         "https://jsteinhardt.wordpress.com": .5,
                         "audio-transcripts": 0.2,
-                        "https://intelligence.org": .2,
+                        "https://intelligence.org": .1,
                         "youtube": 0.07,
                         "reports": 0.4,
                         "https://aisafety.camp": 1,
                         "curriculum": 1,
-                        "https://www.yudkowsky.net": 1,
+                        "https://www.yudkowsky.net": 0.2,
                         "distill": 1,
                         "Cold Takes": 0.5,
                         "printouts": 1,
@@ -213,20 +206,25 @@ class Dataset:
                     
                     # if we specified a fraction of articles to use, only use that fraction from the remaining articles
                     random_number = random.random()
-                    if random_number < self.fraction_of_articles_to_use:
+                    if random_number > self.fraction_of_articles_to_use:
                         continue
                     
                     # Get title, author, date, URL, tags, and text
                     title, author, date_published, url, tags, text = self.extract_info_from_article(entry)
                     
+                    # If there's less than 2 of 'title', 'author' and 'url', ignore this text
+                    if (((title or '').strip() == '') + ((author or '').strip() == '') + ((url or '').strip() == '')) > 1:
+                        print(f'{entry["source"]}')
+                        continue
+                    
                     #if the text is too short, ignore this text
                     if len(text) < 500:
                         continue
-                    
+
                     #we're keeping the text so we inc the aticle count
                     self.articles_count[entry['source']] += 1
                     self.total_articles_count += 1
-
+                    
                     # Get signature
                     signature = ""
                     if title: signature += f"Title: {title}, "
@@ -250,7 +248,7 @@ class Dataset:
                     self.total_word_count += len(text.split())
                     self.total_sentence_count += len(split_into_sentences(text))
                     self.total_block_count += len(blocks)
-                
+                    
                 except MissingDataException as e:
                     if str(e) not in error_count_dict:
                         error_count_dict[str(e)] = 0
@@ -312,7 +310,7 @@ class Dataset:
             "metadata": self.metadata,
             "embedding_strings": self.embedding_strings,
             "embeddings_metadata_index": self.embeddings_metadata_index,
-            "embeddings": self.embeddings,
+            "embeddings": self.embeddings.astype(np.float32),
             "articles_count": self.articles_count,
             "total_articles_count": self.total_articles_count,
             "total_char_count": self.total_char_count,
