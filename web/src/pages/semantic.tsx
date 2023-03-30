@@ -22,10 +22,7 @@ const Semantic: NextPage = () => {
 
         const res = await fetch(API_URL + "/semantic", {
             method: "POST",
-            headers: { "Content-Type": "application/json",
-                // allow cross-origin requests
-                "Access-Control-Allow-Origin": "*",
-            },
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", },
             body: JSON.stringify({query: query}),
         })
 

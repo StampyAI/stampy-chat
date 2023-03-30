@@ -46,9 +46,9 @@ const Home: NextPage = () => {
 
         setLoading(true);
 
-        const res = await fetch("/api/chat", {
+        const res = await fetch(API_URL + "/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json", },
+            headers: { "Content-Type": "application/json", "Allow-Control-Allow-Origin": "*" },
             body: JSON.stringify({query: query, history: old_entries}),
         })
 
@@ -74,7 +74,6 @@ const Home: NextPage = () => {
                 <title>Alignment Search</title>
             </Head>
             <main>
-                <p>1: {API_URL}</p>
                 <Header page="index" />
                 <ul>
                     {entries.map((entry, i) => (
