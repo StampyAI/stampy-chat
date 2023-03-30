@@ -38,7 +38,8 @@ class TokenSplitter:
 
     def _text_splitter(self, text: str, signature: str) -> List[str]:
         """Splits text into blocks of tokens according to chatgpt's tokenizer."""
-        enc = self.encoding.encode  # takes a string and returns a list of ints (tokens)
+        # enc = self.encoding.encode  # takes a string and returns a list of ints (tokens)
+        enc = self.encoding.encode_ordinary  # takes a string and returns a list of ints (tokens)
         dec = self.encoding.decode  # takes a list of ints (tokens) and returns a string
         tok_len = lambda x: len(enc(x))  # length of a string in tokens
 

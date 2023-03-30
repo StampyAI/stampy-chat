@@ -161,12 +161,59 @@ class Dataset:
                         else:
                             raise MissingDataException("Entry has no source.")
                     
-                    random_number = random.random()
-                    if random_number > self.fraction_of_articles_to_use:
-                        continue
-                    
                     # if we specified custom sources, only include articles from those sources
                     if (self.custom_sources is not None) and (entry['source'] not in self.custom_sources):
+                        continue
+
+                    
+                    if entry["source"] == 'alignment forum':
+                        if int(entry['score'].replace('−', '-')) < 70: continue
+                    elif entry["source"] == 'lesswrong':
+                        if int(entry['score'].replace('−', '-')) < 150: continue
+                    elif entry["source"] == 'arxiv':
+                        if 'citation_level' != '0': continue
+
+                    # Dict describing the proportion of each source we want:
+                    # E.g.: {'arxiv': 0.5, 'youtube': 0.5, 'lesswrong': 1.0}
+                    desired_source_proportions = {
+                        "https://aipulse.org": 1,
+                        "ebook": 0.2,
+                        "https://qualiacomputing.com": 0.02,
+                        "alignment forum": 1,
+                        "lesswrong": .5,
+                        "manual": 1,
+                        "arxiv": 0.1,
+                        "https://deepmindsafetyresearch.medium.com/": 1,
+                        "waitbutwhy.com": 1,
+                        "GitHub": 1,
+                        "https://aiimpacts.org": 0.3,
+                        "arbital.com": 0.2,
+                        "carado.moe": 0.3,
+                        "nonarxiv_papers": 0.3,
+                        "https://vkrakovna.wordpress.com": .5,
+                        "https://jsteinhardt.wordpress.com": .5,
+                        "audio-transcripts": 0.2,
+                        "https://intelligence.org": .2,
+                        "youtube": 0.07,
+                        "reports": 0.4,
+                        "https://aisafety.camp": 1,
+                        "curriculum": 1,
+                        "https://www.yudkowsky.net": 1,
+                        "distill": 1,
+                        "Cold Takes": 0.5,
+                        "printouts": 1,
+                        "gwern.net": 1,
+                        "generative.ink": 1,
+                        "greaterwrong.com": 0.2
+                    }
+                    
+                    random_number = random.random()
+                    if random_number > desired_source_proportions[entry['source']]:
+                        continue
+                    
+                    # if we specified a fraction of articles to use, only use that fraction from the remaining articles
+                    random_number = random.random()
+                    if random_number < self.fraction_of_articles_to_use:
                         continue
                     
                     # Get title, author, date, URL, tags, and text
@@ -220,7 +267,7 @@ class Dataset:
                 embeddings[i] = embedding['embedding']
             return batch_idx, embeddings
 
-        batch_size = 200
+        batch_size = 500
         rate_limit = 3500 / 60  # Maximum embeddings per second
 
         start = time.time()
