@@ -132,8 +132,6 @@ dmypy.json
 *alignment_texts.jsonl
 *config.py
 *.npy
-*.pickle
-*.pkl
 *.DS_Store
 src/tmp.py
 
