@@ -25,8 +25,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     );
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const API_URL_2 = process.env.NEXT_PUBLIC_API_URL_2;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/";
 
 const Home: NextPage = () => {
 
@@ -76,7 +75,6 @@ const Home: NextPage = () => {
             </Head>
             <main>
                 <p>1: {API_URL}</p>
-                <p>2: {API_URL_2}</p>
                 <Header page="index" />
                 <ul>
                     {entries.map((entry, i) => (
