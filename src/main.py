@@ -27,8 +27,7 @@ if str(src_path) not in sys.path:
 
 from dataset import create_dataset
 #from assistant import semantic_search
-from settings import PATH_TO_DATASET_PKL, EMBEDDING_MODEL, PATH_TO_DATASET_DICT_PKL
-
+from settings import EMBEDDING_MODEL
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -43,54 +42,57 @@ def load_rawdata_into_pkl():
     print(answer)
     """  
     # List of possible sources:
-    all_sources = ["https://aipulse.org", "ebook", "https://qualiacomputing.com", "alignment forum", "lesswrong", "manual", "arxiv", "https://deepmindsafetyresearch.medium.com", "waitbutwhy.com", "GitHub", "https://aiimpacts.org", "arbital.com", "carado.moe", "nonarxiv_papers", "https://vkrakovna.wordpress.com", "https://jsteinhardt.wordpress.com", "audio-transcripts", "https://intelligence.org", "youtube", "reports", "https://aisafety.camp", "curriculum", "https://www.yudkowsky.net", "distill", "Cold Takes", "printouts", "gwern.net", "generative.ink", "greaterwrong.com"] # These sources do not have a source field in the .jsonl file
+    all_sources = ["https://aipulse.org", "ebook", "https://qualiacomputing.com", "alignment forum", "lesswrong", "manual", "arxiv", "https://deepmindsafetyresearch.medium.com", "waitbutwhy.com", "GitHub", "https://aiimpacts.org", "arbital.com", "carado.moe", "nonarxiv_papers", "https://vkrakovna.wordpress.com", "https://jsteinhardt.wordpress.com", "audio-transcripts", "https://intelligence.org", "youtube", "reports", "https://aisafety.camp", "curriculum", "https://www.yudkowsky.net", "distill", 
+                   "Cold Takes", "printouts", "gwern.net", "generative.ink", "greaterwrong.com"] # These last do not have a source field in the .jsonl file
 
     # List of sources we are using for the test run:
     custom_sources = [
-        # "https://aipulse.org", 
-        # "ebook", 
-        # "https://qualiacomputing.com", 
-        # "alignment forum", 
-        # "lesswrong", 
+        "https://aipulse.org", 
+        "ebook", 
+        "https://qualiacomputing.com", 
+        "alignment forum", 
+        "lesswrong", 
         "manual", 
-        # "arxiv", 
-        # "https://deepmindsafetyresearch.medium.com", 
+        "arxiv", 
+        "https://deepmindsafetyresearch.medium.com/", 
         "waitbutwhy.com", 
-        # "GitHub", 
-        # "https://aiimpacts.org", 
-        # "arbital.com", 
-        # "carado.moe", 
-        # "nonarxiv_papers", 
-        # "https://vkrakovna.wordpress.com", 
+        "GitHub", 
+        "https://aiimpacts.org", 
+        "arbital.com", 
+        "carado.moe", 
+        "nonarxiv_papers", 
+        "https://vkrakovna.wordpress.com", 
         "https://jsteinhardt.wordpress.com", 
-        # "audio-transcripts", 
-        # "https://intelligence.org", 
-        # "youtube", 
-        # "reports", 
+        "audio-transcripts", 
+        "https://intelligence.org", 
+        "youtube", 
+        "reports", 
         "https://aisafety.camp", 
         "curriculum", 
         "https://www.yudkowsky.net", 
-        # "distill",
-        # "Cold Takes",
-        # "printouts",
-        # "gwern.net",
-        # "generative.ink",
-        # "greaterwrong.com"
+        "distill",
+        "Cold Takes",
+        "printouts",
+        "gwern.net",
+        "generative.ink",
+        "greaterwrong.com"
     ]
     
     dataset = create_dataset.Dataset(
         custom_sources=custom_sources, 
         rate_limit_per_minute=3500, 
         min_tokens_per_block=200, max_tokens_per_block=300, 
-        # fraction_of_articles_to_use=1/2000
+        fraction_of_articles_to_use=1/100,
     )
     dataset.get_alignment_texts()
-    print(len(dataset.embedding_strings))
-    dataset.get_embeddings()
-    # dataset.save_embeddings("data/embeddings.npy")
     
-    dataset.save_class()
-    # # dataset = pickle.load(open("dataset.pkl", "rb"))
+    print(len(dataset.embedding_strings))
+    print(dataset.total_word_count)
+    print(dataset.total_block_count)
+    print(dataset.articles_count)
+    
+    dataset.get_embeddings()
+    dataset.save_data()    
     
 @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(4))
 def get_embedding(text: str) -> np.ndarray:
@@ -98,7 +100,7 @@ def get_embedding(text: str) -> np.ndarray:
     return np.array(result["data"][0]["embedding"])
 
 def print_out_dataset_stuff():
-    with open(PATH_TO_DATASET, 'rb') as f:
+    with open(PATH_TO_DATASET_PKL, 'rb') as f:
         dataset = pickle.load(f)
 
     embeddings_len = len(dataset.embedding_strings)
@@ -154,18 +156,18 @@ def plot_likelihood(embeddings, num_buckets=200):
 
 
 if __name__ == "__main__":
-    # load_rawdata_into_pkl()
+    load_rawdata_into_pkl()
     # print_out_dataset_stuff()
     
-    with open(PATH_TO_DATASET_PKL, 'rb') as f:
-        dataset = pickle.load(f)
+    # with open(PATH_TO_DATASET_PKL, 'rb') as f:
+    #     dataset = pickle.load(f)
     
-    dataset_dict = {
-        "embedding_strings": dataset.embedding_strings,
-        "embeddings": dataset.embeddings,
-        "embeddings_metadata_index": dataset.embeddings_metadata_index,
-        "metadata": dataset.metadata
-    }
+    # dataset_dict = {
+    #     "embedding_strings": dataset.embedding_strings,
+    #     "embeddings": dataset.embeddings,
+    #     "embeddings_metadata_index": dataset.embeddings_metadata_index,
+    #     "metadata": dataset.metadata
+    # }
     
-    with open(PATH_TO_DATASET_DICT_PKL, 'wb') as f:
-        pickle.dump(dataset_dict, f)
+    # with open(PATH_TO_DATASET_DICT_PKL, 'wb') as f:
+    #     pickle.dump(dataset_dict, f)
