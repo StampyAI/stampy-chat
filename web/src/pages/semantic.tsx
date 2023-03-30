@@ -1,3 +1,5 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
+
 import { type NextPage } from "next";
 import React from "react";
 import Head from "next/head";
@@ -18,9 +20,12 @@ const Semantic: NextPage = () => {
         setLoading(true);
         setQuery("");
 
-        const res = await fetch("/api/semantic_search", {
+        const res = await fetch(API_URL + "/semantic", {
             method: "POST",
-            headers: { "Content-Type": "application/json", },
+            headers: { "Content-Type": "application/json",
+                // allow cross-origin requests
+                "Access-Control-Allow-Origin": "*",
+            },
             body: JSON.stringify({query: query}),
         })
 
@@ -47,7 +52,7 @@ const Semantic: NextPage = () => {
                 <SearchBox search={semantic_search} />
                 <ul>
                     {results.map((entry, i) => (
-                        <li key={i}>
+                        <li key={"entry" + i}>
                             <ShowSemanticEntry entry={entry} />
                         </li>
                     ))}
@@ -84,8 +89,8 @@ const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
             { entry.text.split("\n").map((paragraph, i) => {
                 const p = paragraph.trim();
                 if (p === "") return <></>;
-                if (p === ".....") return <hr key={i} />;
-                return <p className="text-sm" key={i}> {paragraph} </p>
+                if (p === ".....") return <hr key={"b" + i} />;
+                return <p className="text-sm" key={"p" + i}> {paragraph} </p>
               })
             }
 
