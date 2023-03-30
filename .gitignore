@@ -131,10 +131,9 @@ dmypy.json
 # Other
 *alignment_texts.jsonl
 *config.py
-*embeddings.npy
+*.npy
 *.pickle
-src/data/dataset.pkl
-src/tmp.py
+*.pkl
 *.DS_Store
 src/*
 src/semantic_search.py

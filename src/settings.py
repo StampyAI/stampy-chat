@@ -6,19 +6,7 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 LEN_EMBEDDINGS = 1536
 MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 
-
-def get_rawdata_file_path():
-    current_file_path = Path(__file__).resolve()
-    data_file_path = current_file_path.parent / 'dataset' / 'data' / 'alignment_texts.jsonl'
-    return str(data_file_path)
-
-def get_dataset_file_path():
-    current_file_path = Path(__file__).resolve()
-    data_file_path = current_file_path.parent / 'dataset' / 'data' / 'dataset.pkl'
-    return str(data_file_path)
-
-
-PATH_TO_RAW_DATA = get_rawdata_file_path()
-
-PATH_TO_DATASET = get_dataset_file_path()
-
+current_file_path = Path(__file__).resolve()
+PATH_TO_RAW_DATA = str(current_file_path.parent / 'dataset' / 'data' / 'alignment_texts.jsonl')
+PATH_TO_DATASET_PKL = str(current_file_path.parent / 'dataset' / 'data' / 'dataset.pkl')
+PATH_TO_DATASET_DICT_PKL = str(current_file_path.parent / 'dataset' / 'data' / 'dataset_dict.pkl')
