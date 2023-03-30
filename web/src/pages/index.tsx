@@ -25,6 +25,8 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     );
 };
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
@@ -72,7 +74,7 @@ const Home: NextPage = () => {
                 <title>Alignment Search</title>
             </Head>
             <main>
-                <p>{process.env.API_URL}</p>
+                <p>aaa{API_URL}aaa</p>
                 <Header page="index" />
                 <ul>
                     {entries.map((entry, i) => (
