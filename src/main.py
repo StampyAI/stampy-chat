@@ -98,7 +98,7 @@ def get_embedding(text: str) -> np.ndarray:
     return np.array(result["data"][0]["embedding"])
 
 def print_out_dataset_stuff():
-    with open(PATH_TO_DATASET, 'rb') as f:
+    with open(PATH_TO_DATASET_PKL, 'rb') as f:
         dataset = pickle.load(f)
 
     embeddings_len = len(dataset.embedding_strings)
