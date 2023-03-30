@@ -26,7 +26,7 @@ except ImportError:
     openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 
-from .settings import PATH_TO_RAW_DATA, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
+from .settings import PATH_TO_RAW_DATA, PATH_TO_DATASET_PKL, PATH_TO_DATASET_DICT_PKL, EMBEDDING_MODEL, LEN_EMBEDDINGS
 
 from .text_splitter import TokenSplitter, split_into_sentences
 
@@ -252,11 +252,29 @@ class Dataset:
     def load_embeddings(self, path: str):
         self.embeddings = np.load(path)
         
-    def save_class(self, path: str = PATH_TO_DATASET):
+    def save_class(self, path: str = PATH_TO_DATASET_PKL):
         # Save the class to a pickle file
         print(f"Saving class to {path}...")
         with open(path, 'wb') as f:
             pickle.dump(self, f)
+    
+    def save_data(self, path: str = PATH_TO_DATASET_DICT_PKL):
+        # Save the data to a pickle file
+        print(f"Saving data to {path}...")
+        data = {
+            "metadata": self.metadata,
+            "embedding_strings": self.embedding_strings,
+            "embeddings_metadata_index": self.embeddings_metadata_index,
+            "embeddings": self.embeddings,
+            "articles_count": self.articles_count,
+            "total_articles_count": self.total_articles_count,
+            "total_char_count": self.total_char_count,
+            "total_word_count": self.total_word_count,
+            "total_sentence_count": self.total_sentence_count,
+            "total_block_count": self.total_block_count
+        }
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
 
 
 def get_authors_list(authors_string: str) -> List[str]:
@@ -280,7 +298,6 @@ def standardize_date(date_string, default_date='n/a'):
         return dt.strftime('%Y-%m-%d')
     except (ParserError, ValueError):
         return default_date
-
 
 
 
