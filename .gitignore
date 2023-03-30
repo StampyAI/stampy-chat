@@ -135,10 +135,5 @@ dmypy.json
 *.pickle
 *.pkl
 *.DS_Store
-src/*
-src/semantic_search.py
-src/settings.py
-src/testing.ipynb
-src/text_splitter.py
 
 .vercel/
