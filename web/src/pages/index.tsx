@@ -26,6 +26,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL_2 = process.env.NEXT_PUBLIC_API_URL_2;
 
 const Home: NextPage = () => {
 
@@ -74,7 +75,8 @@ const Home: NextPage = () => {
                 <title>Alignment Search</title>
             </Head>
             <main>
-                <p>aaa{API_URL}aaa</p>
+                <p>1: {API_URL}</p>
+                <p>2: {API_URL_2}</p>
                 <Header page="index" />
                 <ul>
                     {entries.map((entry, i) => (
