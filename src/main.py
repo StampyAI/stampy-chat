@@ -27,7 +27,7 @@ if str(src_path) not in sys.path:
 
 from dataset import create_dataset
 #from assistant import semantic_search
-from settings import PATH_TO_DATASET, EMBEDDING_MODEL
+from settings import PATH_TO_DATASET_PKL, EMBEDDING_MODEL, PATH_TO_DATASET_DICT_PKL
 
 
 import numpy as np
@@ -154,5 +154,18 @@ def plot_likelihood(embeddings, num_buckets=200):
 
 
 if __name__ == "__main__":
-    #load_rawdata_into_pkl()
-    print_out_dataset_stuff()
+    # load_rawdata_into_pkl()
+    # print_out_dataset_stuff()
+    
+    with open(PATH_TO_DATASET_PKL, 'rb') as f:
+        dataset = pickle.load(f)
+    
+    dataset_dict = {
+        "embedding_strings": dataset.embedding_strings,
+        "embeddings": dataset.embeddings,
+        "embeddings_metadata_index": dataset.embeddings_metadata_index,
+        "metadata": dataset.metadata
+    }
+    
+    with open(PATH_TO_DATASET_DICT_PKL, 'wb') as f:
+        pickle.dump(dataset_dict, f)
