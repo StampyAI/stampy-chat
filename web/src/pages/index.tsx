@@ -72,6 +72,7 @@ const Home: NextPage = () => {
                 <title>Alignment Search</title>
             </Head>
             <main>
+                <p>{process.env.API_URL}</p>
                 <Header page="index" />
                 <ul>
                     {entries.map((entry, i) => (
