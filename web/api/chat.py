@@ -58,7 +58,6 @@ def limit_tokens(text: str, max_tokens: int, encoding_name: str = "cl100k_base")
 
 def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
     """
-    
     Args:
         query (str): The user query.
         history (List[Dict[str, str]]): The previous dialogue. Defaults to [].
@@ -80,7 +79,11 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     # Add previous dialogue
     prompt.extend(history) 
 
-    instruction_prompt = "Please give a clear and coherent answer to my question (written after \"Q:\") using the following sources:"
+    instruction_prompt = \
+        "Please give a clear and coherent answer to my question (written after \"Q:\") " \
+        "using the following sources. Each source is labeled with a letter. Feel free to " \
+        "use the sources in any order, and try to use multiple sources in your answer."
+
     prompt.append({"role": "user", "content": instruction_prompt})
     
     # Add context from top-k blocks
@@ -95,8 +98,12 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     prompt.append({"role": "user", "content": f"{context_prompt}"})
     
     # Add user query
-    question_prompt = "In your answer, please cite any claims you make back to each source using the format: [a], [b], etc."
+    question_prompt = "In your answer, please cite any claims you make back to each source " \
+                      "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
+                      "cite all of them. For example: \"AGI is concerning [c][d][e]\".\n\n"
+
     question_prompt += "\n\nQ: " + query
+
     prompt.append({"role": "user", "content": question_prompt})
     
     return prompt
