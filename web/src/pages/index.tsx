@@ -34,7 +34,6 @@ type Citation = {
 // the source file for it to be included in the build
 
 const Colours = [
-    // "bg-teal-100   border-teal-300   text-teal-800",
     "bg-red-100    border-red-300    text-red-800",
     "bg-amber-100  border-amber-300  text-amber-800",
     "bg-orange-100 border-orange-300 text-orange-800",
@@ -115,7 +114,28 @@ const Home: NextPage = () => {
 
         const data = await res.json();
 
-        setEntries([...new_entries, {role: "assistant", content: await data.response, citations: await data.citations}]);
+        // figure out what citations are in the response, and map them appropriately
+        const cite_map = new Map<string, number>();
+        let cite_count = 0;
+
+        // scan a regex for [x] over the response. If x isn't in the map, add it.
+        const regex = /\[([a-z]+)\]/g;
+        let match;
+        while ((match = regex.exec(data.response)) !== null) {
+            if (!cite_map.has(match[1]!)) {
+                cite_map.set(match[1]!, cite_count++);
+            }
+        }
+
+        // replace [x] with [i] in the response
+        data.response = data.response.replace(regex, (match, p1) => `[${cite_map.get(p1) + 1}]`);
+
+        const citations = new Array<Citation>();
+        cite_map.forEach((value, key) => {
+            citations[value] = data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)];
+        });
+
+        setEntries([...new_entries, {role: "assistant", content: await data.response, citations: citations}]);
 
         setLoading(false);
 
