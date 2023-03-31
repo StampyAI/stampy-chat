@@ -141,6 +141,8 @@ const Home: NextPage = () => {
 
         const data = await res.json();
 
+        // ---------------------- normalize citation form ----------------------
+
         // transform all things that look like [a, b, c] into [a][b][c]
         let response = data.response.replace(
 
@@ -150,6 +152,30 @@ const Home: NextPage = () => {
                                             .map((x) => x.trim())
                                             .join("][")
         )
+
+        // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
+        response = response.replace(
+            
+                /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
+
+                (block: string) => block.split(',')
+                                        .map((x) => x.trim())
+                                        .join("][")
+        )
+
+        // transform all things that look like [(a)] into [a]
+        response = response.replace(
+            /\[\(([a-z]+)\)\]/g,
+            (_match: string, x: string) => `[${x}]`
+        )
+
+        // transform all things that look like [ a ] into [a]
+        response = response.replace(
+            /\[\s*([a-z]+)\s*\]/g,
+            (_match: string, x: string) => `[${x}]`
+        )
+
+        // -------------- map citations from strings into numbers --------------
 
         // figure out what citations are in the response, and map them appropriately
         const cite_map = new Map<string, number>();
@@ -169,7 +195,8 @@ const Home: NextPage = () => {
 
         response = response_copy + response.slice(response_copy.length);
 
-        // create the ordered citation array
+        // ----------------- create the ordered citation array -----------------
+
         const citations = new Array<Citation>();
         cite_map.forEach((value, key) => {
             citations[value] = data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)];
