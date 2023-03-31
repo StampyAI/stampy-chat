@@ -35,10 +35,8 @@ def semantic():
 @cross_origin()
 def chat():
     query = request.json['query']
-    return talk_to_robot(query)
-
-
-
+    response, context = talk_to_robot(query)
+    return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
 
 # ------------------------------------------------------------------------------
 

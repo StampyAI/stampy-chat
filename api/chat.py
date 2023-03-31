@@ -84,7 +84,7 @@ def normal_completion(prompt: List[Dict[str, str]]) -> str:
         print(e)
         return "I'm sorry, I failed to process your query. Please try again. If the problem persists, please contact the administrator."
 
-def talk_to_robot(query: str, history: List[Dict[str, str]] = [], k: int = 10) -> str:
+def talk_to_robot(query: str, history: List[Dict[str, str]] = [], k: int = 10):
 
     # 1. Find the most relevant blocks from the Alignment Research Dataset
     top_k_blocks: List[Block] = get_top_k_blocks(query, k)
@@ -93,4 +93,4 @@ def talk_to_robot(query: str, history: List[Dict[str, str]] = [], k: int = 10) -
     prompt: List[Dict[str, str]] = construct_prompt(query, history, top_k_blocks)
     
     # 3. Answer the user query
-    return normal_completion(prompt)
+    return (normal_completion(prompt), top_k_blocks)
