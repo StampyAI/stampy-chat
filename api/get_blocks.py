@@ -14,7 +14,7 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 import pathlib
 project_path = pathlib.Path(__file__).parent
-PATH_TO_DATASET_DICT = project_path / "dataset_dict_500.pkl"
+PATH_TO_DATASET_DICT = project_path / "dataset_dict_30.pkl"
 
 with open(PATH_TO_DATASET_DICT, 'rb') as f:
     data = pickle.load(f)
