@@ -8,34 +8,45 @@ import openai
 import pickle
 import requests
 
+# ---------------------------------- env setup ---------------------------------
 if os.path.exists('.env'):
     from dotenv import load_dotenv
     load_dotenv()
 
-app = Flask(__name__)
-cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
-
-
-# -------------------------------- general setup -------------------------------
-
-
-
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
 
-print('Downloading dataset...')
 
-url = os.environ.get('DATASET_URL')
-if url is None:
-    print('No dataset url provided.')
-    exit()
+# -------------------------------- load dataset --------------------------------
 
-dataset_dict_bytes = requests.get(url).content
-print('Unpacking dataset...')
-dataset_dict = pickle.loads(dataset_dict_bytes)
+
+if os.path.exists('dataset.pkl'):
+    print('Found dataset.pkl')
+    print('Loading dataset...')
+    with open('dataset.pkl', 'rb') as f:
+        dataset_dict = pickle.load(f)
+
+else:
+    print('No dataset.pkl found on disk.')
+    print('Downloading dataset...')
+
+    url = os.environ.get('DATASET_URL')
+    if url is None:
+        print('No dataset url provided.')
+        exit()
+
+    dataset_dict_bytes = requests.get(url).content
+    print('Unpacking dataset...')
+    dataset_dict = pickle.load(dataset_dict_bytes)
+
 print('Done!')
 
+
+# ---------------------------------- web setup ---------------------------------
+
+app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 # ------------------------------- semantic search ------------------------------
