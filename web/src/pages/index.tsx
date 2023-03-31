@@ -55,6 +55,15 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
     );
 };
 
+const ShowInTextCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
+    return (
+        <a className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-0.5"}
+            href={citation.url} target="_blank" rel="noreferrer">
+            [{i + 1}]
+        </a>
+    );
+};
+
 const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 
     // user message
@@ -62,11 +71,25 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
         return ( <p className="border border-gray-300 px-1"> {entry.content} </p>);
     }
 
+    const in_text_citation_regex = /\[([0-9]+)\]/g;
+
     // system reply
     return (
         <div className="my-3">
             {   // split into paragraphs
-                entry.display_content.split("\n").map(paragraph => ( <p> {paragraph} </p>))
+                entry.display_content.split("\n").map(paragraph => ( <p> {
+                    paragraph.split(in_text_citation_regex).map((text, i) => {
+                        if (i % 2 === 0) {
+                            return text.trim();
+                        }
+                        i = parseInt(text) - 1;
+                        if (i >= entry.citations.length) return `[${text}]`;
+                        const citation = entry.citations[i]!;
+                        return (
+                            <ShowInTextCitation citation={citation} i={i} />
+                        );
+                    })
+                } </p>))
             }
             <ul>
                 {   // show citations
@@ -135,15 +158,18 @@ const Home: NextPage = () => {
         // scan a regex for [x] over the response. If x isn't in the map, add it.
         const regex = /\[([a-z]+)\]/g;
         let match;
+        let response_copy = ""
         while ((match = regex.exec(response)) !== null) {
             if (!cite_map.has(match[1]!)) {
                 cite_map.set(match[1]!, cite_count++);
             }
+            // replace [x] with [i]
+            response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
         }
 
-        // replace [x] with [i] in the response
-        response = response.replace(regex, (_match: string, capture: string) => `[${cite_map.get(capture)! + 1}]`);
+        response = response_copy + response.slice(response_copy.length);
 
+        // create the ordered citation array
         const citations = new Array<Citation>();
         cite_map.forEach((value, key) => {
             citations[value] = data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)];
