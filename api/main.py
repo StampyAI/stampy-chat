@@ -8,8 +8,9 @@ import openai
 import pickle
 import requests
 
-from dotenv import load_dotenv
-load_dotenv()
+if os.path.exists('.env'):
+    from dotenv import load_dotenv
+    load_dotenv()
 
 app = Flask(__name__)
 cors = CORS(app)

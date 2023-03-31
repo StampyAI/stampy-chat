@@ -17,4 +17,3 @@ openai==0.27.2
 numpy==1.24.2
 tenacity==8.2.2
 tiktoken
-dotenv
