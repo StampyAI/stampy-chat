@@ -8,6 +8,12 @@ import { useState } from "react";
 import Header from "../header";
 import SearchBox from "../searchbox";
 
+type Citation = {
+    title: string;
+    author: string;
+    date: string;
+    url: string;
+}
 
 type UserEntry = {
     role: "user";
@@ -17,17 +23,11 @@ type UserEntry = {
 type AssistantEntry = {
     role: "assistant";
     content: string;
+    display_content: string;
     citations: Citation[];
 }
 
 type Entry = UserEntry | AssistantEntry;
-
-type Citation = {
-    title: string;
-    author: string;
-    date: string;
-    url: string;
-}
 
 // const Colours = ["blue", "cyan", "teal", "green", "amber"].map(colour => `bg-${colour}-100 border-${colour}-300 text-${colour}-800`);
 // this would be nice, but Tailwind needs te actual string of the class to be in
@@ -39,8 +39,8 @@ const Colours = [
     "bg-orange-100 border-orange-300 text-orange-800",
     "bg-lime-100   border-lime-300   text-lime-800",
     "bg-green-100  border-green-300  text-green-800",
-    "bg-cyan-100  border-cyan-300  text-cyan-800",
-    "bg-blue-100  border-blue-300  text-blue-800",
+    "bg-cyan-100   border-cyan-300   text-cyan-800",
+    "bg-blue-100   border-blue-300   text-blue-800",
 ];
 
 const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
@@ -66,7 +66,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     return (
         <div className="my-3">
             {   // split into paragraphs
-                entry.content.split("\n").map(paragraph => ( <p> {paragraph} </p>))
+                entry.display_content.split("\n").map(paragraph => ( <p> {paragraph} </p>))
             }
             <ul>
                 {   // show citations
@@ -85,7 +85,6 @@ const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
 
-
     const search = async (
         query: string,
         setQuery: (query: string) => void,
@@ -103,7 +102,12 @@ const Home: NextPage = () => {
         const res = await fetch(API_URL + "/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Allow-Control-Allow-Origin": "*" },
-            body: JSON.stringify({query: query, history: old_entries}),
+            body: JSON.stringify({query: query, history: old_entries.map((entry) => {
+                return {
+                    "role" : entry.role,
+                    "content" : entry.content
+                }
+            })})
         })
 
         if (!res.ok) {
@@ -114,6 +118,16 @@ const Home: NextPage = () => {
 
         const data = await res.json();
 
+        // transform all things that look like [a, b, c] into [a][b][c]
+        let response = data.response.replace(
+
+                    /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
+
+                    (block: string) => block.split(',')
+                                            .map((x) => x.trim())
+                                            .join("][")
+        )
+
         // figure out what citations are in the response, and map them appropriately
         const cite_map = new Map<string, number>();
         let cite_count = 0;
@@ -121,21 +135,24 @@ const Home: NextPage = () => {
         // scan a regex for [x] over the response. If x isn't in the map, add it.
         const regex = /\[([a-z]+)\]/g;
         let match;
-        while ((match = regex.exec(data.response)) !== null) {
+        while ((match = regex.exec(response)) !== null) {
             if (!cite_map.has(match[1]!)) {
                 cite_map.set(match[1]!, cite_count++);
             }
         }
 
         // replace [x] with [i] in the response
-        data.response = data.response.replace(regex, (match, p1) => `[${cite_map.get(p1) + 1}]`);
+        response = response.replace(regex, (_match: string, capture: string) => `[${cite_map.get(capture)! + 1}]`);
 
         const citations = new Array<Citation>();
         cite_map.forEach((value, key) => {
             citations[value] = data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)];
         });
 
-        setEntries([...new_entries, {role: "assistant", content: await data.response, citations: citations}]);
+        setEntries([...new_entries, {role: "assistant", 
+                                     content: await data.response, 
+                                     display_content: response,
+                                     citations: citations}]);
 
         setLoading(false);
 
