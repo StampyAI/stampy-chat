@@ -70,7 +70,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 
     // user message
     if (entry.role === "user") {
-        return ( <p className="border border-gray-300 px-1"> {entry.content} </p>);
+        return ( <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>);
     }
 
     const in_text_citation_regex = /\[([0-9]+)\]/g;
