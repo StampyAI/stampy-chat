@@ -24,7 +24,7 @@ type AssistantEntry = {
     role: "assistant";
     content: string;
     display_content: string;
-    citations: Citation[];
+    citations: Map<number, Citation>;
 }
 
 type Entry = UserEntry | AssistantEntry;
@@ -83,8 +83,8 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
                             return text.trim();
                         }
                         i = parseInt(text) - 1;
-                        if (i >= entry.citations.length) return `[${text}]`;
-                        const citation = entry.citations[i]!;
+                        if (!entry.citations.has(i)) return `[${text}]`;
+                        const citation = entry.citations.get(i)!;
                         return (
                             <ShowInTextCitation citation={citation} i={i} />
                         );
@@ -93,7 +93,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
             }
             <ul>
                 {   // show citations
-                    entry.citations.map((citation, i) => (
+                    Array.from(entry.citations.entries()).map(([i, citation]) => (
                         <li key={i}>
                             <ShowCitation citation={citation} i={i} />
                         </li>
@@ -107,6 +107,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
+    const [ runningIndex, setRunningIndex ] = useState(0);
 
     const search = async (
         query: string,
@@ -179,7 +180,7 @@ const Home: NextPage = () => {
 
         // figure out what citations are in the response, and map them appropriately
         const cite_map = new Map<string, number>();
-        let cite_count = 0;
+        let cite_count = runningIndex;
 
         // scan a regex for [x] over the response. If x isn't in the map, add it.
         const regex = /\[([a-z]+)\]/g;
@@ -193,13 +194,15 @@ const Home: NextPage = () => {
             response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
         }
 
+        setRunningIndex(cite_count);
+
         response = response_copy + response.slice(response_copy.length);
 
         // ----------------- create the ordered citation array -----------------
 
-        const citations = new Array<Citation>();
+        const citations = new Map<number, Citation>();
         cite_map.forEach((value, key) => {
-            citations[value] = data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)];
+            citations.set(value, data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)]);
         });
 
         setEntries([...new_entries, {role: "assistant", 
