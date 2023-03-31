@@ -57,7 +57,7 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
 
 const ShowInTextCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
     return (
-        <a className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-0.5"}
+        <a className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-1 mr-0.5"}
             href={citation.url} target="_blank" rel="noreferrer">
             [{i + 1}]
         </a>
