@@ -5,6 +5,11 @@ from chat import talk_to_robot
 import dataclasses
 import os
 import openai
+import pickle
+import requests
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -14,8 +19,22 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # -------------------------------- general setup -------------------------------
 
 
+
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
+
+print('Downloading dataset...')
+
+url = os.environ.get('DATASET_URL')
+if url is None:
+    print('No dataset url provided.')
+    exit()
+
+dataset_dict_bytes = requests.get(url).content
+print('Unpacking dataset...')
+dataset_dict = pickle.loads(dataset_dict_bytes)
+print('Done!')
+
 
 
 # ------------------------------- semantic search ------------------------------
@@ -25,7 +44,7 @@ openai.api_key = OPENAI_API_KEY
 @cross_origin()
 def semantic():
     query = request.json['query']
-    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(query)])
+    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(dataset_dict, query)])
 
 
 # ------------------------------------ chat ------------------------------------
@@ -35,7 +54,7 @@ def semantic():
 @cross_origin()
 def chat():
     query = request.json['query']
-    response, context = talk_to_robot(query)
+    response, context = talk_to_robot(dataset_dict, query)
     return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
 
 # ------------------------------------------------------------------------------

@@ -41,6 +41,8 @@ const Colours = [
     "bg-green-100  border-green-300  text-green-800",
     "bg-cyan-100   border-cyan-300   text-cyan-800",
     "bg-blue-100   border-blue-300   text-blue-800",
+    "bg-violet-100 border-violet-300 text-violet-800",
+    "bg-pink-100   border-pink-300   text-pink-800",
 ];
 
 const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {

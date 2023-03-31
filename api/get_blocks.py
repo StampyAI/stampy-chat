@@ -1,7 +1,6 @@
 from typing import List, Tuple
 import dataclasses
 import itertools
-import pickle
 import numpy as np
 import openai
 import regex as re
@@ -11,13 +10,6 @@ import time
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
 COMPLETIONS_MODEL = "gpt-3.5-turbo"
-
-import pathlib
-project_path = pathlib.Path(__file__).parent
-PATH_TO_DATASET_DICT = project_path / "dataset_dict_30.pkl"
-
-with open(PATH_TO_DATASET_DICT, 'rb') as f:
-    data = pickle.load(f)
 
 # ------------------------------------ types -----------------------------------
 
@@ -53,7 +45,7 @@ def get_embedding(text: str) -> np.ndarray:
             time.sleep(min(max_wait_time, 2 ** attempt))
 
 # Get the k blocks most semantically similar to the query.
-def get_top_k_blocks(user_query: str, k: int = 10) -> List[Block]:
+def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
 
     # Get the embedding for the query.
     query_embedding = get_embedding(user_query)
