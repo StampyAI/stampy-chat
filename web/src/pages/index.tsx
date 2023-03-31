@@ -27,7 +27,12 @@ type AssistantEntry = {
     citations: Map<number, Citation>;
 }
 
-type Entry = UserEntry | AssistantEntry;
+type ErrorMessage = {
+    role: "error";
+    content: string;
+}
+
+type Entry = UserEntry | AssistantEntry | ErrorMessage;
 
 // const Colours = ["blue", "cyan", "teal", "green", "amber"].map(colour => `bg-${colour}-100 border-${colour}-300 text-${colour}-800`);
 // this would be nice, but Tailwind needs te actual string of the class to be in
@@ -71,6 +76,11 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     // user message
     if (entry.role === "user") {
         return ( <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>);
+    }
+    
+    // error message
+    if (entry.role === "error") {
+        return ( <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>);
     }
 
     const in_text_citation_regex = /\[([0-9]+)\]/g;
@@ -128,12 +138,15 @@ const Home: NextPage = () => {
         const res = await fetch(API_URL + "/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Allow-Control-Allow-Origin": "*" },
-            body: JSON.stringify({query: query, history: old_entries.map((entry) => {
-                return {
-                    "role" : entry.role,
-                    "content" : entry.content
-                }
-            })})
+            body: JSON.stringify({query: query, history: 
+                old_entries.filter((entry) => entry.role !== "error")
+                           .map((entry) => {
+                               return {
+                                   "role" : entry.role,
+                                   "content" : entry.content
+                               }
+                           })
+               })
         })
 
         if (!res.ok) {
@@ -143,6 +156,14 @@ const Home: NextPage = () => {
         }
 
         const data = await res.json();
+
+        // -------------------------- error checking ---------------------------
+
+        if (data.error) {
+            setEntries([...new_entries, {role: "error", content: data.error}]);
+            setLoading(false);
+            return;
+        }
 
         // ---------------------- normalize citation form ----------------------
 

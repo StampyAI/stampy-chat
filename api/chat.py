@@ -73,7 +73,6 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 
 # ------------------------------------------------------------------------------
 
-        
 def normal_completion(prompt: List[Dict[str, str]]) -> str:
     try:
         return openai.ChatCompletion.create(
@@ -84,6 +83,7 @@ def normal_completion(prompt: List[Dict[str, str]]) -> str:
         print(e)
         return "I'm sorry, I failed to process your query. Please try again. If the problem persists, please contact the administrator."
 
+# returns either (True, reply string, embeddings) or (False, error message string, None)
 def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]] = [], k: int = 10):
 
     # 1. Find the most relevant blocks from the Alignment Research Dataset
@@ -91,6 +91,10 @@ def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]] = [], 
     
     # 2. Generate a prompt for the ChatCompletions API
     prompt: List[Dict[str, str]] = construct_prompt(query, history, top_k_blocks)
+
+    # if we were to error out, return something like this
+    # return (False, "Example error message", None)
     
     # 3. Answer the user query
-    return (normal_completion(prompt), top_k_blocks)
+    return (True, normal_completion(prompt), top_k_blocks)
+    
