@@ -9,13 +9,13 @@ import pickle
 import requests
 
 # ---------------------------------- env setup ---------------------------------
+
 if os.path.exists('.env'):
     from dotenv import load_dotenv
     load_dotenv()
 
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
-
 
 # -------------------------------- load dataset --------------------------------
 
@@ -37,7 +37,7 @@ else:
 
     dataset_dict_bytes = requests.get(url).content
     print('Unpacking dataset...')
-    dataset_dict = pickle.load(dataset_dict_bytes)
+    dataset_dict = pickle.loads(dataset_dict_bytes)
 
 print('Done!')
 
