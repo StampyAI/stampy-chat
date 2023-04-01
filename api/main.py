@@ -6,7 +6,6 @@ import dataclasses
 import os
 import openai
 import pickle
-import requests
 
 # ---------------------------------- env setup ---------------------------------
 
@@ -20,25 +19,9 @@ openai.api_key = OPENAI_API_KEY
 # -------------------------------- load dataset --------------------------------
 
 
-if os.path.exists('dataset.pkl'):
-    print('Found dataset.pkl')
-    print('Loading dataset...')
-    with open('dataset.pkl', 'rb') as f:
-        dataset_dict = pickle.load(f)
-
-else:
-    print('No dataset.pkl found on disk.')
-    print('Downloading dataset...')
-
-    url = os.environ.get('DATASET_URL')
-    if url is None:
-        print('No dataset url provided.')
-        exit()
-
-    dataset_dict_bytes = requests.get(url).content
-    print('Unpacking dataset...')
-    dataset_dict = pickle.loads(dataset_dict_bytes)
-
+print('Loading dataset...')
+with open('dataset.pkl', 'rb') as f:
+    dataset_dict = pickle.load(f)
 print('Done!')
 
 
