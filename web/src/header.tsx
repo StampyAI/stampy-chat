@@ -31,11 +31,11 @@ const Header: React.FC<{page: "index" | "semantic"}> = ({page}) => {
                     <li>Display this response in conversational flow with inline citations</li>
                 </ol>
                 <p>
-                    We've created this as an attempt on the <a href="https://www.lesswrong.com/posts/SLRLuiuDykfTdmesK/speed-running-everyone-through-the-bad-alignement-bingo"> $5k bounty for a LW conversational agent</a>.
+                    We've created this as an attempt on the <a href="https://www.lesswrong.com/posts/SLRLuiuDykfTdmesK/speed-running-everyone-through-the-bad-alignement-bingo">$5k bounty for a LW conversational agent</a>.
                 </p>
                 <p>
                     We hope that it can be a useful tool for the community, and we're eager to hear feedback and suggestions.
-                    For a technical report on our implemention, see our <u>LessWrong post</u> <i>(coming soon)</i>.
+                    For a technical report on our implemention, see our <a href="https://www.lesswrong.com/posts/bGn9ZjeuJCg7HkKBj/introducing-alignmentsearch-an-ai-alignment-informed">LessWrong post</a>.
                 </p>
             </>);
 };
