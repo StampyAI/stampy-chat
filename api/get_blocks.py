@@ -88,6 +88,8 @@ def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
         group = list(group)
         if len(group) == 0: continue
+        
+        group = group[:3] # limit to a max of 3 blocks from any one source
 
         text = "\n\n\n.....\n\n\n".join([block[0].text for block in group])
 
