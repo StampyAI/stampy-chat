@@ -87,7 +87,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
 
     // system reply
     return (
-        <div className="my-3">
+        <div className="mt-3 mb-8">
             {   // split into paragraphs
                 entry.display_content.split("\n").map(paragraph => ( <p> {
                     paragraph.split(in_text_citation_regex).map((text, i) => {

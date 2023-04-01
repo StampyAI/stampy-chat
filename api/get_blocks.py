@@ -47,12 +47,24 @@ def get_embedding(text: str) -> np.ndarray:
 # Get the k blocks most semantically similar to the query.
 def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
 
+    # print time
+    t = time.time()
+
     # Get the embedding for the query.
     query_embedding = get_embedding(user_query)
-    
+
+    t1 = time.time()
+    print("Time to get embedding: ", t1 - t)
+
     similarity_scores = np.dot(data["embeddings"], query_embedding) # big fat calculation
+
+    t2 = time.time()
+    print("Time to get similarity scores: ", t2 - t1)
     
     top_k_block_indices = list(reversed(np.argpartition(similarity_scores, -k)[-k:])) # Get the top k indices of the blocks
+
+    t3 = time.time()
+    print("Time to get top k indices: ", t3 - t2)
 
     top_k_metadata_indexes = [data["embeddings_metadata_index"][i] for i in top_k_block_indices]
     top_k_texts = [strip_block(data["embedding_strings"][i]) for i in top_k_block_indices]
@@ -76,6 +88,8 @@ def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
         group = list(group)
         if len(group) == 0: continue
+        
+        group = group[:3] # limit to a max of 3 blocks from any one source
 
         text = "\n\n\n.....\n\n\n".join([block[0].text for block in group])
 
