@@ -10,12 +10,13 @@ import tiktoken
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
 COMPLETIONS_MODEL = "gpt-3.5-turbo"
+# COMPLETIONS_MODEL = "gpt-4"
 MODERATION_ENDPOINT = "https://api.openai.com/v1/moderations"
 
 # OpenAI parameters
 LEN_EMBEDDINGS = 1536
 MAX_TOKEN_LEN_PROMPT = 8191 if COMPLETIONS_MODEL == 'gpt-4' else 4095
-TRUNCATE_CONTEXT_LEN = 1500
+TRUNCATE_CONTEXT_LEN = 2300 if COMPLETIONS_MODEL == 'gpt-4' else 1500
 TRUNCATE_HISTORY_LEN = 500
 MAX_RESPONSE_LEN = 900
 
@@ -110,6 +111,10 @@ def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]] = [], 
     
     # 2. Generate a prompt for the ChatCompletions API
     prompt, max_tokens_completion = construct_prompt(query, history, top_k_blocks)
+
+    print(" ------------------------------ prompt: -----------------------------")
+    for message in prompt:
+        print(f"{message['role']}: {message['content']}\n\n")
 
     # if we were to error out, return something like this
     # return (False, "Example error message", None)
