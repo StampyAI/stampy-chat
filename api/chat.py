@@ -38,16 +38,16 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     # Encoder to count tokens
     enc = tiktoken.get_encoding(encoding_name)
     total_tokens = 0
-    
+
     prompt = []
-    
+
     system_prompt = "You are a helpful assistant knowledgeable about AI Alignment and Saftey."
     total_tokens += len(enc.encode(system_prompt))
-    
+
     # Get past user queries
     past_user_queries = "\nQ: ".join([message["content"] for message in history if message["role"] == "user"][-5:])
     past_user_queries = f"My previous queries in our conversation have been:\n" + past_user_queries
-    
+
     # Instruction prompt
     instruction_context_query_prompt = \
         "Please give a clear and coherent answer to my question (written after \"Q:\") " \
@@ -62,32 +62,32 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     context_prompt = context_prompt[:-2] # trim last two newlines
     context_prompt = limit_tokens(context_prompt, TRUNCATE_CONTEXT_LEN)  # truncate the context_prompt to max TRUNCATE_CONTEXT tokens
     context_prompt += "\n" if (context_prompt[-1] != "\n") else ""
-    
+
     # Question prompt
     question_prompt = f"In your answer, please cite any claims you make back to each source " \
                     f"using the format: [a], [b], etc. If you use multiple sources to make a claim " \
                     f"cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
 
     instruction_context_query_prompt = f"{instruction_context_query_prompt}\n\n{context_prompt}\n\n{question_prompt}"
-    
+
     total_tokens += len(enc.encode(past_user_queries))
     total_tokens += len(enc.encode(history[-2]["content"])) if (len(history) >= 2) else 0
     total_tokens += len(enc.encode(history[-1]["content"])) if (len(history) >= 1) else 0
     total_tokens += len(enc.encode(instruction_context_query_prompt))
-    
+
     # If the prompt is too long, truncate the last answer
     if total_tokens > MAX_TOKEN_LEN_PROMPT - TRUNCATE_HISTORY_LEN:
         tokens_left = MAX_TOKEN_LEN_PROMPT - total_tokens
         print(f"WARNING: Prompt is too long! Prompt length: {total_tokens} tokens")
         last_assistant_reply_trunctated = limit_tokens(prompt[-1]["content"], tokens_left)
         prompt[-1]["content"] = f"{last_assistant_reply_trunctated}"
-    
+
     prompt.append({"role": "system", "content": system_prompt})
     prompt.append({"role": "user", "content": past_user_queries})
     prompt.extend(history[-2:])
     prompt.append({"role": "user", "content": instruction_context_query_prompt})
-    
-    return prompt, MAX_TOKEN_LEN_PROMPT - (total_tokens + 50)  # add 50 tokens for safety
+
+    return prompt, MAX_TOKEN_LEN_PROMPT - (total_tokens + 50) # add 50 tokens for safety
 
 # ------------------------------------------------------------------------------
         
@@ -97,7 +97,7 @@ def normal_completion(prompt: List[Dict[str, str]], max_tokens_completion: int) 
             model=COMPLETIONS_MODEL,
             messages=prompt,
             max_tokens=max_tokens_completion
-        )["choices"][0]["text"]
+        )["choices"][0]["message"]["content"]
     except Exception as e:
         print(e)
         return "I'm sorry, I failed to process your query. Please try again. If the problem persists, please contact the administrator."
