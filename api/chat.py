@@ -65,8 +65,8 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     instruction_context_query_prompt = f"{instruction_context_query_prompt}\n\n{context_prompt}\n\n{question_prompt}"
     
     total_tokens += len(enc.encode(past_queries_prompt))
-    total_tokens += len(enc.encode(history[-2]["content"]))  # Get past user query
-    total_tokens += len(enc.encode(history[-1]["content"]))
+    total_tokens += len(enc.encode(history[-2]["content"])) if (len(history) >= 2) else 0
+    total_tokens += len(enc.encode(history[-1]["content"])) if (len(history) >= 1) else 0
     total_tokens += len(enc.encode(instruction_context_query_prompt))
     
     # If the prompt is too long, truncate the last answer
