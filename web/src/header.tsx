@@ -16,7 +16,7 @@ const Header: React.FC<{page: "index" | "semantic"}> = ({page}) => {
         
     return (<>
                 <div className="flex my-4">
-                    <h1 className="flex-1 my-0">Alignment Search</h1>
+                    <h1 className="flex-1 my-0">AlignmentSearch</h1>
                     {sidebar}
                 </div>
                 <p>

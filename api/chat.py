@@ -28,6 +28,7 @@ def limit_tokens(text: str, max_tokens: int, encoding_name: str = "cl100k_base")
     return encoding.decode(tokens)
 
 def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Block], encoding_name: str = "cl100k_base"):
+
     # History takes the format: history=[
     #     {"role": "system", "content": "You are a helpful assistant."},
     #     {"role": "user", "content": "Who won the world series in 2020?"},
@@ -112,9 +113,9 @@ def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]] = [], 
     # 2. Generate a prompt for the ChatCompletions API
     prompt, max_tokens_completion = construct_prompt(query, history, top_k_blocks)
 
-    print(" ------------------------------ prompt: -----------------------------")
-    for message in prompt:
-        print(f"{message['role']}: {message['content']}\n\n")
+    # print(" ------------------------------ prompt: -----------------------------")
+    # for message in prompt:
+    #     print(f"{message['role']}: {message['content']}\n\n")
 
     # if we were to error out, return something like this
     # return (False, "Example error message", None)
