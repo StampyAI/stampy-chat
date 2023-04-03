@@ -48,9 +48,11 @@ def semantic():
 @app.route('/chat', methods=['POST'])
 @cross_origin()
 def chat():
+    
     query = request.json['query']
+    history = request.json['history']
 
-    is_valid, response, context = talk_to_robot(dataset_dict, query)
+    is_valid, response, context = talk_to_robot(dataset_dict, query, history)
 
     if is_valid:
         return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})

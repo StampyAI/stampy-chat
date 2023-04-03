@@ -75,7 +75,7 @@ def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
     blocks = [Block(*block) for block in top_k_metadata_and_text]
 
     # for all blocks that are "the same" (same title, author, date, url, tags),
-    # combine their text with "\n\n.....\n\n" in between. Return them in order such
+    # combine their text with "....." in between. Return them in order such
     # that the combined block has the minimum index of the blocks combined.
 
     key = lambda bi: (bi[0].title or "", bi[0].author or "", bi[0].date or "", bi[0].url or "", bi[0].tags or "")
@@ -91,7 +91,7 @@ def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
         
         group = group[:3] # limit to a max of 3 blocks from any one source
 
-        text = "\n\n\n.....\n\n\n".join([block[0].text for block in group])
+        text = "\n.....\n".join([block[0].text for block in group])
 
         min_index = min([block[1] for block in group])
 
