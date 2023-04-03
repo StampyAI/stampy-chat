@@ -16,8 +16,8 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 # NOTE: All this is approximate, there's bits I'm intentionally not counting. Leave a buffer beyond what you might expect.
 NUM_TOKENS = 8191 if COMPLETIONS_MODEL == 'gpt-4' else 4095
-PROMPT_FRACTION = 0.25 # the (approximate) fraction of num_tokens to use for non-context prompt text before truncating
-CONTEXT_FRACTION = 0.45 # the (approximate) fraction of num_tokens to use for context text before truncating
+HISTORY_FRACTION = 0.25 # the (approximate) fraction of num_tokens to use for history text before truncating
+CONTEXT_FRACTION = 0.45  # the (approximate) fraction of num_tokens to use for context text before truncating
 
 ENCODER = tiktoken.get_encoding("cl100k_base")
 
@@ -40,53 +40,23 @@ def cap(text: str, max_tokens: int) -> str:
 
 def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
 
-    # History takes the format: history=[
-    #     {"role": "user", "content": "Who won the world series in 2020?"},
-    #     {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-    #     {"role": "user", "content": "Where was it played?"}
-    #     {"role": "assistant", "content": "Los Angeles, California."}
-    # ]
-
-    token_count = 0
     prompt = []
 
-    system_prompt = "You are a helpful assistant knowledgeable about AI Alignment and Saftey."
-    token_count += len(ENCODER.encode(system_prompt))
-    prompt.append({"role": "system", "content": system_prompt})
+    # History takes the format: history=[
+    #     {"role": "user", "content": "Die monster. You don’t belong in this world!"},
+    #     {"role": "assistant", "content": "It was not by my hand I am once again given flesh. I was called here by humans who wished to pay me tribute."},
+    #     {"role": "user", "content": "Tribute!?! You steal men's souls and make them your slaves!"},
+    #     {"role": "assistant", "content": "Perhaps the same could be said of all religions..."},
+    #     {"role": "user", "content": "Your words are as empty as your soul! Mankind ill needs a savior such as you!"},
+    #     {"role": "assistant", "content": "What is a man? A miserable little pile of secrets. But enough talk... Have at you!"},
+    # ]
 
-    # Get past user queries
-    past_user_queries = [message["content"] for message in history if message["role"] == "user"][-5 * 2:] # get the last 5 user queries
-    if len(past_user_queries) > 0:
-        for i, q in enumerate(past_user_queries):
-            prompt.append({"role": "user", "content": "Q: " + q})
-            token_count += len(ENCODER.encode("Q: " + q))
-
-            # for all but the last query, just add the system message mentioning that there has been a response.
-            if i < len(past_user_queries) - 1:
-                response = "the assistant's response has been left out for brevity."
-                prompt.append({"role": "system", "content": response})
-                token_count += len(ENCODER.encode(response))
-
-    # Add the response to the latest query, if there was one. Possibly truncate it.
-    if len(history) > 0 and history[-1]["role"] == "assistant":
-        last_response = cap(history[-1]["content"], int(NUM_TOKENS * PROMPT_FRACTION) - token_count)
-        prompt.append({"role": "assistant", "content": last_response})
-        token_count += len(ENCODER.encode(last_response))
-
-
-
-
-
-
-
-
-    # Instruction prompt
-    main_prompt = \
-        "Please give a clear and coherent answer to my question (written after \"Q:\") " \
+    source_prompt = "You are a helpful assistant knowledgeable about AI Alignment and Saftey. " \
+        "Please give a clear and coherent answer to the user's questions.(written after \"Q:\") " \
         "using the following sources. Each source is labeled with a letter. Feel free to " \
-        "use the sources in any order, and try to use multiple sources in your answer.\n\n"
+        "use the sources in any order, and try to use multiple sources in your answers.\n\n"
 
-    token_count = len(ENCODER.encode(main_prompt))
+    token_count = len(ENCODER.encode(source_prompt))
 
     # Context from top-k blocks
     for i, block in enumerate(context):
@@ -94,25 +64,38 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
         block_tc = len(ENCODER.encode(block_str))
 
         if token_count + block_tc > int(NUM_TOKENS * CONTEXT_FRACTION):
-            main_prompt += cap(block_str, int(NUM_TOKENS * CONTEXT_FRACTION) - token_count)
+            source_prompt += cap(block_str, int(NUM_TOKENS * CONTEXT_FRACTION) - token_count)
             break
         else:
-            main_prompt += block_str
+            source_prompt += block_str
             token_count += block_tc
 
-    main_prompt = main_prompt.strip() + "\n\n\n"
+    prompt.append({"role": "system", "content": source_prompt.strip()})
 
 
+    # Write a version of the last 10 messages into history, cutting things off when we hit the token limit.
+    token_count = 0
+    history_trnc = []
+    for message in history[:-10:-1]:
+        if message["role"] == "user":
+            history_trnc.append({"role": "user", "content": "Q: " + message["content"]})
+            token_count += len(ENCODER.encode("Q: " + message["content"]))
+        else:
+            content = cap(message["content"], int(NUM_TOKENS * HISTORY_FRACTION) - token_count)
+            history_trnc.append({"role": "assistant", "content": content})
+            token_count += len(ENCODER.encode(content))
+
+        if token_count > int(NUM_TOKENS * HISTORY_FRACTION):
+            break
+
+    prompt.extend(history_trnc[::-1])
 
 
-
-
-
-    main_prompt += f"In your answer, please cite any claims you make back to each source " \
+    question_prompt = f"In your answer, please cite any claims you make back to each source " \
                     f"using the format: [a], [b], etc. If you use multiple sources to make a claim " \
                     f"cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
 
-    prompt.append({"role": "user", "content": main_prompt})
+    prompt.append({"role": "user", "content": question_prompt})
 
     return prompt
 
