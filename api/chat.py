@@ -17,9 +17,11 @@ COMPLETIONS_MODEL = "gpt-3.5-turbo"
 # NOTE: All this is approximate, there's bits I'm intentionally not counting. Leave a buffer beyond what you might expect.
 NUM_TOKENS = 8191 if COMPLETIONS_MODEL == 'gpt-4' else 4095
 HISTORY_FRACTION = 0.25 # the (approximate) fraction of num_tokens to use for history text before truncating
-CONTEXT_FRACTION = 0.45  # the (approximate) fraction of num_tokens to use for context text before truncating
+CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for context text before truncating
 
 ENCODER = tiktoken.get_encoding("cl100k_base")
+
+DEBUG_PRINT = False
 
 # --------------------------------- prompt code --------------------------------
 
@@ -120,24 +122,22 @@ def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]], k: in
 
     # 1. Find the most relevant blocks from the Alignment Research Dataset
     top_k_blocks: List[Block] = get_top_k_blocks(dataset_dict, query, k)
-    
 
 
     # 2. Generate a prompt
     prompt = construct_prompt(query, history, top_k_blocks)
-    print('\n' * 10)
-    print(" ------------------------------ prompt: -----------------------------")
-    for message in prompt:
-        print(f"----------- {message['role']}: ------------------")
-        print(message['content'])
 
-    print('\n' * 10)
+    if DEBUG_PRINT:
+        print('\n' * 10)
+        print(" ------------------------------ prompt: -----------------------------")
+        for message in prompt:
+            print(f"----------- {message['role']}: ------------------")
+            print(message['content'])
 
-
+        print('\n' * 10)
 
     # 3. Count number of tokens left for completion (-50 for a buffer)
     max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
-
 
     # 4. Answer the user query
     try:
