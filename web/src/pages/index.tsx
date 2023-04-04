@@ -23,7 +23,6 @@ type UserEntry = {
 type AssistantEntry = {
     role: "assistant";
     content: string;
-    display_content: string;
     citations: Map<number, Citation>;
 }
 
@@ -89,7 +88,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     return (
         <div className="mt-3 mb-8">
             {   // split into paragraphs
-                entry.display_content.split("\n").map(paragraph => ( <p> {
+                entry.content.split("\n").map(paragraph => ( <p> {
                     paragraph.split(in_text_citation_regex).map((text, i) => {
                         if (i % 2 === 0) {
                             return text.trim();
@@ -143,7 +142,7 @@ const Home: NextPage = () => {
                            .map((entry) => {
                                return {
                                    "role" : entry.role,
-                                   "content" : entry.content
+                                   "content" : entry.content.trim(),
                                }
                            })
                })
@@ -234,8 +233,7 @@ const Home: NextPage = () => {
         });
 
         setEntries([...new_entries, {role: "assistant", 
-                                     content: await data.response, 
-                                     display_content: response,
+                                     content: response,
                                      citations: citations}]);
 
         setLoading(false);

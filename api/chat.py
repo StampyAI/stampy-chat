@@ -4,8 +4,8 @@ from get_blocks import get_top_k_blocks, Block
 
 from typing import List, Dict
 import openai
-import os
 import tiktoken
+import re
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -70,7 +70,16 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
             source_prompt += block_str
             token_count += block_tc
 
+    source_prompt = source_prompt.strip();
+    if len(history) > 0:
+        source_prompt += "\n\n"\
+            "Before the question (\"Q: \"), there will be a history of previous questions and answers. " \
+            "These sources only apply to the last question. Any sources used in previous answers " \
+            "are invalid."
+
     prompt.append({"role": "system", "content": source_prompt.strip()})
+
+
 
 
     # Write a version of the last 10 messages into history, cutting things off when we hit the token limit.
@@ -82,6 +91,10 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
             token_count += len(ENCODER.encode("Q: " + message["content"]))
         else:
             content = cap(message["content"], int(NUM_TOKENS * HISTORY_FRACTION) - token_count)
+
+            # censor all source letters into [x]
+            content = re.sub(r"\[[0-9]+\]", "[x]", content)
+
             history_trnc.append({"role": "assistant", "content": content})
             token_count += len(ENCODER.encode(content))
 
