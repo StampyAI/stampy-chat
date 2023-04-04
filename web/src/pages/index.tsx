@@ -225,7 +225,12 @@ const Home: NextPage = () => {
 
         const citations = new Map<number, Citation>();
         cite_map.forEach((value, key) => {
-            citations.set(value, data.citations[key.charCodeAt(0) - 'a'.charCodeAt(0)]);
+            const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
+            if (index >= data.citations.length) {
+                console.log("invalid citation index: " + index);
+            } else {
+                citations.set(value, data.citations[index]);
+            }
         });
 
         setEntries([...new_entries, {role: "assistant", 
