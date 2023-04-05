@@ -10,7 +10,9 @@ import re
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
 COMPLETIONS_MODEL = "gpt-3.5-turbo"
-# COMPLETIONS_MODEL = "gpt-4"
+COMPLETIONS_MODEL = "gpt-4"
+
+STANDARD_K = 20 if COMPLETIONS_MODEL == 'gpt-4' else 10
 
 # parameters
 
@@ -82,8 +84,6 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     prompt.append({"role": "system", "content": source_prompt.strip()})
 
 
-
-
     # Write a version of the last 10 messages into history, cutting things off when we hit the token limit.
     token_count = 0
     history_trnc = []
@@ -117,7 +117,7 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 # ------------------------------- completion code -------------------------------
 
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
-def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = 10):
+def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
 
 
     # 1. Find the most relevant blocks from the Alignment Research Dataset

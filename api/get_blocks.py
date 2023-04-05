@@ -9,7 +9,6 @@ import time
 # ---------------------------------- constants ---------------------------------
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
-COMPLETIONS_MODEL = "gpt-3.5-turbo"
 
 # ------------------------------------ types -----------------------------------
 
