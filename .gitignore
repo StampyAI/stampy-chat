@@ -131,14 +131,15 @@ dmypy.json
 # Other
 *alignment_texts.jsonl
 *config.py
-*.npy
 *.DS_Store
-src/tmp.py
+*.env
+*.npy
+*.pkl
 
 .vercel/
-api/dataset.pkl
 temp/
+*tmp.py
 
+api/dataset.pkl
 api/dataset_big.pkl
-
 api/dataset_300.pkl

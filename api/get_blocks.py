@@ -44,8 +44,9 @@ def get_embedding(text: str) -> np.ndarray:
 
             time.sleep(min(max_wait_time, 2 ** attempt))
 
-# Get the k blocks most semantically similar to the query.
-def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
+
+# Get the k blocks most semantically similar to the query using Pinecone.
+def get_top_k_blocks(index, user_query: str, k: int = 10) -> List[Block]:
 
     # print time
     t = time.time()
@@ -56,24 +57,27 @@ def get_top_k_blocks(data, user_query: str, k: int = 10) -> List[Block]:
     t1 = time.time()
     print("Time to get embedding: ", t1 - t)
 
-    similarity_scores = np.dot(data["embeddings"], query_embedding) # big fat calculation
-
+    query_response = index.query(
+        namespace="alignment-search",  # ugly, sorry
+        top_k=k,
+        include_values=False,
+        include_metadata=True,
+        vector=query_embedding
+    )
+    blocks = [
+        Block(
+            title = match['metadata']['title'],
+            author = match['metadata']['author'],
+            date = match['metadata']['date'],
+            url = match['metadata']['url'],
+            tags = match['metadata']['tags'],
+            text = match['metadata']['text']
+        ) for match in query_response['matches']
+    ]
     t2 = time.time()
-    print("Time to get similarity scores: ", t2 - t1)
+
+    print("Time to get top-k blocks: ", t2 - t1)
     
-    top_k_block_indices = list(reversed(np.argpartition(similarity_scores, -k)[-k:])) # Get the top k indices of the blocks
-
-    t3 = time.time()
-    print("Time to get top k indices: ", t3 - t2)
-
-    top_k_metadata_indexes = [data["embeddings_metadata_index"][i] for i in top_k_block_indices]
-    top_k_texts = [strip_block(data["embedding_strings"][i]) for i in top_k_block_indices]
-    top_k_metadata = [data["metadata"][i] for i in top_k_metadata_indexes]
-
-    # Combine the top k texts and metadata into a list of Block objects
-    top_k_metadata_and_text = [list(top_k_metadata[i]) + [top_k_texts[i]] for i in range(len(top_k_metadata))]
-    blocks = [Block(*block) for block in top_k_metadata_and_text]
-
     # for all blocks that are "the same" (same title, author, date, url, tags),
     # combine their text with "....." in between. Return them in order such
     # that the combined block has the minimum index of the blocks combined.

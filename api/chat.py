@@ -114,19 +114,20 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 
     return prompt
 
-# ------------------------------------------------------------------------------
+# ------------------------------- completion code -------------------------------
 
-# returns either (True, reply string, embeddings) or (False, error message string, None)
-def talk_to_robot(dataset_dict, query: str, history: List[Dict[str, str]], k: int = 10):
+# returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
+def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = 10):
 
 
     # 1. Find the most relevant blocks from the Alignment Research Dataset
-    top_k_blocks: List[Block] = get_top_k_blocks(dataset_dict, query, k)
+    top_k_blocks = get_top_k_blocks(index, query, k)
 
 
     # 2. Generate a prompt
     prompt = construct_prompt(query, history, top_k_blocks)
 
+    
     if DEBUG_PRINT:
         print('\n' * 10)
         print(" ------------------------------ prompt: -----------------------------")

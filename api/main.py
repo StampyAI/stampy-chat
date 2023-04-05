@@ -5,9 +5,11 @@ from chat import talk_to_robot
 import dataclasses
 import os
 import openai
-import pickle
+import pinecone
+
 
 # ---------------------------------- env setup ---------------------------------
+
 
 if os.path.exists('.env'):
     from dotenv import load_dotenv
@@ -16,13 +18,14 @@ if os.path.exists('.env'):
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY
 
-# -------------------------------- load dataset --------------------------------
-
-
-print('Loading dataset...')
-with open('dataset.pkl', 'rb') as f:
-    dataset_dict = pickle.load(f)
-print('Done!')
+PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
+PINECONE_ENV = "us-east1-gcp"
+pinecone.init(
+    api_key=PINECONE_API_KEY,
+    environment=PINECONE_ENV
+)
+INDEX_NAME = "alignment-search"
+index = pinecone.Index(index_name=INDEX_NAME)
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -31,7 +34,6 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-
 # ------------------------------- semantic search ------------------------------
 
 
@@ -39,7 +41,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 @cross_origin()
 def semantic():
     query = request.json['query']
-    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(dataset_dict, query)])
+    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(index, query)])
 
 
 # ------------------------------------ chat ------------------------------------
@@ -52,13 +54,16 @@ def chat():
     query = request.json['query']
     history = request.json['history']
 
-    is_valid, response, context = talk_to_robot(dataset_dict, query, history)
+    is_valid, response, context = talk_to_robot(index, query, history)
 
     if is_valid:
         return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
     else:
         return jsonify({'error': response})
 
+
 # ------------------------------------------------------------------------------
 
-if __name__ == '__main__': app.run(debug=True, port=3000)
+
+if __name__ == '__main__':
+    app.run(debug=True, port=3000)
