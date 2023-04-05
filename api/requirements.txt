@@ -18,3 +18,5 @@ numpy==1.24.2
 tenacity==8.2.2
 tiktoken
 pinecone-client
+
+python-dotenv
