@@ -45,7 +45,7 @@ def get_embedding(text: str) -> np.ndarray:
 
 
 # Get the k blocks most semantically similar to the query using Pinecone.
-def get_top_k_blocks(index, user_query: str, k: int = 10) -> List[Block]:
+def get_top_k_blocks(index, user_query: str, k: int = 20) -> List[Block]:
 
     # print time
     t = time.time()

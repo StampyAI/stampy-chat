@@ -10,7 +10,7 @@ import re
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
 COMPLETIONS_MODEL = "gpt-3.5-turbo"
-COMPLETIONS_MODEL = "gpt-4"
+# COMPLETIONS_MODEL = "gpt-4"
 
 STANDARD_K = 20 if COMPLETIONS_MODEL == 'gpt-4' else 10
 
