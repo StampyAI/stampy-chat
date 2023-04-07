@@ -1,3 +1,5 @@
+# run this script to download the dataset
+
 import pickle
 import requests
 import os
