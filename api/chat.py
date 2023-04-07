@@ -5,6 +5,7 @@ from get_blocks import get_top_k_blocks, Block
 from typing import List, Dict
 import openai
 import tiktoken
+import time
 import re
 
 # OpenAI models
@@ -127,7 +128,21 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         # 2. Generate a prompt
         prompt = construct_prompt(query, history, top_k_blocks)
 
+
+        # 3. Count number of tokens left for completion (-50 for a buffer)
+        max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+
+        # 4. Answer the user query
+        t1 = time.time()
+        response = openai.ChatCompletion.create(
+            model=COMPLETIONS_MODEL,
+            messages=prompt,
+            max_tokens=max_tokens_completion
+        )["choices"][0]["message"]["content"]
+        t2 = time.time()
+        print("Time to get response: ", t2 - t1)
         
+
         if DEBUG_PRINT:
             print('\n' * 10)
             print(" ------------------------------ prompt: -----------------------------")
@@ -137,15 +152,10 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
 
             print('\n' * 10)
 
-        # 3. Count number of tokens left for completion (-50 for a buffer)
-        max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+            print(" ------------------------------ response: -----------------------------")
+            print(response)
 
-        # 4. Answer the user query
-        return (True, openai.ChatCompletion.create(
-            model=COMPLETIONS_MODEL,
-            messages=prompt,
-            max_tokens=max_tokens_completion
-        )["choices"][0]["message"]["content"], top_k_blocks)
+        return (True, response, top_k_blocks)
 
     except Exception as e:
         print(e)
