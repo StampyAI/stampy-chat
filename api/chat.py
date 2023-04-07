@@ -119,34 +119,34 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
 def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
 
-
-    # 1. Find the most relevant blocks from the Alignment Research Dataset
-    top_k_blocks = get_top_k_blocks(index, query, k)
-
-
-    # 2. Generate a prompt
-    prompt = construct_prompt(query, history, top_k_blocks)
-
-    
-    if DEBUG_PRINT:
-        print('\n' * 10)
-        print(" ------------------------------ prompt: -----------------------------")
-        for message in prompt:
-            print(f"----------- {message['role']}: ------------------")
-            print(message['content'])
-
-        print('\n' * 10)
-
-    # 3. Count number of tokens left for completion (-50 for a buffer)
-    max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
-
-    # 4. Answer the user query
     try:
+        # 1. Find the most relevant blocks from the Alignment Research Dataset
+        top_k_blocks = get_top_k_blocks(index, query, k)
+
+
+        # 2. Generate a prompt
+        prompt = construct_prompt(query, history, top_k_blocks)
+
+        
+        if DEBUG_PRINT:
+            print('\n' * 10)
+            print(" ------------------------------ prompt: -----------------------------")
+            for message in prompt:
+                print(f"----------- {message['role']}: ------------------")
+                print(message['content'])
+
+            print('\n' * 10)
+
+        # 3. Count number of tokens left for completion (-50 for a buffer)
+        max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+
+        # 4. Answer the user query
         return (True, openai.ChatCompletion.create(
             model=COMPLETIONS_MODEL,
             messages=prompt,
             max_tokens=max_tokens_completion
         )["choices"][0]["message"]["content"], top_k_blocks)
+
     except Exception as e:
         print(e)
         return (False, "Error: " + str(e), None)
