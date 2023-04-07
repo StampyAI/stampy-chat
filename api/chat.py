@@ -55,7 +55,7 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     #     {"role": "assistant", "content": "What is a man? A miserable little pile of secrets. But enough talk... Have at you!"},
     # ]
 
-    source_prompt = "You are a helpful assistant knowledgeable about AI Alignment and Saftey. " \
+    source_prompt = "You are a helpful assistant knowledgeable about AI Alignment and Safety. " \
         "Please give a clear and coherent answer to the user's questions.(written after \"Q:\") " \
         "using the following sources. Each source is labeled with a letter. Feel free to " \
         "use the sources in any order, and try to use multiple sources in your answers.\n\n"
