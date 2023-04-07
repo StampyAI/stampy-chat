@@ -50,13 +50,19 @@ const Colours = [
 ];
 
 const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
+
+    var c_str = citation.title;
+
+    if (citation.author && citation.author !== "")
+        c_str += " - " + citation.author;
+    if (citation.date && citation.date !== "")
+        c_str += " - " + citation.date;
+
     return (
         <a className={Colours[i % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
             href={citation.url} target="_blank" rel="noreferrer">
             <span className="mx-1"> [{i + 1}] </span>
-            <p className="mx-1 my-0">
-                {citation.title + " - " + citation.author + " - " + citation.date}
-            </p>
+            <p className="mx-1 my-0"> {c_str} </p>
         </a>
     );
 };

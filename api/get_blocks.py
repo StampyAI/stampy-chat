@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import dataclasses
+import datetime
 import itertools
 import numpy as np
 import openai
@@ -63,16 +64,22 @@ def get_top_k_blocks(index, user_query: str, k: int = 20) -> List[Block]:
         include_metadata=True,
         vector=query_embedding
     )
-    blocks = [
-        Block(
+    blocks = []
+    for match in query_response['matches']:
+
+        date = match['metadata']['date']
+
+        if type(date) == datetime.date: date = date.strftime("%Y-%m-%d") # iso8601
+
+        blocks.append(Block(
             title = match['metadata']['title'],
             author = match['metadata']['author'],
-            date = match['metadata']['date'],
+            date = date,
             url = match['metadata']['url'],
             tags = match['metadata']['tags'],
             text = match['metadata']['text']
-        ) for match in query_response['matches']
-    ]
+        ))
+
     t2 = time.time()
 
     print("Time to get top-k blocks: ", t2 - t1)
