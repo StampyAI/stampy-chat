@@ -38,7 +38,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 def stream(src):
     yield from ('data: ' + '\ndata: '.join(message.splitlines()) + '\n\n' for message in src)
-    yield 'data: close\n\n'
+    yield 'event: close\n\n'
 
 # ------------------------------- semantic search ------------------------------
 
@@ -56,14 +56,14 @@ def semantic():
 @app.route('/chat', methods=['POST'])
 @cross_origin()
 def chat():
-    # 
-    # query = request.json['query']
-    # history = request.json['history']
 
-    return Response(stream(talk_to_robot(None, None, None)), mimetype='text/event-stream')
+    query = request.json['query']
+    history = request.json['history']
+
+    return Response(stream(talk_to_robot(index, query, history)), mimetype='text/event-stream')
 
     # is_valid, response, context = talk_to_robot(index, query, history)
-    
+
     # if is_valid:
     #     return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
     # else:

@@ -121,27 +121,28 @@ import json
 
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
 def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
+    # 1. Find the most relevant blocks from the Alignment Research Dataset
     yield json.dumps({"state": "loading", "phase": "semantic"})
-    time.sleep(1)
+    top_k_blocks = get_top_k_blocks(index, query, k)
+
+    # 2. Generate a prompt
+    prompt = construct_prompt(query, history, top_k_blocks)
     yield json.dumps({"state": "loading", "phase": "prompt"})
-    time.sleep(1)
+
+    # 3. Count number of tokens left for completion (-50 for a buffer)
+    max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+
+
+
+
+
     yield json.dumps({"state": "loading", "phase": "llm"})
     time.sleep(1)
-    for c in "Hi. I'm a big dumb LLM. Hubris will be the end of us all.":
+    for c in "Hi. I'm a big dumb LLM.\nHubris will be the end of us all.":
         yield json.dumps({"state": "streaming", "response": c})
         time.sleep(0.1)
 
     # try:
-    #     # 1. Find the most relevant blocks from the Alignment Research Dataset
-    #     top_k_blocks = get_top_k_blocks(index, query, k)
-    #
-    #
-    #     # 2. Generate a prompt
-    #     prompt = construct_prompt(query, history, top_k_blocks)
-    #
-    #
-    #     # 3. Count number of tokens left for completion (-50 for a buffer)
-    #     max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
     #
     #     # 4. Answer the user query
     #     t1 = time.time()

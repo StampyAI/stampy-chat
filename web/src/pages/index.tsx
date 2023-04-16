@@ -82,7 +82,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     if (entry.role === "user") {
         return ( <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>);
     }
-    
+
     // error message
     if (entry.role === "error") {
         return ( <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>);
@@ -143,31 +143,48 @@ const Home: NextPage = () => {
         setQuery: (query: string) => void,
         setLoading: (loading: boolean) => void
     ) => {
-        
+
         // clear the query box, append to entries
+
         const old_entries = entries;
         const new_entries: Entry[] = [...old_entries, {role: "user", content: query}];
         setEntries(new_entries);
         setQuery("");
-
         setLoading(true);
 
+        // do SSE on a POST request.
 
+        const res = await fetch(API_URL + "/chat", {
+            method: "POST",
+            cache: "no-cache",
+            keepalive: true,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+                "Allow-Control-Allow-Origin": "*"
+            },
 
-        // sse connection
-        const eventSource = new EventSource(API_URL + "/chat");
-                            
-        eventSource.onmessage = (event) => {
+            body: JSON.stringify({query: query, history:
+                old_entries.filter((entry) => entry.role !== "error")
+                           .map((entry) => {
+                               return {
+                                   "role" : entry.role,
+                                   "content" : entry.content.trim(),
+                               }
+                           })
+            }),
 
-            if (event.data === "close") {
-                eventSource.close();
-                setLoading(false);
-                setLoadState({state: "idle"});
-                return;
-            }
+        });
 
-            console.log(event.data);
-            const data = JSON.parse(event.data);
+        if (!res.ok) {
+            setLoading(false);
+            console.log("load failure: " + res.status);
+            return;
+        }
+
+        const process = (message: string) => {
+            console.log(message);
+            const data = JSON.parse(message);
 
             if (data.state === "loading") {
                 setLoadState({state: "loading", phase: data.phase});
@@ -183,25 +200,30 @@ const Home: NextPage = () => {
             }
         }
 
-        const res = await fetch(API_URL + "/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Allow-Control-Allow-Origin": "*" },
-            body: JSON.stringify({query: query, history: 
-                old_entries.filter((entry) => entry.role !== "error")
-                           .map((entry) => {
-                               return {
-                                   "role" : entry.role,
-                                   "content" : entry.content.trim(),
-                               }
-                           })
-               })
-        })
+        // read back sse stream
 
-        // if (!res.ok) {
-        //     setLoading(false);
-        //     console.log("load failure: " + res.status);
-        //     return;
-        // }
+        const reader = res.body!.getReader();
+        var message = "";
+        while (true) {
+
+            const {done, value} = await reader.read();
+
+            if (done) break;
+            const chunk = new TextDecoder("utf-8").decode(value);
+            if (chunk.startsWith("event: close\n")) break;
+
+            for (const line of chunk.split('\n')) {
+                if (line.startsWith("data: ")) message += line.slice(6);
+                if (line === "") {
+                    if (message !== "") process(message);
+                    message = "";
+                }
+            }
+        }
+
+        setLoading(false);
+        setLoadState({state: "idle"});
+
         //
         // const data = await res.json();
         //
@@ -227,7 +249,7 @@ const Home: NextPage = () => {
         //
         // // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
         // response = response.replace(
-        //     
+        //
         //         /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
         //
         //         (block: string) => block.split(',')
@@ -281,7 +303,7 @@ const Home: NextPage = () => {
         //     }
         // });
         //
-        // setEntries([...new_entries, {role: "assistant", 
+        // setEntries([...new_entries, {role: "assistant",
         //                              content: response,
         //                              citations: citations}]);
 
@@ -304,7 +326,20 @@ const Home: NextPage = () => {
                     ))}
                 </ul>
                 <SearchBox search={search} />
-                <p>{loadState.state === "loading" ? loadState.phase : ( loadState.state === "streaming" ? loadState.response : "" )}</p>
+                {(() => {
+                    if (loadState.state === "loading") {
+                        switch (loadState.phase) {
+                            case "semantic": return <p>Loading: Performing semantic search...</p>;
+                            case "prompt": return <p>Loading: Creating prompt...</p>;
+                            case "llm": return <p>Loading: Waiting for LLM...</p>;
+                        }
+
+                    } else if (loadState.state === "streaming") {
+                        return <p>{loadState.response}</p>;
+                    }
+                    return <></>;
+                })()}
+
             </main>
         </>
     );
