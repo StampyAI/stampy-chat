@@ -3,7 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
 import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import Header from "../header";
 import SearchBox from "../searchbox";
@@ -23,7 +23,7 @@ type UserEntry = {
 type AssistantEntry = {
     role: "assistant";
     content: string;
-    citations: Map<number, Citation>;
+    citations: Citation[];
 }
 
 type ErrorMessage = {
@@ -88,9 +88,84 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
         return ( <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>);
     }
 
+    // robot message
+    const res = useMemo(() => ShowAssistantEntry(entry), [entry]);
+    return res;
+};
+
+const ShowAssistantEntry = (entry: AssistantEntry) => {
     const in_text_citation_regex = /\[([0-9]+)\]/g;
 
-    // system reply
+    // ---------------------- normalize citation form ----------------------
+   
+    // transform all things that look like [a, b, c] into [a][b][c]
+    let response = entry.content.replace(
+   
+                /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
+   
+                (block: string) => block.split(',')
+                                        .map((x) => x.trim())
+                                        .join("][")
+    )
+   
+    // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
+    response = response.replace(
+   
+            /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
+   
+            (block: string) => block.split(',')
+                                    .map((x) => x.trim())
+                                    .join("][")
+    )
+   
+    // transform all things that look like [(a)] into [a]
+    response = response.replace(
+        /\[\(([a-z]+)\)\]/g,
+        (_match: string, x: string) => `[${x}]`
+    )
+   
+    // transform all things that look like [ a ] into [a]
+    response = response.replace(
+        /\[\s*([a-z]+)\s*\]/g,
+        (_match: string, x: string) => `[${x}]`
+    )
+   
+    // -------------- map citations from strings into numbers --------------
+   
+    // figure out what citations are in the response, and map them appropriately
+    const cite_map = new Map<string, number>();
+    // let cite_count = runningIndex;
+    let cite_count = 0;
+   
+    // scan a regex for [x] over the response. If x isn't in the map, add it.
+    const regex = /\[([a-z]+)\]/g;
+    let match;
+    let response_copy = ""
+    while ((match = regex.exec(response)) !== null) {
+        if (!cite_map.has(match[1]!)) {
+            cite_map.set(match[1]!, cite_count++);
+        }
+        // replace [x] with [i]
+        response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
+    }
+   
+    // setRunningIndex(cite_count);
+    // TODO
+   
+    response = response_copy + response.slice(response_copy.length);
+   
+    // ----------------- create the ordered citation array -----------------
+   
+    const citations = new Map<number, Citation>();
+    cite_map.forEach((value, key) => {
+        const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
+        if (index >= entry.citations.length) {
+            console.log("invalid citation index: " + index);
+        } else {
+            citations.set(value, entry.citations[index]!);
+        }
+    });
+   
     return (
         <div className="mt-3 mb-8">
             {   // split into paragraphs
@@ -100,8 +175,8 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
                             return text.trim();
                         }
                         i = parseInt(text) - 1;
-                        if (!entry.citations.has(i)) return `[${text}]`;
-                        const citation = entry.citations.get(i)!;
+                        if (!citations.has(i)) return `[${text}]`;
+                        const citation = citations.get(i)!;
                         return (
                             <ShowInTextCitation citation={citation} i={i} />
                         );
@@ -110,7 +185,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
             }
             <ul>
                 {   // show citations
-                    Array.from(entry.citations.entries()).map(([i, citation]) => (
+                    Array.from(citations.entries()).map(([i, citation]) => (
                         <li key={i}>
                             <ShowCitation citation={citation} i={i} />
                         </li>
@@ -120,6 +195,7 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
         </div>
     );
 };
+    
 
 type State = {
     state: "idle";
@@ -208,7 +284,7 @@ const Home: NextPage = () => {
 
                             case "streaming":
                                 setLoadState((s) => {
-                                    const response = s.state === "streaming" ? s.response : {role: "assistant", content: "", citations: new Map()};
+                                    const response = s.state === "streaming" ? s.response : {role: "assistant", content: "", citations: []};
                                     return {state: "streaming", response: {
                                         role: "assistant",
                                         content: response.content + data.content,
@@ -249,77 +325,6 @@ const Home: NextPage = () => {
         //     return;
         // }
         //
-        // // ---------------------- normalize citation form ----------------------
-        //
-        // // transform all things that look like [a, b, c] into [a][b][c]
-        // let response = data.response.replace(
-        //
-        //             /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
-        //
-        //             (block: string) => block.split(',')
-        //                                     .map((x) => x.trim())
-        //                                     .join("][")
-        // )
-        //
-        // // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
-        // response = response.replace(
-        //
-        //         /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
-        //
-        //         (block: string) => block.split(',')
-        //                                 .map((x) => x.trim())
-        //                                 .join("][")
-        // )
-        //
-        // // transform all things that look like [(a)] into [a]
-        // response = response.replace(
-        //     /\[\(([a-z]+)\)\]/g,
-        //     (_match: string, x: string) => `[${x}]`
-        // )
-        //
-        // // transform all things that look like [ a ] into [a]
-        // response = response.replace(
-        //     /\[\s*([a-z]+)\s*\]/g,
-        //     (_match: string, x: string) => `[${x}]`
-        // )
-        //
-        // // -------------- map citations from strings into numbers --------------
-        //
-        // // figure out what citations are in the response, and map them appropriately
-        // const cite_map = new Map<string, number>();
-        // let cite_count = runningIndex;
-        //
-        // // scan a regex for [x] over the response. If x isn't in the map, add it.
-        // const regex = /\[([a-z]+)\]/g;
-        // let match;
-        // let response_copy = ""
-        // while ((match = regex.exec(response)) !== null) {
-        //     if (!cite_map.has(match[1]!)) {
-        //         cite_map.set(match[1]!, cite_count++);
-        //     }
-        //     // replace [x] with [i]
-        //     response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
-        // }
-        //
-        // setRunningIndex(cite_count);
-        //
-        // response = response_copy + response.slice(response_copy.length);
-        //
-        // // ----------------- create the ordered citation array -----------------
-        //
-        // const citations = new Map<number, Citation>();
-        // cite_map.forEach((value, key) => {
-        //     const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
-        //     if (index >= data.citations.length) {
-        //         console.log("invalid citation index: " + index);
-        //     } else {
-        //         citations.set(value, data.citations[index]);
-        //     }
-        // });
-        //
-        // setEntries([...new_entries, {role: "assistant",
-        //                              content: response,
-        //                              citations: citations}]);
 
         setLoading(false);
 
