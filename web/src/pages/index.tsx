@@ -182,29 +182,11 @@ const Home: NextPage = () => {
             return;
         }
 
-        const process = (message: string) => {
-            console.log(message);
-            const data = JSON.parse(message);
-
-            if (data.state === "loading") {
-                setLoadState({state: "loading", phase: data.phase});
-                return;
-            }
-
-            if (data.state === "streaming") {
-                setLoadState((s) => {
-                    const response = s.state === "streaming" ? s.response : "";
-                    return {state: "streaming", response: response + data.response};
-                });
-                return;
-            }
-        }
-
         // read back sse stream
 
         const reader = res.body!.getReader();
         var message = "";
-        while (true) {
+        read: while (true) {
 
             const {done, value} = await reader.read();
 
@@ -215,7 +197,24 @@ const Home: NextPage = () => {
             for (const line of chunk.split('\n')) {
                 if (line.startsWith("data: ")) message += line.slice(6);
                 if (line === "") {
-                    if (message !== "") process(message);
+                    if (message !== "") {
+                        const data = JSON.parse(message);
+
+                        switch (data.state) {
+                            case "loading":
+                                setLoadState({state: "loading", phase: data.phase});
+                                break;
+                            case "streaming":
+                                setLoadState((s) => {
+                                    const response = s.state === "streaming" ? s.response : "";
+                                    return {state: "streaming", response: response + data.response};
+                                });
+                                break;
+                            case "error":
+                                setEntries([...new_entries, {role: "error", content: data.error}]);
+                                break read;
+                        }
+                    }
                     message = "";
                 }
             }
@@ -333,13 +332,11 @@ const Home: NextPage = () => {
                             case "prompt": return <p>Loading: Creating prompt...</p>;
                             case "llm": return <p>Loading: Waiting for LLM...</p>;
                         }
-
                     } else if (loadState.state === "streaming") {
                         return <p>{loadState.response}</p>;
                     }
                     return <></>;
                 })()}
-
             </main>
         </>
     );
