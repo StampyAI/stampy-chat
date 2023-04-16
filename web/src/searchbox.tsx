@@ -20,7 +20,7 @@ const SearchBox: React.FC<{search: (
         if (!loading) inputRef.current?.focus();
     }, [loading]);
 
-    if (loading) return <p>loading...</p>;
+    if (loading) return <></>;
     return (<>
         <form className="flex mb-2" onSubmit={async (e) => {
             e.preventDefault();

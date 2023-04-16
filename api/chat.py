@@ -24,7 +24,7 @@ CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for co
 
 ENCODER = tiktoken.get_encoding("cl100k_base")
 
-DEBUG_PRINT = False
+DEBUG_PRINT = True
 
 # --------------------------------- prompt code --------------------------------
 
@@ -116,48 +116,59 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     return prompt
 
 # ------------------------------- completion code -------------------------------
+import time
+import json
 
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
 def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
+    yield json.dumps({"state": "loading", "phase": "semantic"})
+    time.sleep(1)
+    yield json.dumps({"state": "loading", "phase": "prompt"})
+    time.sleep(1)
+    yield json.dumps({"state": "loading", "phase": "llm"})
+    time.sleep(1)
+    for c in "Hi. I'm a big dumb LLM. Hubris will be the end of us all.":
+        yield json.dumps({"state": "streaming", "response": c})
+        time.sleep(0.1)
 
-    try:
-        # 1. Find the most relevant blocks from the Alignment Research Dataset
-        top_k_blocks = get_top_k_blocks(index, query, k)
-
-
-        # 2. Generate a prompt
-        prompt = construct_prompt(query, history, top_k_blocks)
-
-
-        # 3. Count number of tokens left for completion (-50 for a buffer)
-        max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
-
-        # 4. Answer the user query
-        t1 = time.time()
-        response = openai.ChatCompletion.create(
-            model=COMPLETIONS_MODEL,
-            messages=prompt,
-            max_tokens=max_tokens_completion
-        )["choices"][0]["message"]["content"]
-        t2 = time.time()
-        print("Time to get response: ", t2 - t1)
-        
-
-        if DEBUG_PRINT:
-            print('\n' * 10)
-            print(" ------------------------------ prompt: -----------------------------")
-            for message in prompt:
-                print(f"----------- {message['role']}: ------------------")
-                print(message['content'])
-
-            print('\n' * 10)
-
-            print(" ------------------------------ response: -----------------------------")
-            print(response)
-
-        return (True, response, top_k_blocks)
-
-    except Exception as e:
-        print(e)
-        return (False, "Error: " + str(e), None)
+    # try:
+    #     # 1. Find the most relevant blocks from the Alignment Research Dataset
+    #     top_k_blocks = get_top_k_blocks(index, query, k)
+    #
+    #
+    #     # 2. Generate a prompt
+    #     prompt = construct_prompt(query, history, top_k_blocks)
+    #
+    #
+    #     # 3. Count number of tokens left for completion (-50 for a buffer)
+    #     max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+    #
+    #     # 4. Answer the user query
+    #     t1 = time.time()
+    #     response = openai.ChatCompletion.create(
+    #         model=COMPLETIONS_MODEL,
+    #         messages=prompt,
+    #         max_tokens=max_tokens_completion
+    #     )["choices"][0]["message"]["content"]
+    #     t2 = time.time()
+    #     print("Time to get response: ", t2 - t1)
+    #     
+    #
+    #     if DEBUG_PRINT:
+    #         print('\n' * 10)
+    #         print(" ------------------------------ prompt: -----------------------------")
+    #         for message in prompt:
+    #             print(f"----------- {message['role']}: ------------------")
+    #             print(message['content'])
+    #
+    #         print('\n' * 10)
+    #
+    #         print(" ------------------------------ response: -----------------------------")
+    #         print(response)
+    #
+    #     return (True, response, top_k_blocks)
+    #
+    # except Exception as e:
+    #     print(e)
+    #     return (False, "Error: " + str(e), None)
 

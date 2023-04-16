@@ -121,10 +121,22 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
     );
 };
 
+type State = {
+    state: "idle";
+} | {
+    state: "loading";
+    phase: "semantic" | "prompt" | "llm";
+} | {
+    state: "streaming";
+    response: string;
+};
+
+
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
     const [ runningIndex, setRunningIndex ] = useState(0);
+    const [ loadState, setLoadState ] = useState<State>({state: "idle"});
 
     const search = async (
         query: string,
@@ -140,6 +152,37 @@ const Home: NextPage = () => {
 
         setLoading(true);
 
+
+
+        // sse connection
+        const eventSource = new EventSource(API_URL + "/chat");
+                            
+        eventSource.onmessage = (event) => {
+
+            if (event.data === "close") {
+                eventSource.close();
+                setLoading(false);
+                setLoadState({state: "idle"});
+                return;
+            }
+
+            console.log(event.data);
+            const data = JSON.parse(event.data);
+
+            if (data.state === "loading") {
+                setLoadState({state: "loading", phase: data.phase});
+                return;
+            }
+
+            if (data.state === "streaming") {
+                setLoadState((s) => {
+                    const response = s.state === "streaming" ? s.response : "";
+                    return {state: "streaming", response: response + data.response};
+                });
+                return;
+            }
+        }
+
         const res = await fetch(API_URL + "/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Allow-Control-Allow-Origin": "*" },
@@ -154,93 +197,93 @@ const Home: NextPage = () => {
                })
         })
 
-        if (!res.ok) {
-            setLoading(false);
-            console.log("load failure: " + res.status);
-            return;
-        }
-
-        const data = await res.json();
-
-        // -------------------------- error checking ---------------------------
-
-        if (data.error) {
-            setEntries([...new_entries, {role: "error", content: data.error}]);
-            setLoading(false);
-            return;
-        }
-
-        // ---------------------- normalize citation form ----------------------
-
-        // transform all things that look like [a, b, c] into [a][b][c]
-        let response = data.response.replace(
-
-                    /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
-
-                    (block: string) => block.split(',')
-                                            .map((x) => x.trim())
-                                            .join("][")
-        )
-
-        // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
-        response = response.replace(
-            
-                /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
-
-                (block: string) => block.split(',')
-                                        .map((x) => x.trim())
-                                        .join("][")
-        )
-
-        // transform all things that look like [(a)] into [a]
-        response = response.replace(
-            /\[\(([a-z]+)\)\]/g,
-            (_match: string, x: string) => `[${x}]`
-        )
-
-        // transform all things that look like [ a ] into [a]
-        response = response.replace(
-            /\[\s*([a-z]+)\s*\]/g,
-            (_match: string, x: string) => `[${x}]`
-        )
-
-        // -------------- map citations from strings into numbers --------------
-
-        // figure out what citations are in the response, and map them appropriately
-        const cite_map = new Map<string, number>();
-        let cite_count = runningIndex;
-
-        // scan a regex for [x] over the response. If x isn't in the map, add it.
-        const regex = /\[([a-z]+)\]/g;
-        let match;
-        let response_copy = ""
-        while ((match = regex.exec(response)) !== null) {
-            if (!cite_map.has(match[1]!)) {
-                cite_map.set(match[1]!, cite_count++);
-            }
-            // replace [x] with [i]
-            response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
-        }
-
-        setRunningIndex(cite_count);
-
-        response = response_copy + response.slice(response_copy.length);
-
-        // ----------------- create the ordered citation array -----------------
-
-        const citations = new Map<number, Citation>();
-        cite_map.forEach((value, key) => {
-            const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
-            if (index >= data.citations.length) {
-                console.log("invalid citation index: " + index);
-            } else {
-                citations.set(value, data.citations[index]);
-            }
-        });
-
-        setEntries([...new_entries, {role: "assistant", 
-                                     content: response,
-                                     citations: citations}]);
+        // if (!res.ok) {
+        //     setLoading(false);
+        //     console.log("load failure: " + res.status);
+        //     return;
+        // }
+        //
+        // const data = await res.json();
+        //
+        // // -------------------------- error checking ---------------------------
+        //
+        // if (data.error) {
+        //     setEntries([...new_entries, {role: "error", content: data.error}]);
+        //     setLoading(false);
+        //     return;
+        // }
+        //
+        // // ---------------------- normalize citation form ----------------------
+        //
+        // // transform all things that look like [a, b, c] into [a][b][c]
+        // let response = data.response.replace(
+        //
+        //             /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
+        //
+        //             (block: string) => block.split(',')
+        //                                     .map((x) => x.trim())
+        //                                     .join("][")
+        // )
+        //
+        // // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
+        // response = response.replace(
+        //     
+        //         /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
+        //
+        //         (block: string) => block.split(',')
+        //                                 .map((x) => x.trim())
+        //                                 .join("][")
+        // )
+        //
+        // // transform all things that look like [(a)] into [a]
+        // response = response.replace(
+        //     /\[\(([a-z]+)\)\]/g,
+        //     (_match: string, x: string) => `[${x}]`
+        // )
+        //
+        // // transform all things that look like [ a ] into [a]
+        // response = response.replace(
+        //     /\[\s*([a-z]+)\s*\]/g,
+        //     (_match: string, x: string) => `[${x}]`
+        // )
+        //
+        // // -------------- map citations from strings into numbers --------------
+        //
+        // // figure out what citations are in the response, and map them appropriately
+        // const cite_map = new Map<string, number>();
+        // let cite_count = runningIndex;
+        //
+        // // scan a regex for [x] over the response. If x isn't in the map, add it.
+        // const regex = /\[([a-z]+)\]/g;
+        // let match;
+        // let response_copy = ""
+        // while ((match = regex.exec(response)) !== null) {
+        //     if (!cite_map.has(match[1]!)) {
+        //         cite_map.set(match[1]!, cite_count++);
+        //     }
+        //     // replace [x] with [i]
+        //     response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
+        // }
+        //
+        // setRunningIndex(cite_count);
+        //
+        // response = response_copy + response.slice(response_copy.length);
+        //
+        // // ----------------- create the ordered citation array -----------------
+        //
+        // const citations = new Map<number, Citation>();
+        // cite_map.forEach((value, key) => {
+        //     const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
+        //     if (index >= data.citations.length) {
+        //         console.log("invalid citation index: " + index);
+        //     } else {
+        //         citations.set(value, data.citations[index]);
+        //     }
+        // });
+        //
+        // setEntries([...new_entries, {role: "assistant", 
+        //                              content: response,
+        //                              citations: citations}]);
 
         setLoading(false);
 
@@ -261,6 +304,7 @@ const Home: NextPage = () => {
                     ))}
                 </ul>
                 <SearchBox search={search} />
+                <p>{loadState.state === "loading" ? loadState.phase : ( loadState.state === "streaming" ? loadState.response : "" )}</p>
             </main>
         </>
     );
