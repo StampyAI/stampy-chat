@@ -128,7 +128,7 @@ type State = {
     phase: "semantic" | "prompt" | "llm";
 } | {
     state: "streaming";
-    response: string;
+    response: AssistantEntry;
 };
 
 
@@ -201,18 +201,33 @@ const Home: NextPage = () => {
                         const data = JSON.parse(message);
 
                         switch (data.state) {
+
                             case "loading":
                                 setLoadState({state: "loading", phase: data.phase});
                                 break;
+
                             case "streaming":
                                 setLoadState((s) => {
-                                    const response = s.state === "streaming" ? s.response : "";
-                                    return {state: "streaming", response: response + data.response};
+                                    const response = s.state === "streaming" ? s.response : {role: "assistant", content: "", citations: new Map()};
+                                    return {state: "streaming", response: {
+                                        role: "assistant",
+                                        content: response.content + data.content,
+                                        citations: response.citations,
+                                    }};
                                 });
                                 break;
+
+                            case "done":
+                                setLoadState((s) => {
+                                    if (s.state === "streaming") setEntries([...new_entries, s.response]);
+                                    return {state: "idle"};
+                                });
+                                break read;
+
                             case "error":
                                 setEntries([...new_entries, {role: "error", content: data.error}]);
                                 break read;
+
                         }
                     }
                     message = "";
@@ -323,7 +338,6 @@ const Home: NextPage = () => {
                             <ShowEntry entry={entry} />
                         </li>
                     ))}
-                </ul>
                 <SearchBox search={search} />
                 {(() => {
                     if (loadState.state === "loading") {
@@ -333,10 +347,11 @@ const Home: NextPage = () => {
                             case "llm": return <p>Loading: Waiting for LLM...</p>;
                         }
                     } else if (loadState.state === "streaming") {
-                        return <p>{loadState.response}</p>;
+                        return <ShowEntry entry={loadState.response} />;
                     }
                     return <></>;
                 })()}
+                </ul>
             </main>
         </>
     );

@@ -62,13 +62,6 @@ def chat():
 
     return Response(stream(talk_to_robot(index, query, history)), mimetype='text/event-stream')
 
-    # is_valid, response, context = talk_to_robot(index, query, history)
-
-    # if is_valid:
-    #     return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
-    # else:
-    #     return jsonify({'error': response})
-
 
 # ------------------------------------------------------------------------------
 

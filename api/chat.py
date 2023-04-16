@@ -127,52 +127,47 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         top_k_blocks = get_top_k_blocks(index, query, k)
 
         # 2. Generate a prompt
-        prompt = construct_prompt(query, history, top_k_blocks)
         yield json.dumps({"state": "loading", "phase": "prompt"})
+        prompt = construct_prompt(query, history, top_k_blocks)
 
         # 3. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
 
-        x = int("non-int")
-
+        # 4. Answer the user query
         yield json.dumps({"state": "loading", "phase": "llm"})
-        time.sleep(1)
-        for c in "Hi. I'm a big dumb LLM.\nHubris will be the end of us all.":
-            yield json.dumps({"state": "streaming", "response": c})
-            time.sleep(0.1)
+        t1 = time.time()
+        response = ''
+
+        for chunk in openai.ChatCompletion.create(
+            model=COMPLETIONS_MODEL,
+            messages=prompt,
+            max_tokens=max_tokens_completion,
+            stream=True
+        ):
+            res = chunk["choices"][0]["delta"]
+            if res is not None and res.get("content") is not None:
+                response += res["content"]
+                yield json.dumps({"state": "streaming", "content": res["content"]})
+
+
+        t2 = time.time()
+        print("Time to get response: ", t2 - t1)
+
+        if DEBUG_PRINT:
+            print('\n' * 10)
+            print(" ------------------------------ prompt: -----------------------------")
+            for message in prompt:
+                print(f"----------- {message['role']}: ------------------")
+                print(message['content'])
+
+            print('\n' * 10)
+
+            print(" ------------------------------ response: -----------------------------")
+            print(response)
+
+        yield json.dumps({"state": "done"})
 
     except Exception as e:
         print(e)
         yield json.dumps({"state": "error", "error": str(e)})
-
-    # try:
-    #
-    #     # 4. Answer the user query
-    #     t1 = time.time()
-    #     response = openai.ChatCompletion.create(
-    #         model=COMPLETIONS_MODEL,
-    #         messages=prompt,
-    #         max_tokens=max_tokens_completion
-    #     )["choices"][0]["message"]["content"]
-    #     t2 = time.time()
-    #     print("Time to get response: ", t2 - t1)
-    #     
-    #
-    #     if DEBUG_PRINT:
-    #         print('\n' * 10)
-    #         print(" ------------------------------ prompt: -----------------------------")
-    #         for message in prompt:
-    #             print(f"----------- {message['role']}: ------------------")
-    #             print(message['content'])
-    #
-    #         print('\n' * 10)
-    #
-    #         print(" ------------------------------ response: -----------------------------")
-    #         print(response)
-    #
-    #     return (True, response, top_k_blocks)
-    #
-    # except Exception as e:
-    #     print(e)
-    #     return (False, "Error: " + str(e), None)
 
