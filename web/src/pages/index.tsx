@@ -89,53 +89,53 @@ const A: React.FC<{href: string, className?: string, children: React.ReactNode}>
     );
 }
 
-        
-    
+
+
 
 
 // todo: memoize this if too slow.
 const ProcessText: (text: string, base_count: number) => [string, Map<string, number>] = (text, base_count) => {
 
     // ---------------------- normalize citation form ----------------------
-   
+
     // transform all things that look like [a, b, c] into [a][b][c]
     let response = text.replace(
-   
+
                 /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
-   
+
                 (block: string) => block.split(',')
                                         .map((x) => x.trim())
                                         .join("][")
     )
-   
+
     // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
     response = response.replace(
-   
+
             /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
-   
+
             (block: string) => block.split(',')
                                     .map((x) => x.trim())
                                     .join("][")
     )
-   
+
     // transform all things that look like [(a)] into [a]
     response = response.replace(
         /\[\(([a-z]+)\)\]/g,
         (_match: string, x: string) => `[${x}]`
     )
-   
+
     // transform all things that look like [ a ] into [a]
     response = response.replace(
         /\[\s*([a-z]+)\s*\]/g,
         (_match: string, x: string) => `[${x}]`
     )
-   
+
     // -------------- map citations from strings into numbers --------------
-   
+
     // figure out what citations are in the response, and map them appropriately
     const cite_map = new Map<string, number>();
     let cite_count = 0;
-   
+
     // scan a regex for [x] over the response. If x isn't in the map, add it.
     const regex = /\[([a-z]+)\]/g;
     let match;
@@ -147,7 +147,7 @@ const ProcessText: (text: string, base_count: number) => [string, Map<string, nu
         // replace [x] with [i]
         response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
     }
-   
+
     response = response_copy + response.slice(response_copy.length);
 
     return [response, cite_map]
@@ -158,9 +158,9 @@ const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
     const in_text_citation_regex = /\[([0-9]+)\]/g;
 
     let [response, cite_map] = ProcessText(entry.content, entry.base_count);
-   
+
     // ----------------- create the ordered citation array -----------------
-   
+
     const citations = new Map<number, Citation>();
     cite_map.forEach((value, key) => {
         const index = key.charCodeAt(0) - 'a'.charCodeAt(0);
@@ -284,7 +284,7 @@ const Home: NextPage = () => {
 
             for (const line of chunk.split('\n')) {
 
-                // Most times, it seems that a single read() call will be one SSE "message", 
+                // Most times, it seems that a single read() call will be one SSE "message",
                 // but I'll do the proper aggregation spec thing in case that's not always true.
 
                 if (line.startsWith("data: ")) message += line.slice(6);
@@ -314,10 +314,10 @@ const Home: NextPage = () => {
                                 // incrementally build up the response
 
                                 setLoadState((s) => {
-                                    const response = s.state === "streaming" ? s.response : 
-                                                {role: "assistant", 
-                                                 content: "", 
-                                                 citations: s.state === "loading" ? s.citations : [], 
+                                    const response = s.state === "streaming" ? s.response :
+                                                {role: "assistant",
+                                                 content: "",
+                                                 citations: s.state === "loading" ? s.citations : [],
                                                  base_count: runningIndex
                                                 };
 
@@ -328,6 +328,11 @@ const Home: NextPage = () => {
                                         base_count: response.base_count
                                     }};
                                 });
+
+                                // smooth-scroll to the bottom of the window if we're already less than 30% a screen away
+                                // note: finicky interaction with "smooth" - maybe fix later.
+                                if (document.documentElement.scrollHeight - window.scrollY < window.innerHeight * 1.3)
+                                    window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
                                 break;
 
                             case "done":
@@ -356,6 +361,8 @@ const Home: NextPage = () => {
 
         setLoading(false);
         setLoadState({state: "idle"});
+        if (document.documentElement.scrollHeight - window.scrollY < window.innerHeight * 1.3)
+            window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
 
     };
 
