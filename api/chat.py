@@ -126,6 +126,8 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         yield json.dumps({"state": "loading", "phase": "semantic"})
         top_k_blocks = get_top_k_blocks(index, query, k)
 
+        yield json.dumps({"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in top_k_blocks]})
+
         # 2. Generate a prompt
         yield json.dumps({"state": "loading", "phase": "prompt"})
         prompt = construct_prompt(query, history, top_k_blocks)

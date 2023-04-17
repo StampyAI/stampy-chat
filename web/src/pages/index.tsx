@@ -3,7 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
 import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 import Header from "../header";
 import SearchBox from "../searchbox";
@@ -24,6 +24,7 @@ type AssistantEntry = {
     role: "assistant";
     content: string;
     citations: Citation[];
+    base_count: number; // the number to start counting citations at
 }
 
 type ErrorMessage = {
@@ -83,23 +84,17 @@ const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
         return ( <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>);
     }
 
-    // error message
-    if (entry.role === "error") {
-        return ( <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>);
-    }
+        
+    
 
-    // robot message
-    const res = useMemo(() => ShowAssistantEntry(entry), [entry]);
-    return res;
-};
 
-const ShowAssistantEntry = (entry: AssistantEntry) => {
-    const in_text_citation_regex = /\[([0-9]+)\]/g;
+// todo: memoize this if too slow.
+const ProcessText: (text: string, base_count: number) => [string, Map<string, number>] = (text, base_count) => {
 
     // ---------------------- normalize citation form ----------------------
    
     // transform all things that look like [a, b, c] into [a][b][c]
-    let response = entry.content.replace(
+    let response = text.replace(
    
                 /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
    
@@ -134,7 +129,6 @@ const ShowAssistantEntry = (entry: AssistantEntry) => {
    
     // figure out what citations are in the response, and map them appropriately
     const cite_map = new Map<string, number>();
-    // let cite_count = runningIndex;
     let cite_count = 0;
    
     // scan a regex for [x] over the response. If x isn't in the map, add it.
@@ -143,16 +137,22 @@ const ShowAssistantEntry = (entry: AssistantEntry) => {
     let response_copy = ""
     while ((match = regex.exec(response)) !== null) {
         if (!cite_map.has(match[1]!)) {
-            cite_map.set(match[1]!, cite_count++);
+            cite_map.set(match[1]!, base_count + cite_count++);
         }
         // replace [x] with [i]
         response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
     }
    
-    // setRunningIndex(cite_count);
-    // TODO
-   
     response = response_copy + response.slice(response_copy.length);
+
+    return [response, cite_map]
+}
+
+
+const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
+    const in_text_citation_regex = /\[([0-9]+)\]/g;
+
+    let [response, cite_map] = ProcessText(entry.content, entry.base_count);
    
     // ----------------- create the ordered citation array -----------------
    
@@ -165,11 +165,11 @@ const ShowAssistantEntry = (entry: AssistantEntry) => {
             citations.set(value, entry.citations[index]!);
         }
     });
-   
+
     return (
         <div className="mt-3 mb-8">
             {   // split into paragraphs
-                entry.content.split("\n").map(paragraph => ( <p> {
+                response.split("\n").map(paragraph => ( <p> {
                     paragraph.split(in_text_citation_regex).map((text, i) => {
                         if (i % 2 === 0) {
                             return text.trim();
@@ -183,7 +183,7 @@ const ShowAssistantEntry = (entry: AssistantEntry) => {
                     })
                 } </p>))
             }
-            <ul>
+            <ul className="mt-5">
                 {   // show citations
                     Array.from(citations.entries()).map(([i, citation]) => (
                         <li key={i}>
@@ -195,13 +195,17 @@ const ShowAssistantEntry = (entry: AssistantEntry) => {
         </div>
     );
 };
-    
+
+
+
+
 
 type State = {
     state: "idle";
 } | {
     state: "loading";
     phase: "semantic" | "prompt" | "llm";
+    citations: Citation[];
 } | {
     state: "streaming";
     response: AssistantEntry;
@@ -254,11 +258,12 @@ const Home: NextPage = () => {
 
         if (!res.ok) {
             setLoading(false);
-            console.log("load failure: " + res.status);
+            setLoadState({state: "idle"});
+            setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
             return;
         }
 
-        // read back sse stream
+        // read back the SSE stream
 
         const reader = res.body!.getReader();
         var message = "";
@@ -270,7 +275,13 @@ const Home: NextPage = () => {
             const chunk = new TextDecoder("utf-8").decode(value);
             if (chunk.startsWith("event: close\n")) break;
 
+            // note: this form isn't even remotely close to optimal in terms of network usage.
+
             for (const line of chunk.split('\n')) {
+
+                // Most times, it seems that a single read() call will be one SSE "message", 
+                // but I'll do the proper aggregation spec thing in case that's not always true.
+
                 if (line.startsWith("data: ")) message += line.slice(6);
                 if (line === "") {
                     if (message !== "") {
@@ -279,23 +290,50 @@ const Home: NextPage = () => {
                         switch (data.state) {
 
                             case "loading":
-                                setLoadState({state: "loading", phase: data.phase});
+
+                                // display loading phases, once citations are available toss them
+                                // into the loading state.
+
+                                setLoadState((s) => {
+                                    var citations = s.state === "loading" ? s.citations : [];
+                                    if (data.citations !== undefined) {
+                                        citations = data.citations;
+                                    }
+                                    return {state: "loading", phase: data.phase, citations: citations};
+                                });
+
                                 break;
 
                             case "streaming":
+
+                                // incrementally build up the response
+
                                 setLoadState((s) => {
-                                    const response = s.state === "streaming" ? s.response : {role: "assistant", content: "", citations: []};
+                                    const response = s.state === "streaming" ? s.response : 
+                                                {role: "assistant", 
+                                                 content: "", 
+                                                 citations: s.state === "loading" ? s.citations : [], 
+                                                 base_count: runningIndex
+                                                };
+
                                     return {state: "streaming", response: {
                                         role: "assistant",
                                         content: response.content + data.content,
                                         citations: response.citations,
+                                        base_count: response.base_count
                                     }};
                                 });
                                 break;
 
                             case "done":
+
+                                // append the response to the entries, reset to normal
+
                                 setLoadState((s) => {
-                                    if (s.state === "streaming") setEntries([...new_entries, s.response]);
+                                    if (s.state === "streaming") {
+                                        setEntries([...new_entries, s.response]);
+                                        setRunningIndex((i) => (i + ProcessText(s.response.content, 0)[1].size));
+                                    }
                                     return {state: "idle"};
                                 });
                                 break read;
@@ -314,20 +352,6 @@ const Home: NextPage = () => {
         setLoading(false);
         setLoadState({state: "idle"});
 
-        //
-        // const data = await res.json();
-        //
-        // // -------------------------- error checking ---------------------------
-        //
-        // if (data.error) {
-        //     setEntries([...new_entries, {role: "error", content: data.error}]);
-        //     setLoading(false);
-        //     return;
-        // }
-        //
-
-        setLoading(false);
-
     };
 
     return (
@@ -338,24 +362,40 @@ const Home: NextPage = () => {
             <main>
                 <Header page="index" />
                 <ul>
-                    {entries.map((entry, i) => (
-                        <li key={i}>
-                            <ShowEntry entry={entry} />
-                        </li>
-                    ))}
-                <SearchBox search={search} />
-                {(() => {
-                    if (loadState.state === "loading") {
-                        switch (loadState.phase) {
-                            case "semantic": return <p>Loading: Performing semantic search...</p>;
-                            case "prompt": return <p>Loading: Creating prompt...</p>;
-                            case "llm": return <p>Loading: Waiting for LLM...</p>;
+                    {entries.map((entry, i) => {
+                        if (entry.role === "user") {
+                            return <li key={i}>
+                                <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>
+                            </li>
                         }
-                    } else if (loadState.state === "streaming") {
-                        return <ShowEntry entry={loadState.response} />;
-                    }
-                    return <></>;
-                })()}
+                        if (entry.role === "error") {
+                            return <li key={i}>
+                                <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>
+                            </li>
+                        }
+                        if (entry.role === "assistant") {
+                            return <li key={i}>
+                                <ShowAssistantEntry entry={entry}/>
+                            </li>
+                        }
+                        return <></>
+                    })}
+
+                    <SearchBox search={search} />
+
+                    {(() => {
+                        if (loadState.state === "loading") {
+                            switch (loadState.phase) {
+                                case "semantic": return <p>Loading: Performing semantic search...</p>;
+                                case "prompt": return <p>Loading: Creating prompt...</p>;
+                                case "llm": return <p>Loading: Waiting for LLM...</p>;
+                            }
+                        } else if (loadState.state === "streaming") {
+                            return <ShowAssistantEntry entry={loadState.response}/>;
+                        }
+                        return <></>;
+                    })()}
+
                 </ul>
             </main>
         </>
