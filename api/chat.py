@@ -24,7 +24,7 @@ CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for co
 
 ENCODER = tiktoken.get_encoding("cl100k_base")
 
-DEBUG_PRINT = False
+DEBUG_PRINT = True
 
 # --------------------------------- prompt code --------------------------------
 
@@ -116,32 +116,44 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     return prompt
 
 # ------------------------------- completion code -------------------------------
+import time
+import json
 
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
 def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
-
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
+        yield json.dumps({"state": "loading", "phase": "semantic"})
         top_k_blocks = get_top_k_blocks(index, query, k)
 
+        yield json.dumps({"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in top_k_blocks]})
 
         # 2. Generate a prompt
+        yield json.dumps({"state": "loading", "phase": "prompt"})
         prompt = construct_prompt(query, history, top_k_blocks)
-
 
         # 3. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
 
         # 4. Answer the user query
+        yield json.dumps({"state": "loading", "phase": "llm"})
         t1 = time.time()
-        response = openai.ChatCompletion.create(
+        response = ''
+
+        for chunk in openai.ChatCompletion.create(
             model=COMPLETIONS_MODEL,
             messages=prompt,
-            max_tokens=max_tokens_completion
-        )["choices"][0]["message"]["content"]
+            max_tokens=max_tokens_completion,
+            stream=True
+        ):
+            res = chunk["choices"][0]["delta"]
+            if res is not None and res.get("content") is not None:
+                response += res["content"]
+                yield json.dumps({"state": "streaming", "content": res["content"]})
+
+
         t2 = time.time()
         print("Time to get response: ", t2 - t1)
-        
 
         if DEBUG_PRINT:
             print('\n' * 10)
@@ -155,9 +167,9 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
             print(" ------------------------------ response: -----------------------------")
             print(response)
 
-        return (True, response, top_k_blocks)
+        yield json.dumps({"state": "done"})
 
     except Exception as e:
         print(e)
-        return (False, "Error: " + str(e), None)
+        yield json.dumps({"state": "error", "error": str(e)})
 

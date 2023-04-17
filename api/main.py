@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 from get_blocks import get_top_k_blocks
 from chat import talk_to_robot
@@ -34,6 +34,12 @@ app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
 
+# ---------------------------------- sse stuff ---------------------------------
+
+def stream(src):
+    yield from ('data: ' + '\ndata: '.join(message.splitlines()) + '\n\n' for message in src)
+    yield 'event: close\n\n'
+
 # ------------------------------- semantic search ------------------------------
 
 
@@ -50,16 +56,11 @@ def semantic():
 @app.route('/chat', methods=['POST'])
 @cross_origin()
 def chat():
-    
+
     query = request.json['query']
     history = request.json['history']
 
-    is_valid, response, context = talk_to_robot(index, query, history)
-
-    if is_valid:
-        return jsonify({'response': response, 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in context]})
-    else:
-        return jsonify({'error': response})
+    return Response(stream(talk_to_robot(index, query, history)), mimetype='text/event-stream')
 
 
 # ------------------------------------------------------------------------------
