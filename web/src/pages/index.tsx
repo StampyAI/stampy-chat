@@ -60,29 +60,34 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
         c_str += " - " + citation.date;
 
     return (
-        <a className={Colours[i % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
-            href={citation.url} target="_blank" rel="noreferrer">
+        <A className={Colours[i % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
+            href={citation.url}>
             <span className="mx-1"> [{i + 1}] </span>
             <p className="mx-1 my-0"> {c_str} </p>
-        </a>
+        </A>
     );
 };
 
 const ShowInTextCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
     return (
-        <a className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-1 mr-0.5"}
-            href={citation.url} target="_blank" rel="noreferrer">
+        <A className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-1 mr-0.5"}
+            href={citation.url}>
             [{i + 1}]
-        </a>
+        </A>
     );
 };
 
-const ShowEntry: React.FC<{entry: Entry}> = ({entry}) => {
-
-    // user message
-    if (entry.role === "user") {
-        return ( <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>);
-    }
+const A: React.FC<{href: string, className?: string, children: React.ReactNode}> = ({href, className, children}) => {
+    return href && href !== "" ? (
+        <a className={className} href={href} target="_blank" rel="noreferrer">
+            {children}
+        </a>
+    ) : (
+        <a className={className}>
+            {children}
+        </a>
+    );
+}
 
         
     
