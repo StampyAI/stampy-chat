@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+h1 {
+  @apply text-4xl font-bold my-4;
+}
+
+h2 {
+  @apply text-xl font-semibold my-4;
+}
+
+main {
+  @apply flex flex-col justify-center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
+
+a {
+  @apply underline;
+}
+
+p {
+  @apply my-2;
+}
+
+button {
+  @apply bg-white hover:bg-gray-300 px-0.5 py-0 w-fit h-fit;
+  @apply border border-gray-300;
+  @apply text-gray-700;
+}
+
+ol {
+  @apply list-decimal;
+}
+
