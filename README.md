@@ -21,3 +21,14 @@ In general, the Stampy project serves users at 3 levels of understanding:
 - **Knowledgeable** experts who might want to share their research by answering questions.
 
 Given the disparate backgrounds of users, for both the website and chatbot, we should consider having users identify their starting level (new, moderate, knowledgeable). On the website, the list of starter and recommended questions would be tuned to the user’s level. Similarly, the chatbot's usage of technical terminology could be adjusted to their level.
+
+## Original Prototypes
+
+The prototypes below were developed in response to a [bounty on LessWrong](https://www.lesswrong.com/posts/SLRLuiuDykfTdmesK/speed-running-everyone-through-the-bad-alignement-bingo).
+The teams collaborated and key features were combined into one project.
+
+Name | Demo App | Code Notes
+-- | -- | --
+McGill's AlignmentSearch | https://alignmentsearch.up.railway.app/ | https://github.com/FraserLee/AlignmentSearch<br>https://tinyurl.com/alignmentsearchgdocs
+Craig's AlignmentGPT | http://tidblitz.com/ | https://github.com/cvarrichio/alignmentchat
+Stampy's Chat | http://chat.stampy.ai/ | https://github.com/ccstan99/stampy-chat<br>https://github.com/stampyAI/stampy-nlp/
