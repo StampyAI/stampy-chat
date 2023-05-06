@@ -22,6 +22,44 @@ In general, the Stampy project serves users at 3 levels of understanding:
 
 Given the disparate backgrounds of users, for both the website and chatbot, we should consider having users identify their starting level (new, moderate, knowledgeable). On the website, the list of starter and recommended questions would be tuned to the user’s level. Similarly, the chatbot's usage of technical terminology could be adjusted to their level.
 
+
+
+
+## Usage
+
+### Environment Setup
+
+In the `api/` directory, rename `.env.example` to `.env`. Edit this file and
+fill in the placeholder values with valid credentials. Message the
+`#stampy-dev` channel on the [Rob Miles AI
+Discord](https://discord.com/invite/Bt8PaRTDQC) if you need help with this.
+
+### Running a local version
+
+Open two terminal windows. In the first, run:
+
+```bash
+cd api
+pip install -r requirements.txt # (skip this line after the first time)
+python3 main.py
+```
+
+In the second, run:
+
+```bash
+cd web
+npm install # (skip this line after the first time)
+npm run dev
+```
+
+In the second window, a URL will be printed. Probably `http://localhost:3000`.
+Paste this into your browser to see the app.
+
+
+
+
+
+
 ## Original Prototypes
 
 The prototypes below were developed in response to a [bounty on LessWrong](https://www.lesswrong.com/posts/SLRLuiuDykfTdmesK/speed-running-everyone-through-the-bad-alignement-bingo).
