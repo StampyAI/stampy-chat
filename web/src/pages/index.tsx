@@ -15,6 +15,9 @@ type Citation = {
     url: string;
 }
 
+
+type Entry = UserEntry | AssistantEntry | ErrorMessage;
+
 type UserEntry = {
     role: "user";
     content: string;
@@ -32,9 +35,9 @@ type ErrorMessage = {
     content: string;
 }
 
-type Entry = UserEntry | AssistantEntry | ErrorMessage;
-
-// const Colours = ["blue", "cyan", "teal", "green", "amber"].map(colour => `bg-${colour}-100 border-${colour}-300 text-${colour}-800`);
+// const Colours = ["blue", "cyan", "teal", "green", "amber"].map(
+//          colour => `bg-${colour}-100 border-${colour}-300 text-${colour}-800`
+//      );
 // this would be nice, but Tailwind needs te actual string of the class to be in
 // the source file for it to be included in the build
 
@@ -78,6 +81,7 @@ const ShowInTextCitation: React.FC<{citation: Citation, i: number}> = ({citation
 };
 
 const A: React.FC<{href: string, className?: string, children: React.ReactNode}> = ({href, className, children}) => {
+    // link element that only populates the href field if the contents are there
     return href && href !== "" ? (
         <a className={className} href={href} target="_blank" rel="noreferrer">
             {children}
@@ -97,6 +101,9 @@ const A: React.FC<{href: string, className?: string, children: React.ReactNode}>
 const ProcessText: (text: string, base_count: number) => [string, Map<string, number>] = (text, base_count) => {
 
     // ---------------------- normalize citation form ----------------------
+    // the general plan here is just to add parsing cases until we can respond 
+    // well to almost everything the LLM emits. We won't ever reach five nines,
+    // but the domain is one where occasionally failing isn't catastrophic.
 
     // transform all things that look like [a, b, c] into [a][b][c]
     let response = text.replace(
@@ -137,6 +144,8 @@ const ProcessText: (text: string, base_count: number) => [string, Map<string, nu
     let cite_count = 0;
 
     // scan a regex for [x] over the response. If x isn't in the map, add it.
+    // (note: we're actually doing this twice - once on parsing, once on render.
+    // if that looks like a problem, we could swap from strings to custom ropes).
     const regex = /\[([a-z]+)\]/g;
     let match;
     let response_copy = ""
@@ -217,6 +226,13 @@ type State = {
 };
 
 
+// smooth-scroll to the bottom of the window if we're already less than 30% a screen away
+// note: finicky interaction with "smooth" - maybe fix later.
+function scroll30() {
+    if (document.documentElement.scrollHeight - window.scrollY > window.innerHeight * 1.3) return;
+    window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
+}
+
 const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
@@ -280,7 +296,8 @@ const Home: NextPage = () => {
             const chunk = new TextDecoder("utf-8").decode(value);
             if (chunk.startsWith("event: close\n")) break;
 
-            // note: this form isn't even remotely close to optimal in terms of network usage.
+            // note: this form isn't even remotely close to optimal in terms of
+            // network usage. Lots of json overhead.
 
             for (const line of chunk.split('\n')) {
 
@@ -329,10 +346,7 @@ const Home: NextPage = () => {
                                     }};
                                 });
 
-                                // smooth-scroll to the bottom of the window if we're already less than 30% a screen away
-                                // note: finicky interaction with "smooth" - maybe fix later.
-                                if (document.documentElement.scrollHeight - window.scrollY < window.innerHeight * 1.3)
-                                    window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
+                                scroll30();
                                 break;
 
                             case "done":
@@ -361,9 +375,7 @@ const Home: NextPage = () => {
 
         setLoading(false);
         setLoadState({state: "idle"});
-        if (document.documentElement.scrollHeight - window.scrollY < window.innerHeight * 1.3)
-            window.scrollTo({top: document.body.scrollHeight, behavior: "smooth"});
-
+        scroll30();
     };
 
     return (
