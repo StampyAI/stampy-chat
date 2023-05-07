@@ -2,4 +2,4 @@
 # cmds = ['python3 dataset_dl.py']
 
 [start]
-cmd = 'gunicorn --timeout 300 "main:app"'
+cmd = 'gunicorn --timeout 300 "main:app" --threads 4'
