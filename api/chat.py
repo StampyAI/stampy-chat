@@ -153,23 +153,26 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
 
 
         t2 = time.time()
-        log("Time to get response: ", t2 - t1, " s")
+        print("Time to get response: ", t2 - t1, " s")
 
         if DEBUG_PRINT:
-            log('\n' * 10)
-            log(" ------------------------------ prompt: -----------------------------")
+            print('\n' * 10)
+            print(" ------------------------------ prompt: -----------------------------")
             for message in prompt:
-                log(f"----------- {message['role']}: ------------------")
-                log(message['content'])
+                print(f"----------- {message['role']}: ------------------")
+                print(message['content'])
 
-            log('\n' * 10)
+            print('\n' * 10)
 
-            log(" ------------------------------ response: -----------------------------")
-            log(response)
+            print(" ------------------------------ response: -----------------------------")
+            print(response)
+
+        log(query)
+        log(response)
 
         yield json.dumps({"state": "done"})
 
     except Exception as e:
-        log(e)
+        print(e)
         yield json.dumps({"state": "error", "error": str(e)})
 

@@ -385,6 +385,12 @@ const Home: NextPage = () => {
             </Head>
             <main>
                 <Header page="index" />
+
+                <p><b>
+                  Since this is still an early test, all questions and answers are stored.<br/>
+                  Zero other information is collected.
+                </b></p>
+
                 <ul>
                     {entries.map((entry, i) => {
                         if (entry.role === "user") {
