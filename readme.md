@@ -34,14 +34,16 @@ fill in the placeholder values with valid credentials. Message the
 `#stampy-dev` channel on the [Rob Miles AI
 Discord](https://discord.com/invite/Bt8PaRTDQC) if you need help with this.
 
+Install `npm`, `python 3.11`, and [`pipenv`](https://pipenv.pypa.io/en/latest/).
+
 ### Running a local version
 
 Open two terminal windows. In the first, run:
 
 ```bash
 cd api
-pip install -r requirements.txt # (skip this line after the first time)
-python3 main.py
+pipenv install --dev # (skip this line after the first time)
+pipenv run python3 main.py
 ```
 
 In the second, run:
