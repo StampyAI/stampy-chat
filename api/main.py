@@ -6,6 +6,7 @@ import dataclasses
 import os
 import openai
 import pinecone
+from discord_webhook import DiscordWebhook
 
 
 # ---------------------------------- env setup ---------------------------------
@@ -27,6 +28,17 @@ pinecone.init(
 INDEX_NAME = "alignment-search"
 index = pinecone.Index(index_name=INDEX_NAME)
 
+LOGGING_URL = os.environ.get('LOGGING_URL')
+
+def log(*args, end="\n"):
+    message = " ".join([str(arg) for arg in args]) + end
+    # print(message)
+    if LOGGING_URL is not None and LOGGING_URL != "":
+        while len(message) > 2000 - 8:
+            m_section, message = message[:2000 - 8], message[2000 - 8:]
+            m_section = "```\n" + m_section + "\n```"
+            DiscordWebhook(url=LOGGING_URL, content=m_section).execute()
+        DiscordWebhook(url=LOGGING_URL, content="```\n" + message + "\n```").execute()
 
 # ---------------------------------- web setup ---------------------------------
 
@@ -60,7 +72,7 @@ def chat():
     query = request.json['query']
     history = request.json['history']
 
-    return Response(stream(talk_to_robot(index, query, history)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(index, query, history, log = log)), mimetype='text/event-stream')
 
 
 # ------------------------------------------------------------------------------

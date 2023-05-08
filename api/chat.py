@@ -2,7 +2,7 @@
 
 from get_blocks import get_top_k_blocks, Block
 
-from typing import List, Dict
+from typing import List, Dict, Callable
 import openai
 import tiktoken
 import time
@@ -120,7 +120,7 @@ import time
 import json
 
 # returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
-def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K):
+def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
         yield json.dumps({"state": "loading", "phase": "semantic"})
@@ -153,23 +153,23 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
 
 
         t2 = time.time()
-        print("Time to get response: ", t2 - t1)
+        log("Time to get response: ", t2 - t1, " s")
 
         if DEBUG_PRINT:
-            print('\n' * 10)
-            print(" ------------------------------ prompt: -----------------------------")
+            log('\n' * 10)
+            log(" ------------------------------ prompt: -----------------------------")
             for message in prompt:
-                print(f"----------- {message['role']}: ------------------")
-                print(message['content'])
+                log(f"----------- {message['role']}: ------------------")
+                log(message['content'])
 
-            print('\n' * 10)
+            log('\n' * 10)
 
-            print(" ------------------------------ response: -----------------------------")
-            print(response)
+            log(" ------------------------------ response: -----------------------------")
+            log(response)
 
         yield json.dumps({"state": "done"})
 
     except Exception as e:
-        print(e)
+        log(e)
         yield json.dumps({"state": "error", "error": str(e)})
 
