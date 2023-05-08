@@ -19,6 +19,7 @@ tenacity = "==8.2.2 "
 tiktoken = "*"
 pinecone-client = "*"
 python-dotenv = "*"
+discord-webhook = "*"
 
 [dev-packages]
 
