@@ -143,3 +143,5 @@ temp/
 api/dataset.pkl
 api/dataset_big.pkl
 api/dataset_300.pkl
+
+api/.env.backup

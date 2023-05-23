@@ -11,26 +11,32 @@ from discord_webhook import DiscordWebhook
 
 # ---------------------------------- env setup ---------------------------------
 
-
 if os.path.exists('.env'):
     from dotenv import load_dotenv
     load_dotenv()
+else:
+    print("'api/.env' not found. Rename the 'api/.env.example' file and fill in values.")
 
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
 
+OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-PINECONE_ENV = "us-east1-gcp"
-pinecone.init(
-    api_key=PINECONE_API_KEY,
-    environment=PINECONE_ENV
-)
-INDEX_NAME = "alignment-search"
-index = pinecone.Index(index_name=INDEX_NAME)
+LOGGING_URL      = os.environ.get('LOGGING_URL')
+PINECONE_INDEX   = None
 
-LOGGING_URL = os.environ.get('LOGGING_URL')
+openai.api_key = OPENAI_API_KEY # non-optional
 
-def log(*args, end="\n"):
+# Only init pinecone if we have an env value for it.
+if PINECONE_API_KEY is not None and PINECONE_API_KEY != "":
+
+    pinecone.init(
+        api_key = PINECONE_API_KEY,
+        environment = "us-east1-gcp",
+    )
+
+    PINECONE_INDEX = pinecone.Index(index_name="alignment-search")
+
+# log something only if the logging url is set
+def log(*args, end="\n"): 
     message = " ".join([str(arg) for arg in args]) + end
     # print(message)
     if LOGGING_URL is not None and LOGGING_URL != "":
@@ -59,7 +65,9 @@ def stream(src):
 @cross_origin()
 def semantic():
     query = request.json['query']
-    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(index, query)])
+    k = request.json['k'] if 'k' in request.json else 20
+    return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(PINECONE_INDEX, query, k)])
+
 
 
 # ------------------------------------ chat ------------------------------------
@@ -72,7 +80,7 @@ def chat():
     query = request.json['query']
     history = request.json['history']
 
-    return Response(stream(talk_to_robot(index, query, history, log = log)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, history, log = log)), mimetype='text/event-stream')
 
 
 # ------------------------------------------------------------------------------
