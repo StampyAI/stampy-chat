@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 import openai
 import regex as re
+import requests
 import time
 
 # ---------------------------------- constants ---------------------------------
@@ -46,7 +47,27 @@ def get_embedding(text: str) -> np.ndarray:
 
 
 # Get the k blocks most semantically similar to the query using Pinecone.
-def get_top_k_blocks(index, user_query: str, k: int = 20) -> List[Block]:
+def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
+
+    # Default to querying embeddings from live website if pinecone url not
+    # present in .env
+    #
+    # This helps people getting started developing or messing around with the
+    # site, since setting up a vector DB with the embeddings is by far the
+    # hardest part for those not already on the team.
+
+    if index is None:
+
+        print('Pinecone index not found, performing semantic search on alignmentsearch-api.up.railway.app endpoint.')
+        response = requests.post(
+            "https://alignmentsearch-api.up.railway.app/semantic",
+            json = {
+                "query": user_query,
+                "k": k
+            }
+        )
+
+        return [Block(**block) for block in response.json()]
 
     # print time
     t = time.time()
