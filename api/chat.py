@@ -1,13 +1,13 @@
 # ------------------------------- env, constants -------------------------------
 from followups import multisearch_authored
-
 from get_blocks import get_top_k_blocks, Block
 
+from dataclasses import asdict
 from typing import List, Dict, Callable
 import openai
+import re
 import tiktoken
 import time
-import re
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -171,9 +171,12 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         log(query)
         log(response)
 
-        multisearch_authored([query, response], DEBUG_PRINT)
-
-        yield json.dumps({"state": "done"})
+        # yield done state, possibly with followup questions
+        fin_json = {"state": "done"}
+        followups = multisearch_authored([query, response], DEBUG_PRINT)
+        for i, followup in enumerate(followups):
+            fin_json[f"followup_{i}"] = asdict(followup)
+        yield json.dumps(fin_json)
 
     except Exception as e:
         print(e)
