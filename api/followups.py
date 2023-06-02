@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 from urllib.parse import quote
 import requests
 
@@ -15,12 +16,21 @@ class Followup:
 # https://nlp.stampy.ai/api/search?query=what%20is%20agi
 
 def search_authored(query: str, DEBUG_PRINT: bool = False):
-    url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
-    response = requests.get(url).json()
-    followups = [ Followup(entry['title'], entry['pageid'], entry['score']) for entry in response ]
+    multisearch_authored([query], DEBUG_PRINT)
 
-    # (note: api presently returns followups pre-sorted, but idk if that's 
-    # guaranteed to stay the case. Re-sorting should be cheap anyway).
+# search with multiple queries, combine results
+def multisearch_authored(queries: List[str], DEBUG_PRINT: bool = False):
+
+    followups = {}
+
+    for query in queries:
+
+        url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
+        response = requests.get(url).json()
+        for entry in response:
+            followups[entry['pageid']] = Followup(entry['title'], entry['pageid'], entry['score'])
+
+    followups = list(followups.values())
 
     followups.sort(key=lambda f: f.score, reverse=True)
 

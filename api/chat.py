@@ -1,5 +1,5 @@
 # ------------------------------- env, constants -------------------------------
-from followups import search_authored
+from followups import multisearch_authored
 
 from get_blocks import get_top_k_blocks, Block
 
@@ -171,7 +171,7 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         log(query)
         log(response)
 
-        search_authored(response, DEBUG_PRINT)
+        multisearch_authored([query, response], DEBUG_PRINT)
 
         yield json.dumps({"state": "done"})
 
