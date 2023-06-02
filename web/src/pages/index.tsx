@@ -101,7 +101,7 @@ const A: React.FC<{href: string, className?: string, children: React.ReactNode}>
 const ProcessText: (text: string, base_count: number) => [string, Map<string, number>] = (text, base_count) => {
 
     // ---------------------- normalize citation form ----------------------
-    // the general plan here is just to add parsing cases until we can respond 
+    // the general plan here is just to add parsing cases until we can respond
     // well to almost everything the LLM emits. We won't ever reach five nines,
     // but the domain is one where occasionally failing isn't catastrophic.
 
@@ -214,8 +214,15 @@ const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
 
 
 
+type Followup = {
+    text: string;
+    pageid: string;
+    score: number;
+}
+
 type State = {
     state: "idle";
+    followups: Followup[];
 } | {
     state: "loading";
     phase: "semantic" | "prompt" | "llm";
@@ -237,7 +244,7 @@ const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
     const [ runningIndex, setRunningIndex ] = useState(0);
-    const [ loadState, setLoadState ] = useState<State>({state: "idle"});
+    const [ loadState, setLoadState ] = useState<State>({state: "idle", followups: []});
 
     const search = async (
         query: string,
@@ -279,7 +286,7 @@ const Home: NextPage = () => {
 
         if (!res.ok) {
             setLoading(false);
-            setLoadState({state: "idle"});
+            setLoadState({state: "idle", followups: []});
             setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
             return;
         }
@@ -351,15 +358,24 @@ const Home: NextPage = () => {
 
                             case "done":
 
-                                // append the response to the entries, reset to normal
+                                // append the response to the entries, add any potential followup questions, reset to normal
+                                var followups: Followup[] = [];
+                                var i = 0;
+                                while ('followup_' + i in data) {
+                                    followups = [...followups, data['followup_' + i]];
+                                    i++;
+                                }
 
                                 setLoadState((s) => {
                                     if (s.state === "streaming") {
                                         setEntries([...new_entries, s.response]);
                                         setRunningIndex((i) => (i + ProcessText(s.response.content, 0)[1].size));
                                     }
-                                    return {state: "idle"};
+
+
+                                    return {state: "idle", followups: followups};
                                 });
+
                                 break read;
 
                             case "error":
@@ -374,7 +390,6 @@ const Home: NextPage = () => {
         }
 
         setLoading(false);
-        setLoadState({state: "idle"});
         scroll30();
     };
 
@@ -411,6 +426,24 @@ const Home: NextPage = () => {
                         return <></>
                     })}
 
+                    {(() => {
+                      if (loadState.state === "idle") {
+                        return <div className="flex flex-col items-end"> {
+                          loadState.followups.map((followup, i) => {
+                            return <li key={i}>
+                              <button className="border border-gray-300 px-1 my-1" onClick={() => {
+                                  // temporary solution: open https://stampy.ai/?state={pageid} in a new tab
+                                  window.open("https://stampy.ai/?state=" + followup.pageid, "_blank");
+                              }}>
+                                <span> {followup.text} </span>
+                              </button>
+                            </li>
+                          })
+                        }</div>
+                      }
+                      return <></>;
+                    })()}
+  
                     <SearchBox search={search} />
 
                     {(() => {

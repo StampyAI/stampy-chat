@@ -22,7 +22,7 @@ const SearchBox: React.FC<{search: (
 
     if (loading) return <></>;
     return (<>
-        <form className="flex mb-2" onSubmit={async (e) => {
+        <form className="flex mb-2 mt-1" onSubmit={async (e) => {
             e.preventDefault();
             search(query, setQuery, setLoading);
         }}>
