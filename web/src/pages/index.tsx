@@ -431,7 +431,10 @@ const Home: NextPage = () => {
                         return <div className="flex flex-col items-end"> {
                           loadState.followups.map((followup, i) => {
                             return <li key={i}>
-                              <button className="border border-gray-300 px-1 my-1">
+                              <button className="border border-gray-300 px-1 my-1" onClick={() => {
+                                  // temporary solution: open https://stampy.ai/?state={pageid} in a new tab
+                                  window.open("https://stampy.ai/?state=" + followup.pageid, "_blank");
+                              }}>
                                 <span> {followup.text} </span>
                               </button>
                             </li>
