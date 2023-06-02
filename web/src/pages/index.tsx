@@ -426,6 +426,21 @@ const Home: NextPage = () => {
                         return <></>
                     })}
 
+                    {(() => {
+                      if (loadState.state === "idle") {
+                        return <div className="flex flex-col items-end"> {
+                          loadState.followups.map((followup, i) => {
+                            return <li key={i}>
+                              <button className="border border-gray-300 px-1 my-1">
+                                <span> {followup.text} </span>
+                              </button>
+                            </li>
+                          })
+                        }</div>
+                      }
+                      return <></>;
+                    })()}
+  
                     <SearchBox search={search} />
 
                     {(() => {

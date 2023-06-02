@@ -3,7 +3,7 @@ from typing import List
 from urllib.parse import quote
 import requests
 
-SIMILARITY_THRESHOLD = 0.5 # total shot in the dark - play with this later
+SIMILARITY_THRESHOLD = 0.4 # bit of a shot in the dark - play with this later
 MAX_FOLLOWUPS = 3
 
 @dataclass
