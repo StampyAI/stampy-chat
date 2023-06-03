@@ -43,7 +43,7 @@ export const SearchBox: React.FC<{search: (
     if (loading) return <></>;
     return (<>
 
-        <div className="flex flex-col items-end"> {
+        <div className="flex flex-col items-end mt-1"> {
             followups.map((followup, i) => {
                 return <li key={i}>
                     <button className="border border-gray-300 px-1 my-1" onClick={() => {

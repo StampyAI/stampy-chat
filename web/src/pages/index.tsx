@@ -16,7 +16,7 @@ type Citation = {
 }
 
 
-type Entry = UserEntry | AssistantEntry | ErrorMessage;
+type Entry = UserEntry | AssistantEntry | ErrorMessage | StampyMessage;
 
 type UserEntry = {
     role: "user";
@@ -32,6 +32,11 @@ type AssistantEntry = {
 
 type ErrorMessage = {
     role: "error";
+    content: string;
+}
+
+type StampyMessage = {
+    role: "stampy";
     content: string;
 }
 
@@ -251,7 +256,7 @@ const Home: NextPage = () => {
 
         const old_entries = entries;
         const new_entries: Entry[] = [...old_entries, {
-            role: "user", 
+            role: "user",
             content: query_source === "search" ? query : query.split("\n", 2)[1]!,
         }];
         setEntries(new_entries);
@@ -414,8 +419,10 @@ const Home: NextPage = () => {
             }
 
             const data = await res.json();
-            
-            setEntries([...new_entries, {role: "error", content: data.data.text}]);
+
+            console.log(data);
+
+            setEntries([...new_entries, {role: "stampy", content: data.data.text}]);
 
             // re-enable the searchbox, with the question that was just answered
             // removed from the list of possible followups.
@@ -441,21 +448,27 @@ const Home: NextPage = () => {
 
                 <ul>
                     {entries.map((entry, i) => {
-                        if (entry.role === "user") {
-                            return <li key={i}>
+                        switch (entry.role) {
+                            case "user": return <li key={i}>
                                 <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>
                             </li>
-                        }
-                        if (entry.role === "error") {
-                            return <li key={i}>
+
+                            case "error": return <li key={i}>
                                 <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>
                             </li>
-                        }
-                        if (entry.role === "assistant") {
-                            return <li key={i}>
+
+                            case "assistant": return <li key={i}>
                                 <ShowAssistantEntry entry={entry}/>
                             </li>
+
+                            case "stampy": return <li key={i}>
+                                <div className="px-4 py-1 bg-gray-300">
+                                    <div dangerouslySetInnerHTML={{__html: entry.content}} />
+                                    <p className="text-right">aisafety.info</p>
+                                </div>
+                            </li>
                         }
+
                         return <></>
                     })}
 
