@@ -6,7 +6,7 @@ import { type NextPage } from "next";
 import { useState } from "react";
 
 import Header from "../header";
-import SearchBox from "../searchbox";
+import { SearchBox, Followup } from "../searchbox";
 
 type Citation = {
     title: string;
@@ -214,11 +214,6 @@ const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
 
 
 
-type Followup = {
-    text: string;
-    pageid: string;
-    score: number;
-}
 
 type State = {
     state: "idle";
@@ -244,12 +239,11 @@ const Home: NextPage = () => {
     const [ entries, setEntries ] = useState<Entry[]>([]);
     const [ runningIndex, setRunningIndex ] = useState(0);
     const [ loadState, setLoadState ] = useState<State>({state: "idle"});
-    const [ followups, setFollowups ] = useState<Followup[]>([]);
 
     const search = async (
         query: string,
-        setQuery: (query: string) => void,
-        setLoading: (loading: boolean) => void
+        disable: () => void,
+        enable: (followups: Followup[]) => void,
     ) => {
 
         // clear the query box, append to entries
@@ -257,8 +251,7 @@ const Home: NextPage = () => {
         const old_entries = entries;
         const new_entries: Entry[] = [...old_entries, {role: "user", content: query}];
         setEntries(new_entries);
-        setQuery("");
-        setLoading(true);
+        disable();
 
         // do SSE on a POST request.
 
@@ -285,9 +278,8 @@ const Home: NextPage = () => {
         });
 
         if (!res.ok) {
-            setLoading(false);
+            enable([]);
             setLoadState({state: "idle"});
-            setFollowups([]);
             setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
             return;
         }
@@ -296,6 +288,7 @@ const Home: NextPage = () => {
 
         const reader = res.body!.getReader();
         var message = "";
+        var followups: Followup[] = [];
         read: while (true) {
 
             const {done, value} = await reader.read();
@@ -371,13 +364,12 @@ const Home: NextPage = () => {
                                 });
 
                                 // add any potential followup questions
-                                var fqs: Followup[] = [];
                                 var i = 0;
                                 while ('followup_' + i in data) {
-                                    fqs = [...fqs, data['followup_' + i]];
+                                    followups = [...followups, data['followup_' + i]];
                                     i++;
                                 }
-                                setFollowups(fqs);
+
 
                                 break read;
 
@@ -392,7 +384,7 @@ const Home: NextPage = () => {
             }
         }
 
-        setLoading(false);
+        enable(followups);
         scroll30();
     };
 
@@ -429,24 +421,6 @@ const Home: NextPage = () => {
                         return <></>
                     })}
 
-                    {(() => {
-                      if (loadState.state === "idle") {
-                        return <div className="flex flex-col items-end"> {
-                          followups.map((followup, i) => {
-                            return <li key={i}>
-                              <button className="border border-gray-300 px-1 my-1" onClick={() => {
-                                  // temporary solution: open https://stampy.ai/?state={pageid} in a new tab
-                                  window.open("https://stampy.ai/?state=" + followup.pageid, "_blank");
-                              }}>
-                                <span> {followup.text} </span>
-                              </button>
-                            </li>
-                          })
-                        }</div>
-                      }
-                      return <></>;
-                    })()}
-  
                     <SearchBox search={search} />
 
                     {(() => {
