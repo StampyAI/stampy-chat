@@ -445,7 +445,7 @@ const Home: NextPage = () => {
 
             enable((f_old: Followup[]) => {
                 const f_old_filtered = f_old.filter((f) => f.pageid !== data.pageid && !fpids.has(f.pageid));
-                return [...f_old_filtered, ...f_new].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr 
+                return [...f_new, ...f_old_filtered].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr 
             });
 
             scroll30();
