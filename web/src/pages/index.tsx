@@ -38,6 +38,7 @@ type ErrorMessage = {
 type StampyMessage = {
     role: "stampy";
     content: string;
+    url: string;
 }
 
 // const Colours = ["blue", "cyan", "teal", "green", "amber"].map(
@@ -422,7 +423,11 @@ const Home: NextPage = () => {
 
             console.log(data);
 
-            setEntries([...new_entries, {role: "stampy", content: data.data.text}]);
+            setEntries([...new_entries, {
+                role: "stampy", 
+                content: data.data.text,
+                url: "https://aisafety.info/?state=" + data.data.pageid,
+            }]);
 
             // re-enable the searchbox, with the question that was just answered
             // removed from the list of possible followups.
@@ -462,9 +467,11 @@ const Home: NextPage = () => {
                             </li>
 
                             case "stampy": return <li key={i}>
-                                <div className="px-4 py-1 bg-gray-300">
+                                <div className="px-4 py-0.5 bg-gray-300">
                                     <div dangerouslySetInnerHTML={{__html: entry.content}} />
-                                    <p className="text-right">aisafety.info</p>
+                                    <div className="text-right mb-3">
+                                        <a href={entry.url} target="_blank">aisafety.info</a>
+                                    </div>
                                 </div>
                             </li>
                         }
