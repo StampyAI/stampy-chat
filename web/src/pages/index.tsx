@@ -242,6 +242,7 @@ const Home: NextPage = () => {
 
     const search = async (
         query: string,
+        query_source: "search" | "followups",
         disable: () => void,
         enable: (followups: Followup[]) => void,
     ) => {
@@ -249,143 +250,182 @@ const Home: NextPage = () => {
         // clear the query box, append to entries
 
         const old_entries = entries;
-        const new_entries: Entry[] = [...old_entries, {role: "user", content: query}];
+        const new_entries: Entry[] = [...old_entries, {
+            role: "user", 
+            content: query_source === "search" ? query : query.split("\n", 2)[1]!,
+        }];
         setEntries(new_entries);
         disable();
 
-        // do SSE on a POST request.
 
-        const res = await fetch(API_URL + "/chat", {
-            method: "POST",
-            cache: "no-cache",
-            keepalive: true,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "text/event-stream",
-                "Allow-Control-Allow-Origin": "*"
-            },
+        // ----------------------------- LLM BASED -----------------------------
+        if (query_source === "search") {
+            // do SSE on a POST request.
+            const res = await fetch(API_URL + "/chat", {
+                method: "POST",
+                cache: "no-cache",
+                keepalive: true,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "text/event-stream",
+                    "Allow-Control-Allow-Origin": "*"
+                },
 
-            body: JSON.stringify({query: query, history:
-                old_entries.filter((entry) => entry.role !== "error")
-                           .map((entry) => {
-                               return {
-                                   "role" : entry.role,
-                                   "content" : entry.content.trim(),
-                               }
-                           })
-            }),
+                body: JSON.stringify({query: query, history:
+                    old_entries.filter((entry) => entry.role !== "error")
+                               .map((entry) => {
+                                   return {
+                                       "role" : entry.role,
+                                       "content" : entry.content.trim(),
+                                   }
+                               })
+                }),
 
-        });
+            });
 
-        if (!res.ok) {
-            enable([]);
-            setLoadState({state: "idle"});
-            setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
-            return;
-        }
+            if (!res.ok) {
+                enable([]);
+                setLoadState({state: "idle"});
+                setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
+                return;
+            }
 
-        // read back the SSE stream
+            // read back the SSE stream
 
-        const reader = res.body!.getReader();
-        var message = "";
-        var followups: Followup[] = [];
-        read: while (true) {
+            const reader = res.body!.getReader();
+            var message = "";
+            var followups: Followup[] = [];
+            read: while (true) {
 
-            const {done, value} = await reader.read();
+                const {done, value} = await reader.read();
 
-            if (done) break;
-            const chunk = new TextDecoder("utf-8").decode(value);
-            if (chunk.startsWith("event: close\n")) break;
+                if (done) break;
+                const chunk = new TextDecoder("utf-8").decode(value);
+                if (chunk.startsWith("event: close\n")) break;
 
-            // note: this form isn't even remotely close to optimal in terms of
-            // network usage. Lots of json overhead.
+                // note: this form isn't even remotely close to optimal in terms of
+                // network usage. Lots of json overhead.
 
-            for (const line of chunk.split('\n')) {
+                for (const line of chunk.split('\n')) {
 
-                // Most times, it seems that a single read() call will be one SSE "message",
-                // but I'll do the proper aggregation spec thing in case that's not always true.
+                    // Most times, it seems that a single read() call will be one SSE "message",
+                    // but I'll do the proper aggregation spec thing in case that's not always true.
 
-                if (line.startsWith("data: ")) message += line.slice(6);
-                if (line === "") {
-                    if (message !== "") {
-                        const data = JSON.parse(message);
+                    if (line.startsWith("data: ")) message += line.slice(6);
+                    if (line === "") {
+                        if (message !== "") {
+                            const data = JSON.parse(message);
 
-                        switch (data.state) {
+                            switch (data.state) {
 
-                            case "loading":
+                                case "loading":
 
-                                // display loading phases, once citations are available toss them
-                                // into the loading state.
+                                    // display loading phases, once citations are available toss them
+                                    // into the loading state.
 
-                                setLoadState((s) => {
-                                    var citations = s.state === "loading" ? s.citations : [];
-                                    if (data.citations !== undefined) {
-                                        citations = data.citations;
+                                    setLoadState((s) => {
+                                        var citations = s.state === "loading" ? s.citations : [];
+                                        if (data.citations !== undefined) {
+                                            citations = data.citations;
+                                        }
+                                        return {state: "loading", phase: data.phase, citations: citations};
+                                    });
+
+                                    break;
+
+                                case "streaming":
+
+                                    // incrementally build up the response
+
+                                    setLoadState((s) => {
+                                        const response = s.state === "streaming" ? s.response :
+                                                    {role: "assistant",
+                                                     content: "",
+                                                     citations: s.state === "loading" ? s.citations : [],
+                                                     base_count: runningIndex
+                                                    };
+
+                                        return {state: "streaming", response: {
+                                            role: "assistant",
+                                            content: response.content + data.content,
+                                            citations: response.citations,
+                                            base_count: response.base_count
+                                        }};
+                                    });
+
+                                    scroll30();
+                                    break;
+
+                                case "done":
+
+                                    // append the response to the entries, reset to normal
+                                    setLoadState((s) => {
+                                        if (s.state === "streaming") {
+                                            setEntries([...new_entries, s.response]);
+                                            setRunningIndex((i) => (i + ProcessText(s.response.content, 0)[1].size));
+                                        }
+
+
+                                        return {state: "idle"};
+                                    });
+
+                                    // add any potential followup questions
+                                    var i = 0;
+                                    while ('followup_' + i in data) {
+                                        followups = [...followups, data['followup_' + i]];
+                                        i++;
                                     }
-                                    return {state: "loading", phase: data.phase, citations: citations};
-                                });
-
-                                break;
-
-                            case "streaming":
-
-                                // incrementally build up the response
-
-                                setLoadState((s) => {
-                                    const response = s.state === "streaming" ? s.response :
-                                                {role: "assistant",
-                                                 content: "",
-                                                 citations: s.state === "loading" ? s.citations : [],
-                                                 base_count: runningIndex
-                                                };
-
-                                    return {state: "streaming", response: {
-                                        role: "assistant",
-                                        content: response.content + data.content,
-                                        citations: response.citations,
-                                        base_count: response.base_count
-                                    }};
-                                });
-
-                                scroll30();
-                                break;
-
-                            case "done":
-
-                                // append the response to the entries, reset to normal
-                                setLoadState((s) => {
-                                    if (s.state === "streaming") {
-                                        setEntries([...new_entries, s.response]);
-                                        setRunningIndex((i) => (i + ProcessText(s.response.content, 0)[1].size));
-                                    }
 
 
-                                    return {state: "idle"};
-                                });
+                                    break read;
 
-                                // add any potential followup questions
-                                var i = 0;
-                                while ('followup_' + i in data) {
-                                    followups = [...followups, data['followup_' + i]];
-                                    i++;
-                                }
+                                case "error":
+                                    setEntries([...new_entries, {role: "error", content: data.error}]);
+                                    break read;
 
-
-                                break read;
-
-                            case "error":
-                                setEntries([...new_entries, {role: "error", content: data.error}]);
-                                break read;
-
+                            }
                         }
+                        message = "";
                     }
-                    message = "";
                 }
             }
+
+            enable(followups);
+            scroll30();
+
+        } else {
+        // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
+            const query_id = query.split("\n", 2)[0];
+
+            const res = await fetch(API_URL + "/human/" + query_id, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Allow-Control-Allow-Origin": "*"
+                },
+            });
+
+            console.log(res);
+
+            if (!res.ok) {
+                enable([]);
+                setLoadState({state: "idle"});
+                setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
+                return;
+            }
+
+            const data = await res.json();
+            
+            console.log(data);
+
+            setEntries([...new_entries, {role: "error", content: data.data.text}]);
+
+            enable([]);
+            scroll30();
+
         }
 
-        enable(followups);
-        scroll30();
     };
 
     return (

@@ -10,6 +10,7 @@ export type Followup = {
 
 export const SearchBox: React.FC<{search: (
         query: string,
+        query_source: "search" | "followups",
         disable: () => void,
         enable: (followups: Followup[]) => void,
     ) => void,
@@ -43,21 +44,20 @@ export const SearchBox: React.FC<{search: (
     return (<>
 
         <div className="flex flex-col items-end"> {
-          followups.map((followup, i) => {
-            return <li key={i}>
-              <button className="border border-gray-300 px-1 my-1" onClick={() => {
-                  // temporary solution: open https://stampy.ai/?state={pageid} in a new tab
-                  window.open("https://stampy.ai/?state=" + followup.pageid, "_blank");
-              }}>
-                <span> {followup.text} </span>
-              </button>
-            </li>
-          })
+            followups.map((followup, i) => {
+                return <li key={i}>
+                    <button className="border border-gray-300 px-1 my-1" onClick={() => {
+                            search(followup.pageid + "\n" + followup.text, "followups", disable, enable);
+                        }}> 
+                        <span> {followup.text} </span>
+                    </button>
+                </li>
+            })
         }</div>
 
         <form className="flex mt-1 mb-2" onSubmit={(e) => {
             e.preventDefault();
-            search(query, disable, enable);
+            search(query, "search", disable, enable);
         }}>
             <TextareaAutosize
                 className="border border-gray-300 px-1 flex-1 resize-none"
@@ -70,7 +70,7 @@ export const SearchBox: React.FC<{search: (
                     // if <enter> without <shift>, submit the form (if it's not empty)
                     if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        if (query.trim() !== "") search(query, disable, enable);
+                        if (query.trim() !== "") search(query, "search", disable, enable);
                     }
                 }}
             />
