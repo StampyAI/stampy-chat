@@ -4,9 +4,11 @@ import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
 import { useState } from "react";
+import Image from 'next/image';
 
 import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
+import logo from "../logo.svg"
 
 type Citation = {
     title: string;
@@ -467,16 +469,18 @@ const Home: NextPage = () => {
                             </li>
 
                             case "stampy": return <li key={i}>
-                                <div className="px-4 py-0.5 bg-gray-300">
+                                <div className="px-4 py-0.5 bg-gray-200">
                                     <div dangerouslySetInnerHTML={{__html: entry.content}} />
-                                    <div className="text-right mb-3">
-                                        <a href={entry.url} target="_blank">aisafety.info</a>
+                                    <div className="mb-3 flex justify-end">
+                                        <a href={entry.url} target="_blank"
+                                           className="flex items-center space-x-1">
+                                            <span>aisafety.info</span>
+                                            <Image src={logo} alt="aisafety.info logo" width={19}/>
+                                        </a>
                                     </div>
                                 </div>
                             </li>
                         }
-
-                        return <></>
                     })}
 
                     <SearchBox search={search} />
