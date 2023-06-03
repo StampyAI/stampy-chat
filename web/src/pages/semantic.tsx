@@ -4,7 +4,7 @@ import { type NextPage } from "next";
 import React from "react";
 import Head from "next/head";
 import Header from "../header";
-import SearchBox from "../searchbox";
+import { SearchBox, Followup } from "../searchbox";
 import { useState } from "react";
 
 const Semantic: NextPage = () => {
@@ -13,12 +13,12 @@ const Semantic: NextPage = () => {
 
     const semantic_search = async (
         query: string,
-        setQuery: (query: string) => void,
-        setLoading: (loading: boolean) => void
+        _query_source: "search" | "followups",
+        disable: () => void,
+        enable: (f_set: Followup[]) => void,
     ) => {
         
-        setLoading(true);
-        setQuery("");
+        disable();
 
         const res = await fetch(API_URL + "/semantic", {
             method: "POST",
@@ -27,14 +27,14 @@ const Semantic: NextPage = () => {
         })
 
         if (!res.ok) {
-            setLoading(false);
+            enable([]);
             console.log("load failure: " + res.status);
         }
 
         const data = await res.json();
 
         setResults(data);
-        setLoading(false);
+        enable([]);
 
     };
 
