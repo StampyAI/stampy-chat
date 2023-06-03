@@ -481,7 +481,13 @@ const Home: NextPage = () => {
                             </li>
 
                             case "stampy": return <li key={i}>
-                                <div className="px-4 py-0.5 bg-gray-200">
+                                <div className="px-4 py-0.5 my-7 bg-slate-500 text-slate-50 rounded"
+                                    style={{
+                                        marginLeft: "auto",
+                                        marginRight: "auto",
+                                        maxWidth: "99.8%",
+                                    }}
+                                >
                                     <div dangerouslySetInnerHTML={{__html: entry.content}} />
                                     <div className="mb-3 flex justify-end">
                                         <a href={entry.url} target="_blank"
