@@ -20,7 +20,7 @@ main {
 }
 
 a {
-  @apply underline;
+  @apply underline hover:no-underline;
 }
 
 p {

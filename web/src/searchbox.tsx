@@ -2,17 +2,37 @@ import React from "react";
 import { useState, useEffect } from "react";
 import TextareaAutosize from 'react-textarea-autosize';
 
-const SearchBox: React.FC<{search: (
-    query: string,
-    setQuery: (query: string) => void,
-    setLoading: (loading: boolean) => void
-) => void}> = ({search}) => {
+export type Followup = { 
+    text: string;
+    pageid: string;
+    score: number;
+}
+
+export const SearchBox: React.FC<{search: (
+        query: string,
+        query_source: "search" | "followups",
+        disable: () => void,
+        enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
+    ) => void,
+}> = ({search}) => {
 
     const [ query, setQuery ] = useState("");
-
     const [ loading, setLoading ] = useState(false);
+    const [ followups, setFollowups ] = useState<Followup[]>([]);
 
     const inputRef = React.useRef<HTMLTextAreaElement>(null);
+
+    // because everything is async, I can't just manually set state at the
+    // point we do a search. Instead it needs to be passed into the search
+    // method, for some reason.
+    const enable = (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
+        setLoading(false); 
+        setFollowups(f_set);
+    };
+    const disable = () => {
+        setLoading(true);
+        setQuery("");
+    };
 
 
     useEffect(() => {
@@ -22,11 +42,23 @@ const SearchBox: React.FC<{search: (
 
     if (loading) return <></>;
     return (<>
-        <form className="flex mb-2 mt-1" onSubmit={async (e) => {
-            e.preventDefault();
-            search(query, setQuery, setLoading);
-        }}>
 
+        <div className="flex flex-col items-end mt-1"> {
+            followups.map((followup, i) => {
+                return <li key={i}>
+                    <button className="border border-gray-300 px-1 my-1" onClick={() => {
+                            search(followup.pageid + "\n" + followup.text, "followups", disable, enable);
+                        }}> 
+                        <span> {followup.text} </span>
+                    </button>
+                </li>
+            })
+        }</div>
+
+        <form className="flex mt-1 mb-2" onSubmit={(e) => {
+            e.preventDefault();
+            search(query, "search", disable, enable);
+        }}>
             <TextareaAutosize
                 className="border border-gray-300 px-1 flex-1 resize-none"
                 ref={inputRef}
@@ -38,7 +70,7 @@ const SearchBox: React.FC<{search: (
                     // if <enter> without <shift>, submit the form (if it's not empty)
                     if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        if (query.trim() !== "") search(query, setQuery, setLoading);
+                        if (query.trim() !== "") search(query, "search", disable, enable);
                     }
                 }}
             />
@@ -48,5 +80,3 @@ const SearchBox: React.FC<{search: (
         </form>
     </>);
 };
-
-export default SearchBox;

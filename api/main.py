@@ -82,6 +82,18 @@ def chat():
 
     return Response(stream(talk_to_robot(PINECONE_INDEX, query, history, log = log)), mimetype='text/event-stream')
 
+# ---------------------- human authored content retrieval ----------------------
+
+# act as a proxy, forwarding any requests to /human/<id> to
+# https://aisafety.info/questions/<id> in order to get around CORS
+@app.route('/human/<id>', methods=['GET'])
+@cross_origin()
+def human(id):
+    import requests
+    log(f"clicked followup: https://stampy.ai/?state={id}")
+    r = requests.get(f"https://aisafety.info/questions/{id}")
+    return Response(r.text, mimetype='application/json')
+
 
 # ------------------------------------------------------------------------------
 
