@@ -244,7 +244,7 @@ const Home: NextPage = () => {
         query: string,
         query_source: "search" | "followups",
         disable: () => void,
-        enable: (followups: Followup[]) => void,
+        enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
     ) => {
 
         // clear the query box, append to entries
@@ -406,8 +406,6 @@ const Home: NextPage = () => {
                 },
             });
 
-            console.log(res);
-
             if (!res.ok) {
                 enable([]);
                 setLoadState({state: "idle"});
@@ -417,11 +415,11 @@ const Home: NextPage = () => {
 
             const data = await res.json();
             
-            console.log(data);
-
             setEntries([...new_entries, {role: "error", content: data.data.text}]);
 
-            enable([]);
+            // re-enable the searchbox, with the question that was just answered
+            // removed from the list of possible followups.
+            enable((fs: Followup[]) => fs.filter((f) => f.pageid !== query_id));
             scroll30();
 
         }

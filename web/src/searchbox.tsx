@@ -12,7 +12,7 @@ export const SearchBox: React.FC<{search: (
         query: string,
         query_source: "search" | "followups",
         disable: () => void,
-        enable: (followups: Followup[]) => void,
+        enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
     ) => void,
 }> = ({search}) => {
 
@@ -25,9 +25,9 @@ export const SearchBox: React.FC<{search: (
     // because everything is async, I can't just manually set state at the
     // point we do a search. Instead it needs to be passed into the search
     // method, for some reason.
-    const enable = (followups: Followup[]) => {
+    const enable = (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
         setLoading(false); 
-        setFollowups(followups);
+        setFollowups(f_set);
     };
     const disable = () => {
         setLoading(true);
