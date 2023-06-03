@@ -43,6 +43,8 @@ type StampyMessage = {
     url: string;
 }
 
+const MAX_FOLLOWUPS = 4;
+
 // const Colours = ["blue", "cyan", "teal", "green", "amber"].map(
 //          colour => `bg-${colour}-100 border-${colour}-300 text-${colour}-800`
 //      );
@@ -421,23 +423,33 @@ const Home: NextPage = () => {
                 return;
             }
 
-            const data = await res.json();
-
-            console.log(data);
+            const data = (await res.json()).data;
 
             setEntries([...new_entries, {
                 role: "stampy", 
-                content: data.data.text,
-                url: "https://aisafety.info/?state=" + data.data.pageid,
+                content: data.text,
+                url: "https://aisafety.info/?state=" + data.pageid,
             }]);
 
             // re-enable the searchbox, with the question that was just answered
             // removed from the list of possible followups.
-            enable((fs: Followup[]) => fs.filter((f) => f.pageid !== query_id));
+
+            // create an array of new followup questions from the data
+            const f_new = data.relatedQuestions.map((f: any) => { return {
+                pageid: f.pageid!,
+                text: f.title!,
+                score: 0
+            };});
+
+            const fpids = new Set(f_new.map((f: Followup) => f.pageid));
+
+            enable((f_old: Followup[]) => {
+                const f_old_filtered = f_old.filter((f) => f.pageid !== data.pageid && !fpids.has(f.pageid));
+                return [...f_old_filtered, ...f_new].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr 
+            });
+
             scroll30();
-
         }
-
     };
 
     return (
