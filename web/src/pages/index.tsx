@@ -222,7 +222,6 @@ type Followup = {
 
 type State = {
     state: "idle";
-    followups: Followup[];
 } | {
     state: "loading";
     phase: "semantic" | "prompt" | "llm";
@@ -244,7 +243,8 @@ const Home: NextPage = () => {
 
     const [ entries, setEntries ] = useState<Entry[]>([]);
     const [ runningIndex, setRunningIndex ] = useState(0);
-    const [ loadState, setLoadState ] = useState<State>({state: "idle", followups: []});
+    const [ loadState, setLoadState ] = useState<State>({state: "idle"});
+    const [ followups, setFollowups ] = useState<Followup[]>([]);
 
     const search = async (
         query: string,
@@ -286,7 +286,8 @@ const Home: NextPage = () => {
 
         if (!res.ok) {
             setLoading(false);
-            setLoadState({state: "idle", followups: []});
+            setLoadState({state: "idle"});
+            setFollowups([]);
             setEntries([...new_entries, {role: "error", content: "POST Error: " + res.status}]);
             return;
         }
@@ -358,14 +359,7 @@ const Home: NextPage = () => {
 
                             case "done":
 
-                                // append the response to the entries, add any potential followup questions, reset to normal
-                                var followups: Followup[] = [];
-                                var i = 0;
-                                while ('followup_' + i in data) {
-                                    followups = [...followups, data['followup_' + i]];
-                                    i++;
-                                }
-
+                                // append the response to the entries, reset to normal
                                 setLoadState((s) => {
                                     if (s.state === "streaming") {
                                         setEntries([...new_entries, s.response]);
@@ -373,8 +367,17 @@ const Home: NextPage = () => {
                                     }
 
 
-                                    return {state: "idle", followups: followups};
+                                    return {state: "idle"};
                                 });
+
+                                // add any potential followup questions
+                                var fqs: Followup[] = [];
+                                var i = 0;
+                                while ('followup_' + i in data) {
+                                    fqs = [...fqs, data['followup_' + i]];
+                                    i++;
+                                }
+                                setFollowups(fqs);
 
                                 break read;
 
@@ -429,7 +432,7 @@ const Home: NextPage = () => {
                     {(() => {
                       if (loadState.state === "idle") {
                         return <div className="flex flex-col items-end"> {
-                          loadState.followups.map((followup, i) => {
+                          followups.map((followup, i) => {
                             return <li key={i}>
                               <button className="border border-gray-300 px-1 my-1" onClick={() => {
                                   // temporary solution: open https://stampy.ai/?state={pageid} in a new tab
