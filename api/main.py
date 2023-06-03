@@ -90,6 +90,7 @@ def chat():
 @cross_origin()
 def human(id):
     import requests
+    log(f"clicked followup: https://stampy.ai/?state={id}")
     r = requests.get(f"https://aisafety.info/questions/{id}")
     return Response(r.text, mimetype='application/json')
 
