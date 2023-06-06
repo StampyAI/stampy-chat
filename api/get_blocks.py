@@ -98,7 +98,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
             date = date,
             url = match['metadata']['url'],
             tags = match['metadata']['tags'],
-            text = match['metadata']['text']
+            text = strip_block(match['metadata']['text'])
         ))
 
     t2 = time.time()
