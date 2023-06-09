@@ -460,10 +460,10 @@ const Home: NextPage = () => {
             <main>
                 <Header page="index" />
 
-                <p><b>
+                <p>
                   Since this is still an early test, all questions and answers are stored.<br/>
                   Zero other information is collected.
-                </b></p>
+                </p>
 
                 <ul>
                     {entries.map((entry, i) => {
