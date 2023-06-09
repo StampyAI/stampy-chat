@@ -16,7 +16,7 @@ export const SearchBox: React.FC<{search: (
     ) => void,
 }> = ({search}) => {
 
-    const [ query, setQuery ] = useState("");
+    const [ query, setQuery ] = useState("What is an AI arms race?");
     const [ loading, setLoading ] = useState(false);
     const [ followups, setFollowups ] = useState<Followup[]>([]);
 
@@ -39,6 +39,14 @@ export const SearchBox: React.FC<{search: (
         // set focus on the input box
         if (!loading) inputRef.current?.focus();
     }, [loading]);
+
+    // on first mount focus and set cursor to end of input
+    useEffect(() => { 
+        if (!inputRef.current) return;
+        inputRef.current.focus();
+        inputRef.current.selectionStart = inputRef.current.textLength;
+        inputRef.current.selectionEnd = inputRef.current.textLength;
+    }, []);
 
     if (loading) return <></>;
     return (<>
