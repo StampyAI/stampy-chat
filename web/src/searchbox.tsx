@@ -12,9 +12,23 @@ export type Followup = {
 export const initialQuestions = [
     "What is an AI arms race?",
     "What is AI safety and alignment?",
-    "I'm not convinced, Why is this important?",
+    "I'm not convinced, why is this important?",
     "What are some of the different research approaches?",
     "How can I help with AI safety and alignment?",
+    "Why would we expect AI to be \"misaligned by default\"?",
+    "What are the differences between Inner and Outer alignment?",
+    "Are there any regulatory efforts aimed at addressing AI safety and alignment concerns?",
+    "What are \"scaling laws\" and how are they relevant to safety?",
+    "How could an AI possibly be an x-risk when some populations aren't even connected to the internet?",
+    "What is an Intelligence Explosion?",
+    "What is \"FOOM\"?",
+    "What is a hard takeoff?",
+    "How could a predictive model - like an LLM - act like an agent?",
+    "What does the term \"x-risk\" mean?",
+    "What is a mesa-optimizer?",
+    "Summarize the differences in opinion between Eliezer Yudkowsky and Paul Christiano.",
+    "What is the \"orthogonality thesis\"?",
+    "What is \"instrumental convergence\"?",
 ]
 
 
