@@ -6,6 +6,7 @@ import dataclasses
 import os
 import openai
 import pinecone
+import json
 from discord_webhook import DiscordWebhook
 
 
@@ -36,7 +37,7 @@ if PINECONE_API_KEY is not None and PINECONE_API_KEY != "":
     PINECONE_INDEX = pinecone.Index(index_name="alignment-search")
 
 # log something only if the logging url is set
-def log(*args, end="\n"): 
+def log(*args, end="\n"):
     message = " ".join([str(arg) for arg in args]) + end
     # print(message)
     if LOGGING_URL is not None and LOGGING_URL != "":
@@ -90,8 +91,9 @@ def chat():
 @cross_origin()
 def human(id):
     import requests
-    log(f"clicked followup: https://stampy.ai/?state={id}")
     r = requests.get(f"https://aisafety.info/questions/{id}")
+    log(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
+
     return Response(r.text, mimetype='application/json')
 
 
