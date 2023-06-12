@@ -8,6 +8,16 @@ export type Followup = {
     score: number;
 }
 
+// initial questions to fill the search box with.
+export const initialQuestions = [
+    "What is an AI arms race?",
+    "What is AI safety and alignment?",
+    "I'm not convinced, Why is this important?",
+    "What are some of the different research approaches?",
+    "How can I help with AI safety and alignment?",
+]
+
+
 export const SearchBox: React.FC<{search: (
         query: string,
         query_source: "search" | "followups",
@@ -16,7 +26,9 @@ export const SearchBox: React.FC<{search: (
     ) => void,
 }> = ({search}) => {
 
-    const [ query, setQuery ] = useState("What is an AI arms race?");
+    const initial_query = initialQuestions[Math.floor(Math.random() * initialQuestions.length)];
+
+    const [ query, setQuery ] = useState(initial_query);
     const [ loading, setLoading ] = useState(false);
     const [ followups, setFollowups ] = useState<Followup[]>([]);
 
