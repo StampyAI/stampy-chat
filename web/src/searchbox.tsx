@@ -8,6 +8,30 @@ export type Followup = {
     score: number;
 }
 
+// initial questions to fill the search box with.
+export const initialQuestions = [
+    "What is an AI arms race?",
+    "What is AI safety and alignment?",
+    "I'm not convinced, why is this important?",
+    "What are some of the different research approaches?",
+    "How can I help with AI safety and alignment?",
+    "Why would we expect AI to be \"misaligned by default\"?",
+    "What are the differences between Inner and Outer alignment?",
+    "Are there any regulatory efforts aimed at addressing AI safety and alignment concerns?",
+    "What are \"scaling laws\" and how are they relevant to safety?",
+    "How could an AI possibly be an x-risk when some populations aren't even connected to the internet?",
+    "What is an Intelligence Explosion?",
+    "What is \"FOOM\"?",
+    "What is a hard takeoff?",
+    "How could a predictive model - like an LLM - act like an agent?",
+    "What does the term \"x-risk\" mean?",
+    "What is a mesa-optimizer?",
+    "Summarize the differences in opinion between Eliezer Yudkowsky and Paul Christiano.",
+    "What is the \"orthogonality thesis\"?",
+    "What is \"instrumental convergence\"?",
+]
+
+
 export const SearchBox: React.FC<{search: (
         query: string,
         query_source: "search" | "followups",
@@ -16,7 +40,9 @@ export const SearchBox: React.FC<{search: (
     ) => void,
 }> = ({search}) => {
 
-    const [ query, setQuery ] = useState("");
+    const initial_query = initialQuestions[Math.floor(Math.random() * initialQuestions.length)];
+
+    const [ query, setQuery ] = useState(initial_query);
     const [ loading, setLoading ] = useState(false);
     const [ followups, setFollowups ] = useState<Followup[]>([]);
 
@@ -39,6 +65,14 @@ export const SearchBox: React.FC<{search: (
         // set focus on the input box
         if (!loading) inputRef.current?.focus();
     }, [loading]);
+
+    // on first mount focus and set cursor to end of input
+    useEffect(() => { 
+        if (!inputRef.current) return;
+        inputRef.current.focus();
+        inputRef.current.selectionStart = inputRef.current.textLength;
+        inputRef.current.selectionEnd = inputRef.current.textLength;
+    }, []);
 
     if (loading) return <></>;
     return (<>
