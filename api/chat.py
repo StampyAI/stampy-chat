@@ -192,9 +192,14 @@ def talk_to_robot_simple(index, query: str):
 
     for block in talk_to_robot_internal(index, query, []):
         if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
-            res['citations'] = block['citations']
+            citations = {}
+            for i, c in enumerate(block['citations']):
+                citations[chr(ord('a') + i)] = c
+            res['citations'] = citations
+
         elif block['state'] == 'streaming':
             res['response'] += block['content']
+
         elif block['state'] == 'error':
             res['response'] = block['error']
 
