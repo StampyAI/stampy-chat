@@ -165,24 +165,37 @@ def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: 
 
             print('\n' * 10)
 
-            print(" ------------------------------ response: -----------------------------")
+            print(' ------------------------------ response: -----------------------------')
             print(response)
 
         log(query)
         log(response)
 
         # yield done state, possibly with followup questions
-        fin_json = {"state": "done"}
+        fin_json = {'state': 'done'}
         followups = multisearch_authored([query, response], DEBUG_PRINT)
         for i, followup in enumerate(followups):
-            fin_json[f"followup_{i}"] = asdict(followup)
+            fin_json[f'followup_{i}'] = asdict(followup)
         yield fin_json
 
     except Exception as e:
         print(e)
-        yield {"state": "error", "error": str(e)}
+        yield {'state': 'error', 'error': str(e)}
 
 # convert talk_to_robot_internal from dict generator into json generator
 def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
     yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, history, k, log))
 
+# wayyy simplified api
+def talk_to_robot_simple(index, query: str):
+    res = {'response': ''}
+
+    for block in talk_to_robot_internal(index, query, []):
+        if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
+            res['citations'] = block['citations']
+        elif block['state'] == 'streaming':
+            res['response'] += block['content']
+        elif block['state'] == 'error':
+            res['response'] = block['error']
+
+    return json.dumps(res)
