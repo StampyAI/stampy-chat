@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import TextareaAutosize from 'react-textarea-autosize';
+import dynamic from 'next/dynamic'
 
 export type Followup = { 
     text: string;
@@ -32,7 +33,7 @@ export const initialQuestions: string[] = [
 ]
 
 
-export const SearchBox: React.FC<{search: (
+const SearchBoxInternal: React.FC<{search: (
         query: string,
         query_source: "search" | "followups",
         disable: () => void,
@@ -114,3 +115,8 @@ export const SearchBox: React.FC<{search: (
         </form>
     </>);
 };
+
+export const SearchBox = dynamic(() => Promise.resolve(SearchBoxInternal), {
+    ssr: false,
+});
+
