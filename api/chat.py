@@ -145,7 +145,8 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
             model=COMPLETIONS_MODEL,
             messages=prompt,
             max_tokens=max_tokens_completion,
-            stream=True
+            stream=True,
+            temperature=0, # may or may not be a good idea
         ):
             res = chunk["choices"][0]["delta"]
             if res is not None and res.get("content") is not None:
