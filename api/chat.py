@@ -120,24 +120,23 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 import time
 import json
 
-# returns either (True, reply string, top_k_blocks)) or (False, error message string, None)
-def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
+def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
-        yield json.dumps({"state": "loading", "phase": "semantic"})
+        yield {"state": "loading", "phase": "semantic"}
         top_k_blocks = get_top_k_blocks(index, query, k)
 
-        yield json.dumps({"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in top_k_blocks]})
+        yield {"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in top_k_blocks]}
 
         # 2. Generate a prompt
-        yield json.dumps({"state": "loading", "phase": "prompt"})
+        yield {"state": "loading", "phase": "prompt"}
         prompt = construct_prompt(query, history, top_k_blocks)
 
         # 3. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
 
         # 4. Answer the user query
-        yield json.dumps({"state": "loading", "phase": "llm"})
+        yield {"state": "loading", "phase": "llm"}
         t1 = time.time()
         response = ''
 
@@ -151,7 +150,7 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
             res = chunk["choices"][0]["delta"]
             if res is not None and res.get("content") is not None:
                 response += res["content"]
-                yield json.dumps({"state": "streaming", "content": res["content"]})
+                yield {"state": "streaming", "content": res["content"]}
 
 
         t2 = time.time()
@@ -177,9 +176,13 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
         followups = multisearch_authored([query, response], DEBUG_PRINT)
         for i, followup in enumerate(followups):
             fin_json[f"followup_{i}"] = asdict(followup)
-        yield json.dumps(fin_json)
+        yield fin_json
 
     except Exception as e:
         print(e)
-        yield json.dumps({"state": "error", "error": str(e)})
+        yield {"state": "error", "error": str(e)}
+
+# convert talk_to_robot_internal from dict generator into json generator
+def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
+    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, history, k, log))
 
