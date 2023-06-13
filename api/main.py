@@ -7,6 +7,7 @@ import os
 import openai
 import pinecone
 import json
+from urllib.parse import unquote
 from discord_webhook import DiscordWebhook
 
 
@@ -89,7 +90,7 @@ def chat():
 @app.route('/chat/<path:param>', methods=['GET'])
 @cross_origin()
 def chat_simplified(param=''):
-    return Response(talk_to_robot_simple(PINECONE_INDEX, param))
+    return Response(talk_to_robot_simple(PINECONE_INDEX, unquote(param)))
 
 
 
