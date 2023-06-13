@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 from get_blocks import get_top_k_blocks
-from chat import talk_to_robot
+from chat import talk_to_robot, talk_to_robot_simple
 import dataclasses
 import os
 import openai
 import pinecone
 import json
+from urllib.parse import unquote
 from discord_webhook import DiscordWebhook
 
 
@@ -82,6 +83,16 @@ def chat():
     history = request.json['history']
 
     return Response(stream(talk_to_robot(PINECONE_INDEX, query, history, log = log)), mimetype='text/event-stream')
+
+
+# ------------- simplified non-streaming chat for internal testing -------------
+
+@app.route('/chat/<path:param>', methods=['GET'])
+@cross_origin()
+def chat_simplified(param=''):
+    return Response(talk_to_robot_simple(PINECONE_INDEX, unquote(param)))
+
+
 
 # ---------------------- human authored content retrieval ----------------------
 
