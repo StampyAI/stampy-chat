@@ -65,8 +65,8 @@ class ChunkedARD:
             'title': str,
             'url': str,
             'date_published': str,
-            'authors': list, # It appears to be a list, but actually it's a list-looking string. Like "['apple', 'orange', 'tomato']" is a string.
-#            'summary': str  # see previous comment
+            'authors': list, # unsure as of yet if this is a string or a list. TODO it is subject to change
+#           'summary': list  # see previous comment
         }
         required_metadata_keys = ['id', 'source', 'title', 'text']
 
@@ -115,6 +115,7 @@ class ChunkedARD:
             url: str = entry['url']
             date_published: str = entry['date_published']
             authors: list = entry['authors']
+            # summary is ignored for now, since most sources lack one. TODO: add summary. see self.metadata code as well.
             
             # Get signature
             if authors:
