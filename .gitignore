@@ -129,6 +129,8 @@ dmypy.json
 .pyre/
 
 # Other
+*test.py
+*test.ipynb
 *alignment_texts.jsonl
 *config.py
 *.DS_Store
