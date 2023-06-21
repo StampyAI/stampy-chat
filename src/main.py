@@ -34,45 +34,6 @@ import matplotlib.pyplot as plt
 
 
 def load_rawdata_into_pkl():
-    """ 
-    # List of possible sources:
-    all_sources = ["https://aipulse.org", "ebook", "https://qualiacomputing.com", "alignment forum", "lesswrong", "manual", "arxiv", "https://deepmindsafetyresearch.medium.com", "waitbutwhy.com", "GitHub", "https://aiimpacts.org", "arbital.com", "carado.moe", "nonarxiv_papers", "https://vkrakovna.wordpress.com", "https://jsteinhardt.wordpress.com", "audio-transcripts", "https://intelligence.org", "youtube", "reports", "https://aisafety.camp", "curriculum", "https://www.yudkowsky.net", "distill", 
-                   "Cold Takes", "printouts", "gwern.net", "generative.ink", "greaterwrong.com"] # These last do not have a source field in the .jsonl file
-
-    # List of sources we are using for the test run:
-    custom_sources = [
-        "https://aipulse.org", 
-        "ebook", 
-        "https://qualiacomputing.com", 
-        "alignment forum", 
-        "lesswrong", 
-        "manual", 
-        "arxiv", 
-        "https://deepmindsafetyresearch.medium.com/", 
-        "waitbutwhy.com", 
-        "GitHub", 
-        "https://aiimpacts.org", 
-        "arbital.com", 
-        "carado.moe", 
-        "nonarxiv_papers", 
-        "https://vkrakovna.wordpress.com", 
-        "https://jsteinhardt.wordpress.com", 
-        "audio-transcripts", 
-        "https://intelligence.org", 
-        "youtube", 
-        "reports", 
-        "https://aisafety.camp", 
-        "curriculum", 
-        "https://www.yudkowsky.net", 
-        "distill",
-        "Cold Takes",
-        "printouts",
-        "gwern.net",
-        "generative.ink",
-        "greaterwrong.com"
-    ]
-    """
-
     dataset = create_dataset.ChunkedARD(
         min_tokens_per_block=200, max_tokens_per_block=300
     )
