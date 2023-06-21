@@ -27,7 +27,7 @@ if str(src_path) not in sys.path:
 
 from dataset import create_dataset
 #from assistant import semantic_search
-from settings import EMBEDDING_MODEL, PATH_TO_DATASET_DICT_PKL, PATH_TO_DATASET_PKL
+from settings import EMBEDDING_MODEL, PATH_TO_DATASET_DICT_PKL
 
 import numpy as np
 import matplotlib.pyplot as plt

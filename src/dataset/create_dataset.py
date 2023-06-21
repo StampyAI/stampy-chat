@@ -21,7 +21,7 @@ except ImportError:
     openai.api_key = os.environ.get('OPENAI_API_KEY')
 
 
-from .settings import PATH_TO_DATASET_PKL, PATH_TO_DATASET_DICT_PKL, EMBEDDING_MODEL, LEN_EMBEDDINGS
+from .settings import PATH_TO_DATASET_DICT_PKL, EMBEDDING_MODEL, LEN_EMBEDDINGS
 
 from .text_splitter import TokenSplitter, split_into_sentences
 
