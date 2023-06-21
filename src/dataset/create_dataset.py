@@ -25,16 +25,6 @@ from .settings import PATH_TO_DATASET_DICT_PKL, EMBEDDING_MODEL, LEN_EMBEDDINGS
 from .text_splitter import TokenSplitter, split_into_sentences
 
 
-
-error_count_dict = {
-    "Entry has no id.": 0,
-    "Entry has no source.": 0,
-    "Entry has no title.": 0,
-    "Entry has no text.": 0,
-    "Entry has non-string required key.": 0
-}
-
-
 class MissingDataException(Exception):
     pass
 
