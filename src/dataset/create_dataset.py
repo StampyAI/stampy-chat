@@ -97,7 +97,9 @@ class ChunkedARD:
 
         # Load the dataset. streaming allows you to load one entry at a time, 
         # so entries can be processed before the entire dataset has been saved.
-        iterable_data = load_dataset('StampyAI/alignment-research-dataset', 'aisafety.info', split='train', streaming=True)
+        # iterable_data = load_dataset('StampyAI/alignment-research-dataset', 'aisafety.info', split='train', streaming=True)
+
+        iterable_data = load_dataset('StampyAI/alignment-research-dataset', 'all', split='train', streaming=True)
         
         for entry in tqdm(iterable_data):            
             """Checks"""

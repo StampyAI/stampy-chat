@@ -7,6 +7,4 @@ LEN_EMBEDDINGS = 1536
 MAX_LEN_PROMPT = 4095 # This may be 8191, unsure.
 
 current_file_path = Path(__file__).resolve()
-PATH_TO_RAW_DATA = str(current_file_path.parent / 'dataset' / 'data' / 'alignment_texts.jsonl')
-PATH_TO_DATASET_PKL = str(current_file_path.parent / 'dataset' / 'data' / 'dataset.pkl')
 PATH_TO_DATASET_DICT_PKL = str(current_file_path.parent / 'dataset' / 'data' / 'dataset_dict.pkl')
