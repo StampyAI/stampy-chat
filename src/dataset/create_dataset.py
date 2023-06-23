@@ -58,39 +58,41 @@ class ChunkedARD:
             for source in self.custom_sources:
                 self.entries_per_source_count[source] = 0
         
-    def contains_required_metadata(self, entry: Dict[str, Any]):
+    @staticmethod
+    def _validate_required_metadata(entry: Dict[str, Any]):
         metadata_types = {
             'id': str,
             'source': str,
             'title': str,
             'url': str,
             'date_published': str,
-            'authors': list, # unsure as of yet if this is a string or a list. TODO it is subject to change
-#           'summary': list  # see previous comment
+            'authors': list,
+            'summary': list
         }
-        required_metadata_keys = ['id', 'source', 'title', 'text']
 
-        # Check that the 8 primary metadata keys all have the correct type
+        # Check that the 8 primary metadata keys all have the correct type and the key exists
         for key, key_type in metadata_types.items():
-            if type(entry[key]) != key_type:
-                raise MissingDataException(f"Entry {entry['id']} has key {key} of type {type(entry[key])} when it should be {key_type}.")
-
-        # Check that the 4 required metadata keys are non-empty
-        for key in required_metadata_keys:
             if not entry[key]:
                 raise MissingDataException(f"Entry {entry['id']} has no {key}.")
+            
+            if not isinstance(entry[key], key_type):
+                raise MissingDataException(f"Entry {entry['id']} has key {key} of type {type(entry[key])} when it should be {key_type}.")
+
+    def iterable_data(self):
+        if not self.custom_sources:
+            return tqdm(load_dataset('StampyAI/alignment-research-dataset', 'all', split='train', streaming=True))
+        
+        data = (entry for source in self.custom_sources for entry in load_dataset('StampyAI/alignment-research-dataset', source, split='train', streaming=True))
+        return tqdm(data)
 
            
     def get_alignment_texts(self):
         text_splitter = TokenSplitter(self.min_tokens_per_block, self.max_tokens_per_block)
 
         # Load the dataset. streaming allows you to load one entry at a time, 
-        # so entries can be processed before the entire dataset has been saved.
-        # iterable_data = load_dataset('StampyAI/alignment-research-dataset', 'aisafety.info', split='train', streaming=True)
+        iterable_data = self.iterable_data(self)
 
-        iterable_data = load_dataset('StampyAI/alignment-research-dataset', 'all', split='train', streaming=True)
-        
-        for entry in tqdm(iterable_data):            
+        for entry in iterable_data:            
             """Checks"""
 
             # if we specified custom sources, only include entries from those sources
@@ -98,7 +100,14 @@ class ChunkedARD:
                 continue
 
             # raise error if the entry does not contain the required metadata
-            self.contains_required_metadata(entry)
+            try:
+                self._validate_required_metadata(entry)
+            except MissingDataException as mde:
+                #logging.error(str(mde))  # Log the error message
+                print(str(mde))
+            except Exception as e:
+                raise e
+
 
             #if the text is too short, ignore this text
             if len(entry['text']) < 500:
@@ -126,15 +135,14 @@ class ChunkedARD:
             # We use the text_splitter to get the chunks from the entry, 
             # and we add a metadata element for each new chunk we add to the dataset.
             chunks = text_splitter.split(text, signature)
-            num_chunks = len(chunks)
             
-            for i in range(num_chunks):
+            for i, chunk in enumerate(chunks):
                 self.metadata.append({
                     'id': f"{entry_id}_{str(i+1).zfill(6)}",
                     'entry_id': entry_id,
                     'source': source,
                     'title': title,
-                    'text': chunks[i],
+                    'text': chunk,
                     'url': url,
                     'date_published': date_published,
                     'authors': authors
@@ -218,6 +226,6 @@ def get_authors_str(authors_lst: List[str]) -> str:
 def standardize_date(date_string, default_date='n/a'):
     try:
         dt = parse(date_string)
-        return dt.strftime('%Y-%m-%d')
+        return dt.date().isoformat()
     except (ParserError, ValueError):
         return default_date
