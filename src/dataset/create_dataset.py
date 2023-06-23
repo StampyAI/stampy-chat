@@ -12,6 +12,8 @@ from dateutil.parser import parse, ParserError
 import openai
 from datasets import load_dataset
 
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     import config
@@ -103,8 +105,8 @@ class ChunkedARD:
             try:
                 self._validate_required_metadata(entry)
             except MissingDataException as mde:
-                #logging.error(str(mde))  # Log the error message
-                print(str(mde))
+                logging.error(str(mde))  # Log the error message
+                continue
             except Exception as e:
                 raise e
 
