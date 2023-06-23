@@ -1,6 +1,6 @@
 # dataset/update_dataset.py
 
-from typing import List
+from typing import Any, Dict, List
 import numpy as np
 import logging
 from tqdm.auto import tqdm
@@ -89,7 +89,6 @@ class ARDUpdater:
                     
             except Exception as e:
                 self.logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
-                return
 
         self.logger.info(f"Successfully updated {source} entries.")
 
@@ -104,22 +103,21 @@ class ARDUpdater:
                 'text': entry['text'],
                 'url': entry['url'],
                 'date_published': entry['date_published'],
-                'authors': entry['authors'],
-                # summary is ignored for now
+                'authors': entry['authors']
             }
         except ValueError as e:
             self.logger.error(f"Entry validation failed: {str(e)}", exc_info=True)
             return None
 
-    def validate_entry(self, entry):
+    def validate_entry(self, entry: Dict[str, str | List[str]], len_lower_limit: int = 0):
         metadata_types = {
             'id': str,
             'source': str,
             'title': str,
+            'text': str,
             'url': str,
             'date_published': str,
-            'authors': list, # unsure as of yet if this is a string or a list. TODO it is subject to change
-#           'summary': list  # see previous comment
+            'authors': List[str]
         }
 
         for metadata_type, metadata_type_type in metadata_types.items():
@@ -128,8 +126,8 @@ class ARDUpdater:
             if not isinstance(entry[metadata_type], metadata_type_type):
                 raise ValueError(f"Entry metadata '{metadata_type}' is not of type '{metadata_type_type}'.")
         
-        # if len(entry['text']) < 500:
-        #     raise ValueError(f"Entry text is too short (< 500 tokens).")
+        if len(entry['text']) < len_lower_limit:
+            raise ValueError(f"Entry text is too short (< {len_lower_limit} tokens).")
 
     def get_embeddings(self, chunks):
         embeddings = np.zeros((len(chunks), self.embedding_dims))
