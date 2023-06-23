@@ -1,5 +1,6 @@
 # dataset/pinecone_handler.py
 
+import json
 import pinecone
 import os
 from typing import List
@@ -26,9 +27,10 @@ class PineconeHandler:
         )
         
         self.index = pinecone.Index(index_name=self.index_name)
+    
+    def __str__(self) -> str:
         index_stats_response = self.index.describe_index_stats()
-        
-        print(f"Index info:\n\t{index_stats_response}\n\n")
+        return f"{self.index_name}:\n{json.dumps(index_stats_response, indent=4)}"
     
     def insert_entry(self, entry, chunks, embeddings, upsert_size=100):
         assert len(chunks) == len(embeddings), f"len(chunks) != len(embeddings) for {entry['title']} of {entry['source']}"
