@@ -147,3 +147,7 @@ api/dataset_big.pkl
 api/dataset_300.pkl
 
 api/.env.backup
+
+src/dataset_tests.ipynb
+src/dataset/data/*
+src/dataset/logs/*
