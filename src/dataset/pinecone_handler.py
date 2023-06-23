@@ -3,7 +3,6 @@
 import json
 import pinecone
 import os
-from typing import List
 
 
 class PineconeHandler:
@@ -54,19 +53,16 @@ class PineconeHandler:
             vectors=vectors,
             batch_size=upsert_size
         )
-        # print(f"Successfully inserted {chunk_len} chunks from {entry['source']} article \'{entry['title']}\'.")
         
     def delete_entry(self, id):
         self.index.delete(
             filter={"entry_id": {"$eq": id}}
         )
-        # print(f"Successfully deleted elements from id {id}.")
 
-    def info(self):
-        info = pinecone.describe_index(self.index_name)
-        return info        
-    
-    def create_index(self):
+    def create_index(self, replace_current_index: bool = False):
+        if replace_current_index:
+            self.delete_index()
+        
         pinecone.create_index(
             name=self.index_name,
             dimension=self.dimensions,
