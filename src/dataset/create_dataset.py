@@ -74,7 +74,7 @@ class ChunkedARD:
 
         # Check that the 8 primary metadata keys all have the correct type and the key exists
         for key, key_type in metadata_types.items():
-            if not entry[key]:
+            if not key in entry.keys():
                 raise MissingDataException(f"Entry {entry['id']} has no {key}.")
             
             if not isinstance(entry[key], key_type):
@@ -109,11 +109,6 @@ class ChunkedARD:
                 continue
             except Exception as e:
                 raise e
-
-
-            #if the text is too short, ignore this text
-            if len(entry['text']) < 500:
-                continue
 
 
             """Checks are done, so we construct the metadata."""

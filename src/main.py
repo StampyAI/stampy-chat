@@ -1,41 +1,26 @@
 import openai
-"""
-import config
-from assistant.semantic_search import AlignmentSearch
-from dataset.create_dataset import Dataset
-
-openai.api_key = config.OPENAI_API_KEY
-
-from settings import PATH_TO_RAW_DATA, PATH_TO_DATASET, EMBEDDING_MODEL, LEN_EMBEDDINGS
-"""
 from tenacity import (
     retry,
     stop_after_attempt,
     wait_random_exponential,
 )
-
 import numpy as np
-
 import sys
 import pickle
 from pathlib import Path
-import random
 
 src_path = Path(__file__).resolve().parent
 if str(src_path) not in sys.path:
     sys.path.append(str(src_path))
 
 from dataset import create_dataset
-#from assistant import semantic_search
 from settings import EMBEDDING_MODEL, PATH_TO_DATASET_DICT_PKL
-
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 def load_rawdata_into_pkl():
     dataset = create_dataset.ChunkedARD(
-        min_tokens_per_block=200, max_tokens_per_block=300
+        min_tokens_per_block=200, max_tokens_per_block=300,
+        custom_sources=['alignmentforum', 'aisafety.info']
     )
     dataset.get_alignment_texts()
     dataset.get_embeddings()
