@@ -91,7 +91,7 @@ class ChunkedARD:
     def get_alignment_texts(self):
         text_splitter = TokenSplitter(self.min_tokens_per_block, self.max_tokens_per_block)
 
-        # Load the dataset. streaming allows you to load one entry at a time, 
+        # Load the dataset as an iterable.
         iterable_data = self.iterable_data(self)
 
         for entry in iterable_data:            
@@ -126,7 +126,7 @@ class ChunkedARD:
             url: str = entry['url']
             date_published: str = entry['date_published']
             authors: list = entry['authors']
-            # summary is ignored for now, since most sources lack one. TODO: add summary. see self.metadata code as well.
+            summary: list = entry['summary']
             
             # Get signature
             if authors:
@@ -147,7 +147,8 @@ class ChunkedARD:
                     'text': chunk,
                     'url': url,
                     'date_published': date_published,
-                    'authors': authors
+                    'authors': authors,
+                    'summary': summary
                 })
             
             # Update counts
@@ -159,12 +160,12 @@ class ChunkedARD:
             self.total_counts['chunks'] += len(chunks)
 
     def show_stats(self):
-        print(f'Number of entries by source: {self.entries_per_source_count}')
-        print(f'Total entries count: {self.total_counts["entries"]}')
-        print(f'Total character count: {self.total_counts["chars"]}')
-        print(f'Total word count: {self.total_counts["words"]}')
-        print(f'Total sentence count: {self.total_counts["sentences"]}')
-        print(f'Total chunk count: {self.total_counts["chunks"]}')
+        logger.info(f'Number of entries by source: {self.entries_per_source_count}')
+        logger.info(f'Total entries count: {self.total_counts["entries"]}')
+        logger.info(f'Total character count: {self.total_counts["chars"]}')
+        logger.info(f'Total word count: {self.total_counts["words"]}')
+        logger.info(f'Total sentence count: {self.total_counts["sentences"]}')
+        logger.info(f'Total chunk count: {self.total_counts["chunks"]}')
 
     def get_embeddings(self):
         def get_embeddings_at_index(texts: str, batch_idx: int, batch_size: int = 200): # int, np.ndarray
