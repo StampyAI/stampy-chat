@@ -26,6 +26,9 @@ def update_database_and_pinecone():
     updater.show_stats()
 
 
-if __name__ == "__main__":
-    print("\n"*10)
+def main():
     update_database_and_pinecone()
+
+
+if __name__ == "__main__":
+    main()
