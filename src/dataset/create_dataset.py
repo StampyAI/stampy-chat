@@ -92,7 +92,7 @@ class ChunkedARD:
         text_splitter = TokenSplitter(self.min_tokens_per_block, self.max_tokens_per_block)
 
         # Load the dataset as an iterable.
-        iterable_data = self.iterable_data(self)
+        iterable_data = self.iterable_data()
 
         for entry in iterable_data:            
             """Checks"""
