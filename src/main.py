@@ -20,7 +20,7 @@ def update_database_and_pinecone():
         min_tokens_per_block=200,
         max_tokens_per_block=300,
     )
-    updater.update(['yudkowsky_blog'])
+    updater.update(['gwern_blog'])
 
 
 def main():

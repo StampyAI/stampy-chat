@@ -2,7 +2,6 @@
 
 from typing import Dict, List
 import numpy as np
-import logging
 from tqdm.auto import tqdm
 import openai
 from datasets import load_dataset
@@ -10,6 +9,10 @@ from datasets import load_dataset
 from .text_splitter import TokenSplitter
 from .pinecone_handler import PineconeHandler
 from .database_handler import DatabaseHandler
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 class ARDUpdater:
     def __init__(
@@ -31,33 +34,14 @@ class ARDUpdater:
             max_tokens=max_tokens_per_block
         )
         self.db = DatabaseHandler()
-        self.pinecone_handler = PineconeHandler()
-        
-        ### initialization code ###
-        
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-
-        # File handler
-        file_handler = logging.FileHandler(r'src/dataset/logs/ard_updater.log')
-        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-
-        # Console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-
-        self.logger.info("ARDUpdater initialized.")
-
+        self.pinecone_db = PineconeHandler()
 
     def update(self, custom_sources: List[str] = ['all']):
         for source in custom_sources:
             self.update_source(source)
         
     def update_source(self, source: str):
-        self.logger.info(f"Updating {source} entries...")
+        logger.info(f"Updating {source} entries...")
 
         iterable_data = load_dataset('StampyAI/alignment-research-dataset', source, split='train', streaming=True)
         iterable_data = iterable_data.map(self.preprocess)
@@ -66,18 +50,18 @@ class ARDUpdater:
         
         for entry in tqdm(iterable_data):
             try:
-                self.pinecone_handler.delete_entry(entry['id'])
+                self.pinecone_db.delete_entry(entry['id'])
 
                 signature = f"Title: {entry['title']}, Authors: {get_authors_str(entry['authors'])}"
                 chunks = self.token_splitter.split(entry['text'], signature)
                 embeddings = self.get_embeddings(chunks)
                 
                 self.db.upsert_chunks(entry['id'], chunks)
-                self.pinecone_handler.insert_entry(entry, chunks, embeddings)
+                self.pinecone_db.insert_entry(entry, chunks, embeddings)
             except Exception as e:
-                self.logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
+                logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
             
-        self.logger.info(f"Successfully updated {source} entries.")
+        logger.info(f"Successfully updated {source} entries.")
         
     def preprocess(self, entry):
         try:
@@ -93,7 +77,7 @@ class ARDUpdater:
                 'authors': entry['authors']
             }
         except ValueError as e:
-            self.logger.error(f"Entry validation failed: {str(e)}", exc_info=True)
+            logger.error(f"Entry validation failed: {str(e)}", exc_info=True)
             return None
 
     def validate_entry(self, entry: Dict[str, str | list], len_lower_limit: int = 0):
@@ -126,6 +110,10 @@ class ARDUpdater:
             embeddings[i] = embedding['embedding']
         
         return embeddings
+
+    def reset_dbs(self):
+        self.db.create_tables(True)
+        self.pinecone_db.create_index(True)
 
 
 ##### Helper functions #####

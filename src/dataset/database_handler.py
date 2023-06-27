@@ -15,10 +15,15 @@ class DatabaseHandler:
         
         self.create_tables()
 
-    def create_tables(self):
+    def create_tables(self, reset: bool = False):
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             try:
+                if reset:
+                    # Drop the tables if reset is True
+                    cursor.execute("DROP TABLE IF EXISTS entry_database")
+                    cursor.execute("DROP TABLE IF EXISTS chunk_database")
+                
                 # Create entry table
                 query = """
                     CREATE TABLE IF NOT EXISTS entry_database (
