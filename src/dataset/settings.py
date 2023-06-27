@@ -1,5 +1,6 @@
 # dataset/settings.py
 
+import os
 from pathlib import Path
 
 ### FILE PATHS ###
@@ -19,6 +20,8 @@ PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
 PINECONE_VALUES_DIMS = EMBEDDINGS_DIMS
 PINECONE_METRIC = "cosine"
 PINECONE_METADATA_ENTRIES = ["entry_id", "source", "title", "authors", "text"]
+PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
+PINECONE_ENVIRONMENT = os.environ["PINECONE_ENVIRONMENT"]
 
 ### MISCELLANEOUS ###
 MAX_NUM_AUTHORS_IN_SIGNATURE = 3

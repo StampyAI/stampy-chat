@@ -4,7 +4,7 @@ import os
 import json
 import pinecone
 
-from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
+from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES, PINECONE_API_KEY, PINECONE_ENVIRONMENT
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,9 +16,6 @@ class PineconeDB:
         create_index: bool = False,
     ):
         self.index_name = PINECONE_INDEX_NAME
-        
-        PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
-        PINECONE_ENVIRONMENT = os.environ["PINECONE_ENVIRONMENT"]
         
         pinecone.init(
             api_key = PINECONE_API_KEY,
