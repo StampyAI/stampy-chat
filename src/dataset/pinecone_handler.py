@@ -3,17 +3,16 @@
 import json
 import pinecone
 import os
-from settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
+from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
 
 
 
 class PineconeHandler:
     def __init__(
         self, 
-        index_name: str,
         create_index: bool = False,
     ):
-        self.index_name = index_name
+        self.index_name = PINECONE_INDEX_NAME
         
         PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
         PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
