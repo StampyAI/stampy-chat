@@ -3,8 +3,8 @@
 from typing import Dict, List, Union
 import numpy as np
 from tqdm.auto import tqdm
-import openai
 from datasets import load_dataset
+import openai
 
 from .text_splitter import TokenSplitter
 from .sql_db_handler import SQLDB

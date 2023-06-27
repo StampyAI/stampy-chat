@@ -21,12 +21,8 @@ def update_sql_and_pinecone_dbs():
         min_tokens_per_block=200,
         max_tokens_per_block=300,
     )
-    updater.update()
-
-
-def main():
-    update_sql_and_pinecone_dbs()
+    updater.update(['gwern_blog'])
 
 
 if __name__ == "__main__":
-    main()
+    update_sql_and_pinecone_dbs()

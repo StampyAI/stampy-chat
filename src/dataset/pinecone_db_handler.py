@@ -37,20 +37,20 @@ class PineconeDB:
     def upsert_entry(self, entry, chunks, embeddings, upsert_size=100):
         self.index.upsert(
             vectors=list(
-            zip(
-                [f"{entry['id']}_{str(i).zfill(6)}" for i in range(len(chunks))], 
-                embeddings.tolist(), 
-                [
-                    {
-                        'entry_id': entry['id'],
-                        'source': entry['source'],
-                        'title': entry['title'],
-                        'authors': entry['authors'],
-                        'text': chunk,
-                    } for chunk in chunks
-                ]
-            )
-        ),
+                zip(
+                    [f"{entry['id']}_{str(i).zfill(6)}" for i in range(len(chunks))], 
+                    embeddings.tolist(), 
+                    [
+                        {
+                            'entry_id': entry['id'],
+                            'source': entry['source'],
+                            'title': entry['title'],
+                            'authors': entry['authors'],
+                            'text': chunk,
+                        } for chunk in chunks
+                    ]
+                )
+            ),
             batch_size=upsert_size
         )
         
