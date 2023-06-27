@@ -33,10 +33,11 @@ class ARDUpdater:
     def update_source(self, source: str):
         logger.info(f"Updating {source} entries...")
 
-        iterable_data = load_dataset(ARD_DATASET_NAME, source, split='train', streaming=True)
-        iterable_data = iterable_data.map(self.preprocess)
-        iterable_data = iterable_data.filter(lambda entry: entry is not None)
-        iterable_data = iterable_data.filter(lambda entry: self.sql_db.upsert_entry(entry))
+        iterable_data = load_dataset(
+            ARD_DATASET_NAME, source, split='train', streaming=True
+        ).map(self.preprocess).filter(
+            lambda entry: entry is not None
+        ).filter(lambda entry: self.sql_db.upsert_entry(entry))
         
         for entry in tqdm(iterable_data):
             try:
