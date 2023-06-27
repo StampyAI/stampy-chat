@@ -74,7 +74,7 @@ class ChunkedARD:
 
         # Check that the 8 primary metadata keys all have the correct type and the key exists
         for key, key_type in metadata_types.items():
-            if not key in entry.keys():
+            if not key in entry:
                 raise MissingDataException(f"Entry {entry['id']} has no {key}.")
             
             if not isinstance(entry[key], key_type):
