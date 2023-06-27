@@ -10,7 +10,7 @@ from .text_splitter import TokenSplitter
 from .sql_db_handler import SQLDB
 from .pinecone_db_handler import PineconeDB
 
-from .settings import EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME
+from .settings import EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME, MAX_NUM_AUTHORS_IN_SIGNATURE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -114,6 +114,6 @@ def get_authors_str(authors_lst: List[str]) -> str:
     if authors_lst == []: return 'n/a'
     if len(authors_lst) == 1: return authors_lst[0]
     else:
-        authors_lst = authors_lst[:3]
-        authors_str = ", ".join(authors_lst[:-1]) + " and " + authors_lst[-1]
+        authors_lst = authors_lst[:MAX_NUM_AUTHORS_IN_SIGNATURE]
+        authors_str = f"{', '.join(authors_lst[:-1])} and {authors_lst[-1]}"
     return authors_str

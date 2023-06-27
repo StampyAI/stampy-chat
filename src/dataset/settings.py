@@ -19,3 +19,6 @@ PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
 PINECONE_VALUES_DIMS = EMBEDDINGS_DIMS
 PINECONE_METRIC = "cosine"
 PINECONE_METADATA_ENTRIES = ["entry_id", "source", "title", "authors", "text"]
+
+### MISCELLANEOUS ###
+MAX_NUM_AUTHORS_IN_SIGNATURE = 3
