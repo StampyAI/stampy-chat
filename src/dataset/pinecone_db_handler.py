@@ -1,8 +1,8 @@
 # dataset/pinecone_db_handler.py
 
+import os
 import json
 import pinecone
-import os
 
 from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
 

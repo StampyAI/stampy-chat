@@ -1,7 +1,7 @@
 # dataset/sql_db_handler.py
 
+from typing import List, Dict, Union
 import sqlite3
-from typing import List, Dict, Any
 
 from .settings import SQL_DB_PATH
 
@@ -52,7 +52,7 @@ class SQLDB:
             except sqlite3.Error as e:
                 logger.error(f"The error '{e}' occurred.")
 
-    def upsert_entry(self, entry: Dict[str, Any]) -> bool:
+    def upsert_entry(self, entry: Dict[str, Union[str, list]]) -> bool:
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             try:
