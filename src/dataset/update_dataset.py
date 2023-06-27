@@ -1,6 +1,5 @@
 # dataset/update_dataset.py
 
-import time
 from typing import Dict, List
 import numpy as np
 import logging
@@ -66,7 +65,6 @@ class ARDUpdater:
         iterable_data = iterable_data.filter(lambda entry: self.db.upsert_entry(entry))
         
         for entry in tqdm(iterable_data):
-            t_entry_start = time.time()
             try:
                 self.pinecone_handler.delete_entry(entry['id'])
 
@@ -79,9 +77,6 @@ class ARDUpdater:
             except Exception as e:
                 self.logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
             
-            t_entry_end = time.time()
-            self.logger.info(f"Time for processing one entry: {t_entry_end - t_entry_start} seconds")
-
         self.logger.info(f"Successfully updated {source} entries.")
         
     def preprocess(self, entry):
@@ -131,11 +126,6 @@ class ARDUpdater:
             embeddings[i] = embedding['embedding']
         
         return embeddings
-
-    def show_stats(self): #TODO
-        # Show index
-        # Show database
-        pass
 
 
 ##### Helper functions #####
