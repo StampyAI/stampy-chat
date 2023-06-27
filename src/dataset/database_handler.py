@@ -2,6 +2,10 @@ import os
 import sqlite3
 from typing import List, Dict, Any
 
+import logging
+logger = logging.getLogger(__name__)
+
+
 class DatabaseHandler:
     def __init__(
         self, 
@@ -50,7 +54,7 @@ class DatabaseHandler:
                 cursor.execute(query)
 
             except sqlite3.Error as e:
-                print(f"The error '{e}' occurred.")
+                logger.error(f"The error '{e}' occurred.")
 
     def upsert_entry(self, entry: Dict[str, Any]) -> bool:
         with sqlite3.connect(self.db_name) as conn:
@@ -82,7 +86,7 @@ class DatabaseHandler:
                     return False
 
             except sqlite3.Error as e:
-                print(f"The error '{e}' occurred.")
+                logger.error(f"The error '{e}' occurred.")
                 return False
 
             finally:
@@ -102,7 +106,7 @@ class DatabaseHandler:
                 return True
                 
             except sqlite3.Error as e:
-                print(f"The error '{e}' occurred.")
+                logger.error(f"The error '{e}' occurred.")
                 return False
 
             finally:

@@ -3,8 +3,11 @@
 import json
 import pinecone
 import os
-from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
 
+import logging
+logger = logging.getLogger(__name__)
+
+from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
 
 
 class PineconeHandler:
@@ -71,4 +74,5 @@ class PineconeHandler:
 
     def delete_index(self):
         if self.index_name in pinecone.list_indexes():
+            logger.info(f"Deleting index '{self.index_name}'.")
             pinecone.delete_index(self.index_name)
