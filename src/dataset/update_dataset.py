@@ -1,6 +1,6 @@
 # dataset/update_dataset.py
 
-from typing import Dict, List
+from typing import Dict, List, Union
 import numpy as np
 from tqdm.auto import tqdm
 import openai
@@ -71,7 +71,7 @@ class ARDUpdater:
             logger.error(f"Entry validation failed: {str(e)}", exc_info=True)
             return None
 
-    def validate_entry(self, entry: Dict[str, str | list], len_lower_limit: int = 0):
+    def validate_entry(self, entry: Dict[str, Union[str, list]], char_len_lower_limit: int = 0):
         metadata_types = {
             'id': str,
             'source': str,
@@ -86,8 +86,8 @@ class ARDUpdater:
             if not isinstance(entry.get(metadata_type), metadata_type_type):
                 raise ValueError(f"Entry metadata '{metadata_type}' is not of type '{metadata_type_type}' or is missing.")
                 
-        if len(entry['text']) < len_lower_limit:
-            raise ValueError(f"Entry text is too short (< {len_lower_limit} tokens).")
+        if len(entry['text']) < char_len_lower_limit:
+            raise ValueError(f"Entry text is too short (< {char_len_lower_limit} characters).")
 
     def get_embeddings(self, chunks):
         embeddings = np.zeros((len(chunks), EMBEDDINGS_DIMS))
