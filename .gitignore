@@ -150,5 +150,5 @@ api/.env.backup
 
 src/dataset_tests.ipynb
 src/ARD_LangChain_QA_Chat.ipynb
+
 src/dataset/data/*
-src/dataset/logs/*
