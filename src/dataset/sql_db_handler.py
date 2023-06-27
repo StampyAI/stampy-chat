@@ -1,21 +1,15 @@
-import os
 import sqlite3
 from typing import List, Dict, Any
+
+from .settings import SQL_DB_PATH
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class DatabaseHandler:
-    def __init__(
-        self, 
-        db_name: str = "data\\alignment_database.db",
-    ):
-        # Get the directory of this script
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-
-        # Combine the script directory with the relative database path
-        self.db_name = os.path.join(script_dir, db_name)
+class SQLDBHandler:
+    def __init__(self):
+        self.db_name = SQL_DB_PATH
         
         self.create_tables()
 

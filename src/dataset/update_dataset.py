@@ -7,8 +7,10 @@ import openai
 from datasets import load_dataset
 
 from .text_splitter import TokenSplitter
-from .pinecone_handler import PineconeHandler
-from .database_handler import DatabaseHandler
+from .sql_db_handler import SQLDBHandler
+from .pinecone_db_handler import PineconeDBHandler
+
+from .settings import EMBEDDINGS_MODEL, EMBEDDING_DIMS, ARD_DATASET_NAME
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,21 +22,13 @@ class ARDUpdater:
         min_tokens_per_block: int = 200, # Minimum number of tokens per block.
         max_tokens_per_block: int = 400, # Maximum number of tokens per block.
         rate_limit_per_minute: int = 3_500,  # Rate limit for the OpenAI API.
-        embedding_model="text-embedding-ada-002",
-        embedding_dims=1536,
     ):
         self.rate_limit_per_minute = rate_limit_per_minute
         self.delay_in_seconds = 60.0 / self.rate_limit_per_minute
 
-        self.embedding_model = embedding_model
-        self.embedding_dims = embedding_dims
-        
-        self.token_splitter = TokenSplitter(
-            min_tokens=min_tokens_per_block,
-            max_tokens=max_tokens_per_block
-        )
-        self.db = DatabaseHandler()
-        self.pinecone_db = PineconeHandler()
+        self.token_splitter = TokenSplitter(min_tokens_per_block, max_tokens_per_block)
+        self.sql_db = SQLDBHandler()
+        self.pinecone_db = PineconeDBHandler()
 
     def update(self, custom_sources: List[str] = ['all']):
         for source in custom_sources:
@@ -43,10 +37,10 @@ class ARDUpdater:
     def update_source(self, source: str):
         logger.info(f"Updating {source} entries...")
 
-        iterable_data = load_dataset('StampyAI/alignment-research-dataset', source, split='train', streaming=True)
+        iterable_data = load_dataset(ARD_DATASET_NAME, source, split='train', streaming=True)
         iterable_data = iterable_data.map(self.preprocess)
         iterable_data = iterable_data.filter(lambda entry: entry is not None)
-        iterable_data = iterable_data.filter(lambda entry: self.db.upsert_entry(entry))
+        iterable_data = iterable_data.filter(lambda entry: self.sql_db.upsert_entry(entry))
         
         for entry in tqdm(iterable_data):
             try:
@@ -56,7 +50,7 @@ class ARDUpdater:
                 chunks = self.token_splitter.split(entry['text'], signature)
                 embeddings = self.get_embeddings(chunks)
                 
-                self.db.upsert_chunks(entry['id'], chunks)
+                self.sql_db.upsert_chunks(entry['id'], chunks)
                 self.pinecone_db.insert_entry(entry, chunks, embeddings)
             except Exception as e:
                 logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
@@ -99,10 +93,10 @@ class ARDUpdater:
             raise ValueError(f"Entry text is too short (< {len_lower_limit} tokens).")
 
     def get_embeddings(self, chunks):
-        embeddings = np.zeros((len(chunks), self.embedding_dims))
+        embeddings = np.zeros((len(chunks), EMBEDDING_DIMS))
         
         openai_output = openai.Embedding.create(
-            model=self.embedding_model, 
+            model=EMBEDDINGS_MODEL, 
             input=chunks
         )['data']
         
@@ -112,7 +106,7 @@ class ARDUpdater:
         return embeddings
 
     def reset_dbs(self):
-        self.db.create_tables(True)
+        self.sql_db.create_tables(True)
         self.pinecone_db.create_index(True)
 
 

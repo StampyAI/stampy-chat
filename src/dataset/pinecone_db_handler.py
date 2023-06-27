@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PineconeDB:
+class PineconeDBHandler:
     def __init__(
         self, 
         create_index: bool = False,
