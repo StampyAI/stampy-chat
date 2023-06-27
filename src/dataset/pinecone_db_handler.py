@@ -4,13 +4,13 @@ import json
 import pinecone
 import os
 
+from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
+
 import logging
 logger = logging.getLogger(__name__)
 
-from .settings import PINECONE_INDEX_NAME, PINECONE_VALUES_DIMS, PINECONE_METRIC, PINECONE_METADATA_ENTRIES
 
-
-class PineconeHandler:
+class PineconeDB:
     def __init__(
         self, 
         create_index: bool = False,
