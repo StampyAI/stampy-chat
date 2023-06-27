@@ -9,13 +9,14 @@ ARD_DATASET_NAME = "StampyAI/alignment-research-dataset"
 
 ### EMBEDDINGS ###
 EMBEDDINGS_MODEL = "text-embedding-ada-002"
-EMBEDDING_DIMS = 1536
+EMBEDDINGS_DIMS = 1536
+EMBEDDINGS_RATE_LIMIT = 3500
 
 ### PINECONE ###
 PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
-PINECONE_VALUES_DIMS = EMBEDDING_DIMS
+PINECONE_VALUES_DIMS = EMBEDDINGS_DIMS
 PINECONE_METRIC = "cosine"
 PINECONE_METADATA_ENTRIES = ["entry_id", "source", "title", "authors", "text"]
 
 ### MISC ###
-CUSTOM_SOURCES = ['gwern_blog']
+RESET_DBS = False

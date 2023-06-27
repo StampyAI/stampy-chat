@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class SQLDBHandler:
+class SQLDB:
     def __init__(self):
         self.db_name = SQL_DB_PATH
         

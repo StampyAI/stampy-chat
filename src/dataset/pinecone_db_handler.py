@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PineconeDBHandler:
+class PineconeDB:
     def __init__(
         self, 
         create_index: bool = False,
@@ -36,7 +36,7 @@ class PineconeDBHandler:
         index_stats_response = self.index.describe_index_stats()
         return f"{self.index_name}:\n{json.dumps(index_stats_response, indent=4)}"
     
-    def insert_entry(self, entry, chunks, embeddings, upsert_size=100):
+    def upsert_entry(self, entry, chunks, embeddings, upsert_size=100):
         self.index.upsert(
             vectors=list(
             zip(

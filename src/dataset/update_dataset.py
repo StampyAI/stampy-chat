@@ -7,10 +7,10 @@ import openai
 from datasets import load_dataset
 
 from .text_splitter import TokenSplitter
-from .sql_db_handler import SQLDBHandler
-from .pinecone_db_handler import PineconeDBHandler
+from .sql_db_handler import SQLDB
+from .pinecone_db_handler import PineconeDB
 
-from .settings import EMBEDDINGS_MODEL, EMBEDDING_DIMS, ARD_DATASET_NAME
+from .settings import EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME
 
 import logging
 logger = logging.getLogger(__name__)
@@ -21,14 +21,10 @@ class ARDUpdater:
         self, 
         min_tokens_per_block: int = 200, # Minimum number of tokens per block.
         max_tokens_per_block: int = 400, # Maximum number of tokens per block.
-        rate_limit_per_minute: int = 3_500,  # Rate limit for the OpenAI API.
     ):
-        self.rate_limit_per_minute = rate_limit_per_minute
-        self.delay_in_seconds = 60.0 / self.rate_limit_per_minute
-
         self.token_splitter = TokenSplitter(min_tokens_per_block, max_tokens_per_block)
-        self.sql_db = SQLDBHandler()
-        self.pinecone_db = PineconeDBHandler()
+        self.sql_db = SQLDB()
+        self.pinecone_db = PineconeDB()
 
     def update(self, custom_sources: List[str] = ['all']):
         for source in custom_sources:
@@ -51,7 +47,7 @@ class ARDUpdater:
                 embeddings = self.get_embeddings(chunks)
                 
                 self.sql_db.upsert_chunks(entry['id'], chunks)
-                self.pinecone_db.insert_entry(entry, chunks, embeddings)
+                self.pinecone_db.upsert_entry(entry, chunks, embeddings)
             except Exception as e:
                 logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
             
@@ -93,7 +89,8 @@ class ARDUpdater:
             raise ValueError(f"Entry text is too short (< {len_lower_limit} tokens).")
 
     def get_embeddings(self, chunks):
-        embeddings = np.zeros((len(chunks), EMBEDDING_DIMS))
+        embeddings = np.zeros((len(chunks), EMBEDDINGS_DIMS))
+        rate_limit = EMBEDDINGS_RATE_LIMIT  #TODO: use this rate_limit
         
         openai_output = openai.Embedding.create(
             model=EMBEDDINGS_MODEL, 
