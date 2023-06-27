@@ -10,17 +10,18 @@ else:
 import openai
 openai.api_key = os.environ.get('OPENAI_API_KEY')
 
+import logging
+logging.basicConfig(level=logging.INFO)
+
 from dataset.update_dataset import ARDUpdater
-from dataset.settings import RESET_DBS
+
 
 def update_sql_and_pinecone_dbs():
     updater = ARDUpdater(
         min_tokens_per_block=200,
         max_tokens_per_block=300,
     )
-    if RESET_DBS:
-        updater.reset_dbs()
-    updater.update(['gwern_blog'])
+    updater.update()
 
 
 def main():

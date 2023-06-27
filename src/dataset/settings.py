@@ -1,3 +1,5 @@
+# dataset/settings.py
+
 from pathlib import Path
 
 ### FILE PATHS ###
@@ -17,6 +19,3 @@ PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
 PINECONE_VALUES_DIMS = EMBEDDINGS_DIMS
 PINECONE_METRIC = "cosine"
 PINECONE_METADATA_ENTRIES = ["entry_id", "source", "title", "authors", "text"]
-
-### MISC ###
-RESET_DBS = False

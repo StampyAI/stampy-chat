@@ -1,4 +1,4 @@
-# dataset/pinecone_handler.py
+# dataset/pinecone_db_handler.py
 
 import json
 import pinecone
