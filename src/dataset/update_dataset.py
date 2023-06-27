@@ -1,11 +1,12 @@
 # dataset/update_dataset.py
 
-from typing import Any, Dict, List
+import time
+from typing import Dict, List
 import numpy as np
 import logging
 from tqdm.auto import tqdm
-from datasets import load_dataset
 import openai
+from datasets import load_dataset
 
 from .text_splitter import TokenSplitter
 from .pinecone_handler import PineconeHandler
@@ -14,13 +15,12 @@ from .database_handler import DatabaseHandler
 class ARDUpdater:
     def __init__(
         self, 
-        min_tokens_per_block: int = 300, # Minimum number of tokens per block.
+        min_tokens_per_block: int = 200, # Minimum number of tokens per block.
         max_tokens_per_block: int = 400, # Maximum number of tokens per block.
         rate_limit_per_minute: int = 3_500,  # Rate limit for the OpenAI API.
         embedding_model="text-embedding-ada-002",
         embedding_dims=1536,
         index_name="stampy-chat-embeddings-test",
-        update_all=False
     ):
         self.rate_limit_per_minute = rate_limit_per_minute
         self.delay_in_seconds = 60.0 / self.rate_limit_per_minute
@@ -34,8 +34,6 @@ class ARDUpdater:
         )
         self.db = DatabaseHandler()
         self.pinecone_handler = PineconeHandler(index_name=index_name)
-        
-        self.update_all = update_all
         
         ### initialization code ###
         
@@ -64,35 +62,30 @@ class ARDUpdater:
         self.logger.info(f"Updating {source} entries...")
 
         iterable_data = load_dataset('StampyAI/alignment-research-dataset', source, split='train', streaming=True)
-
+        iterable_data = iterable_data.map(self.preprocess)
+        iterable_data = iterable_data.filter(lambda entry: entry is not None)
+        iterable_data = iterable_data.filter(lambda entry: self.db.upsert_entry(entry))
+        
         for entry in tqdm(iterable_data):
+            t_entry_start = time.time()
             try:
-                entry = self.process_entry(entry)
-                if entry is None:
-                    continue
+                self.pinecone_handler.delete_entry(entry['id'])
+
+                signature = f"Title: {entry['title']}, Authors: {get_authors_str(entry['authors'])}"
+                chunks = self.token_splitter.split(entry['text'], signature)
+                embeddings = self.get_embeddings(chunks)
                 
-                # If the upsertion produces a change to the sql database, update the pinecone db accordingly
-                if self.update_all or self.db.upsert_entry(entry):
-                    self.pinecone_handler.delete_entry(entry['id'])
-
-                    signature = f"Title: {entry['title']}, Authors: {get_authors_str(entry['authors'])}"
-
-                    chunks = self.token_splitter.split(entry['text'], signature)
-                    
-                    self.db.upsert_chunks(entry['id'], chunks)
-                    
-                    embeddings = self.get_embeddings(chunks)
-
-                    self.pinecone_handler.insert_entry(entry, chunks, embeddings)
-                    
-                    self.logger.info(f"Successfully modified entry {entry['id']}.")
-                    
+                self.db.upsert_chunks(entry['id'], chunks)
+                self.pinecone_handler.insert_entry(entry, chunks, embeddings)
             except Exception as e:
                 self.logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
+            
+            t_entry_end = time.time()
+            self.logger.info(f"Time for processing one entry: {t_entry_end - t_entry_start} seconds")
 
         self.logger.info(f"Successfully updated {source} entries.")
-
-    def process_entry(self, entry):
+        
+    def preprocess(self, entry):
         try:
             self.validate_entry(entry)
             
@@ -109,7 +102,7 @@ class ARDUpdater:
             self.logger.error(f"Entry validation failed: {str(e)}", exc_info=True)
             return None
 
-    def validate_entry(self, entry: Dict[str, str | List[str]], len_lower_limit: int = 0):
+    def validate_entry(self, entry: Dict[str, str | list], len_lower_limit: int = 0):
         metadata_types = {
             'id': str,
             'source': str,
@@ -117,15 +110,13 @@ class ARDUpdater:
             'text': str,
             'url': str,
             'date_published': str,
-            'authors': List[str]
+            'authors': list
         }
 
         for metadata_type, metadata_type_type in metadata_types.items():
-            if metadata_type not in entry:
-                raise ValueError(f"Entry is missing required metadata '{metadata_type}'.")
-            if not isinstance(entry[metadata_type], metadata_type_type):
-                raise ValueError(f"Entry metadata '{metadata_type}' is not of type '{metadata_type_type}'.")
-        
+            if not isinstance(entry.get(metadata_type), metadata_type_type):
+                raise ValueError(f"Entry metadata '{metadata_type}' is not of type '{metadata_type_type}' or is missing.")
+                
         if len(entry['text']) < len_lower_limit:
             raise ValueError(f"Entry text is too short (< {len_lower_limit} tokens).")
 
