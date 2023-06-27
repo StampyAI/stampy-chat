@@ -19,11 +19,8 @@ def update_database_and_pinecone():
     updater = ARDUpdater(
         min_tokens_per_block=200,
         max_tokens_per_block=300,
-        index_name="stampy-chat-embeddings-test",
-        update_all=False
     )
-    updater.update(['gwern_blog', 'aisafety.info'])
-    updater.show_stats()
+    updater.update(['yudkowsky_blog'])
 
 
 def main():

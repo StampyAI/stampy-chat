@@ -20,7 +20,6 @@ class ARDUpdater:
         rate_limit_per_minute: int = 3_500,  # Rate limit for the OpenAI API.
         embedding_model="text-embedding-ada-002",
         embedding_dims=1536,
-        index_name="stampy-chat-embeddings-test",
     ):
         self.rate_limit_per_minute = rate_limit_per_minute
         self.delay_in_seconds = 60.0 / self.rate_limit_per_minute
@@ -33,7 +32,7 @@ class ARDUpdater:
             max_tokens=max_tokens_per_block
         )
         self.db = DatabaseHandler()
-        self.pinecone_handler = PineconeHandler(index_name=index_name)
+        self.pinecone_handler = PineconeHandler()
         
         ### initialization code ###
         
