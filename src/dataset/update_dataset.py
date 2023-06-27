@@ -2,6 +2,7 @@
 
 from typing import Dict, List, Union
 import numpy as np
+from tenacity import retry, stop_after_attempt
 from tqdm.auto import tqdm
 from datasets import load_dataset
 import openai
@@ -88,7 +89,8 @@ class ARDUpdater:
                 
         if len(entry['text']) < char_len_lower_limit:
             raise ValueError(f"Entry text is too short (< {char_len_lower_limit} characters).")
-
+    
+    @retry(stop=stop_after_attempt(3))
     def get_embeddings(self, chunks):
         embeddings = np.zeros((len(chunks), EMBEDDINGS_DIMS))
         rate_limit = EMBEDDINGS_RATE_LIMIT  #TODO: use this rate_limit
