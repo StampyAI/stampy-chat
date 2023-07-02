@@ -62,8 +62,8 @@ class ARDUpdater:
                     embeddings = np.array(self.hf_embeddings.embed_documents(chunks_batch))
 
                 self.sql_db.upsert_chunks(chunks_ids_batch, chunks_batch)
-                # self.pinecone_db.delete_entries([entry['id'] for entry in entries_batch])
-                # self.pinecone_db.upsert_entries(entries_batch, chunks_batch, chunks_ids_batch, embeddings)
+                self.pinecone_db.delete_entries([entry['id'] for entry in entries_batch])
+                self.pinecone_db.upsert_entries(entries_batch, chunks_batch, chunks_ids_batch, embeddings)
                 
                 logger.info(f"Successfully updated {len(entries_batch)} {source} entries with {len(chunks_batch)} total chunks.")
             except Exception as e:
