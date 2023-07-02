@@ -11,7 +11,7 @@ from .text_splitter import TokenSplitter
 from .sql_db_handler import SQLDB
 from .pinecone_db_handler import PineconeDB
 
-from .settings import EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME, MAX_NUM_AUTHORS_IN_SIGNATURE
+from .settings import USE_OPENAI_EMBEDDINGS, OPENAI_EMBEDDINGS_MODEL, SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, OPENAI_EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME, MAX_NUM_AUTHORS_IN_SIGNATURE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,6 +26,12 @@ class ARDUpdater:
         self.token_splitter = TokenSplitter(min_tokens_per_block, max_tokens_per_block)
         self.sql_db = SQLDB()
         self.pinecone_db = PineconeDB()
+        
+        if not USE_OPENAI_EMBEDDINGS:
+            from langchain.embeddings import HuggingFaceEmbeddings
+            self.hf_embeddings = HuggingFaceEmbeddings(
+                model_name=SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL,
+            )
 
     def update(self, custom_sources: List[str] = ['all']):
         for source in custom_sources:
@@ -48,11 +54,14 @@ class ARDUpdater:
             chunks_ids_batch = batch['chunks_ids_batch']
 
             try:
-                embeddings = self.get_embeddings(chunks_batch)
+                if USE_OPENAI_EMBEDDINGS:
+                    embeddings = self.get_openai_embeddings(chunks_batch)
+                else:
+                    embeddings = np.array(self.hf_embeddings.embed_documents(chunks_batch))
 
                 self.sql_db.upsert_chunks(chunks_ids_batch, chunks_batch)
-                self.pinecone_db.delete_entries([entry['id'] for entry in entries_batch])
-                self.pinecone_db.upsert_entries(entries_batch, chunks_batch, chunks_ids_batch, embeddings)
+                # self.pinecone_db.delete_entries([entry['id'] for entry in entries_batch])
+                # self.pinecone_db.upsert_entries(entries_batch, chunks_batch, chunks_ids_batch, embeddings)
                 
                 logger.info(f"Successfully updated {len(entries_batch)} {source} entries with {len(chunks_batch)} total chunks.")
             except Exception as e:
@@ -132,12 +141,12 @@ class ARDUpdater:
         return self.sql_db.upsert_entry(entry)
     
     @retry(stop=stop_after_attempt(3))
-    def get_embeddings(self, chunks):
+    def get_openai_embeddings(self, chunks):
         embeddings = np.zeros((len(chunks), EMBEDDINGS_DIMS))
-        rate_limit = EMBEDDINGS_RATE_LIMIT  #  TODO: use this rate_limit
+        rate_limit = OPENAI_EMBEDDINGS_RATE_LIMIT  #  TODO: use this rate_limit
         
         openai_output = openai.Embedding.create(
-            model=EMBEDDINGS_MODEL, 
+            model=OPENAI_EMBEDDINGS_MODEL, 
             input=chunks
         )['data']
         

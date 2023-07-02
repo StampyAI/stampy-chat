@@ -11,9 +11,11 @@ SQL_DB_PATH = str(current_file_path.parent / 'data' / 'ARD.db')
 ARD_DATASET_NAME = "StampyAI/alignment-research-dataset"
 
 ### EMBEDDINGS ###
-EMBEDDINGS_MODEL = "text-embedding-ada-002"
+USE_OPENAI_EMBEDDINGS = False
+OPENAI_EMBEDDINGS_MODEL = "text-embedding-ada-002"
+SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL = "sentence-transformers/multi-qa-mpnet-base-cos-v1"
 EMBEDDINGS_DIMS = 1536
-EMBEDDINGS_RATE_LIMIT = 3500
+OPENAI_EMBEDDINGS_RATE_LIMIT = 3500
 
 ### PINECONE ###
 PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
