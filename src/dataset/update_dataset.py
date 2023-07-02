@@ -30,32 +30,64 @@ class ARDUpdater:
     def update(self, custom_sources: List[str] = ['all']):
         for source in custom_sources:
             self.update_source(source)
-        
-    def update_source(self, source: str):
+
+    def update_source(self, source: str, chunk_size: int = 100):
         logger.info(f"Updating {source} entries...")
-
-        iterable_data = load_dataset(
-            ARD_DATASET_NAME, source, split='train', streaming=True
-        ).map(self.preprocess).filter(
-            lambda entry: entry is not None
-        ).filter(lambda entry: self.sql_db.upsert_entry(entry))
         
-        for entry in tqdm(iterable_data):
-            try:
-                self.pinecone_db.delete_entry(entry['id'])
+        streamed_dataset = load_dataset(
+            ARD_DATASET_NAME, source, split='train', streaming=True
+        ).map(self.preprocess_and_validate).filter(
+            self.is_valid_entry
+        ).filter(
+            self.is_sql_entry_upserted
+        )
+        
+        for batch in self.batchify(streamed_dataset, chunk_size):
+            entries_batch = batch['entries_batch']
+            chunks_batch = batch['chunks_batch']
+            chunks_ids_batch = batch['chunks_ids_batch']
 
-                signature = f"Title: {entry['title']}, Authors: {get_authors_str(entry['authors'])}"
-                chunks = self.token_splitter.split(entry['text'], signature)
-                embeddings = self.get_embeddings(chunks)
+            try:
+                embeddings = self.get_embeddings(chunks_batch)
+
+                self.sql_db.upsert_chunks(chunks_ids_batch, chunks_batch)
+                self.pinecone_db.delete_entries([entry['id'] for entry in entries_batch])
+                self.pinecone_db.upsert_entries(entries_batch, chunks_batch, chunks_ids_batch, embeddings)
                 
-                self.sql_db.upsert_chunks(entry['id'], chunks)
-                self.pinecone_db.upsert_entry(entry, chunks, embeddings)
+                logger.info(f"Successfully updated {len(entries_batch)} {source} entries with {len(chunks_batch)} total chunks.")
             except Exception as e:
                 logger.error(f"An error occurred while updating source {source}: {str(e)}", exc_info=True)
-            
+
         logger.info(f"Successfully updated {source} entries.")
+    
+    def batchify(self, iterable, chunk_size):
+        entries_batch = []
+        chunks_batch = []
+        chunks_ids_batch = []
+
+        for entry in iterable:
+            chunks = self.token_splitter.split(entry['text'], f"Title: {entry['title']}, Authors: {get_authors_str(entry['authors'])}")
+            chunks_ids = [f"{entry['id']}_{str(i).zfill(6)}" for i in range(len(chunks))]
+
+            # Add this entry's chunks to the current batch, even if it causes the batch size to exceed chunk_size.
+            entries_batch.append(entry)
+            chunks_batch.extend(chunks)
+            chunks_ids_batch.extend(chunks_ids)
+
+            # If this batch is large enough, yield it and start a new one.
+            if len(chunks_batch) >= chunk_size:
+                yield {'entries_batch': entries_batch, 'chunks_batch': chunks_batch, 'chunks_ids_batch': chunks_ids_batch}
+
+                entries_batch = []
+                chunks_batch = []
+                chunks_ids_batch = []
+
+        # Yield any remaining items.
+        if entries_batch:
+            yield {'entries_batch': entries_batch, 'chunks_batch': chunks_batch, 'chunks_ids_batch': chunks_ids_batch}
         
-    def preprocess(self, entry):
+    def preprocess_and_validate(self, entry):
+        """Preprocesses and validates the entry data"""
         try:
             self.validate_entry(entry)
             
@@ -89,11 +121,20 @@ class ARDUpdater:
                 
         if len(entry['text']) < char_len_lower_limit:
             raise ValueError(f"Entry text is too short (< {char_len_lower_limit} characters).")
+
+    @staticmethod
+    def is_valid_entry(entry):
+        """Checks if the entry is valid"""
+        return entry is not None
+
+    def is_sql_entry_upserted(self, entry):
+        """Upserts an entry to the SQL database and returns the success status"""
+        return self.sql_db.upsert_entry(entry)
     
     @retry(stop=stop_after_attempt(3))
     def get_embeddings(self, chunks):
         embeddings = np.zeros((len(chunks), EMBEDDINGS_DIMS))
-        rate_limit = EMBEDDINGS_RATE_LIMIT  #TODO: use this rate_limit
+        rate_limit = EMBEDDINGS_RATE_LIMIT  #  TODO: use this rate_limit
         
         openai_output = openai.Embedding.create(
             model=EMBEDDINGS_MODEL, 
