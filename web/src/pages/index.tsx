@@ -322,6 +322,8 @@ const Home: NextPage = () => {
                     // but I'll do the proper aggregation spec thing in case that's not always true.
 
                     if (line.startsWith("data: ")) message += line.slice(6);
+                    // Fixes #43
+                    if (!line.startsWith("data: ") && line !== "") message += line;
                     if (line === "") {
                         if (message !== "") {
                             const data = JSON.parse(message);
