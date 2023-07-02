@@ -11,7 +11,7 @@ from .text_splitter import TokenSplitter
 from .sql_db_handler import SQLDB
 from .pinecone_db_handler import PineconeDB
 
-from .settings import USE_OPENAI_EMBEDDINGS, OPENAI_EMBEDDINGS_MODEL, SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, OPENAI_EMBEDDINGS_RATE_LIMIT, ARD_DATASET_NAME, MAX_NUM_AUTHORS_IN_SIGNATURE
+from .settings import USE_OPENAI_EMBEDDINGS, OPENAI_EMBEDDINGS_MODEL, SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL, EMBEDDINGS_DIMS, OPENAI_EMBEDDINGS_RATE_LIMIT, DEVICE, ARD_DATASET_NAME, MAX_NUM_AUTHORS_IN_SIGNATURE
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,6 +31,8 @@ class ARDUpdater:
             from langchain.embeddings import HuggingFaceEmbeddings
             self.hf_embeddings = HuggingFaceEmbeddings(
                 model_name=SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL,
+                model_kwargs={'device': DEVICE},
+                encode_kwargs={'show_progress_bar': True}
             )
 
     def update(self, custom_sources: List[str] = ['all']):

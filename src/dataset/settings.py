@@ -1,6 +1,7 @@
 # dataset/settings.py
 
 import os
+import torch
 from pathlib import Path
 
 ### FILE PATHS ###
@@ -13,9 +14,10 @@ ARD_DATASET_NAME = "StampyAI/alignment-research-dataset"
 ### EMBEDDINGS ###
 USE_OPENAI_EMBEDDINGS = False
 OPENAI_EMBEDDINGS_MODEL = "text-embedding-ada-002"
-SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL = "sentence-transformers/multi-qa-mpnet-base-cos-v1"
 EMBEDDINGS_DIMS = 1536
 OPENAI_EMBEDDINGS_RATE_LIMIT = 3500
+SENTENCE_TRANSFORMER_EMBEDDINGS_MODEL = "sentence-transformers/multi-qa-mpnet-base-cos-v1"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 ### PINECONE ###
 PINECONE_INDEX_NAME = "stampy-chat-embeddings-test"
