@@ -87,23 +87,18 @@ class SQLDB:
 
             finally:
                 conn.commit()
-
-    def upsert_chunks(self, entry_id: str, chunks: List[str]) -> bool:
+    
+    def upsert_chunks(self, chunks_ids_batch: List[str], chunks_batch: List[str]) -> bool:
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             try:
-                # Delete existing chunks
-                cursor.execute("DELETE FROM chunk_database WHERE entry_id=?", (entry_id,))
-
-                # Insert new chunks
-                for i, chunk in enumerate(chunks):
-                    chunk_id = f"{entry_id}_{str(i).zfill(6)}"
-                    cursor.execute("INSERT INTO chunk_database (id, text, entry_id) VALUES (?, ?, ?)", (chunk_id, chunk, entry_id))
-                return True
-                
+                for chunk_id, chunk in zip(chunks_ids_batch, chunks_batch):
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO chunk_database
+                        (id, text)
+                        VALUES (?, ?)
+                    """, (chunk_id, chunk))
             except sqlite3.Error as e:
                 logger.error(f"The error '{e}' occurred.")
-                return False
-
             finally:
                 conn.commit()
