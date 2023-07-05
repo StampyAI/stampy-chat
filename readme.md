@@ -1,3 +1,4 @@
+# [https://chat.stampy.ai](https://chat.stampy.ai)
 # stampy-chat
 
 The Stampy conversational chatbot answers questions about AI Safety & Alignment based on information retrieved from the [Alignment Research Dataset (ARD)](https://github.com/moirage/alignment-research-dataset). The project has 3 components:

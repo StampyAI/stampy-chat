@@ -462,11 +462,6 @@ const Home: NextPage = () => {
             <main>
                 <Header page="index" />
 
-                <p>
-                  Since this is still an early test, all questions and answers are stored.<br/>
-                  Zero other information is collected.
-                </p>
-
                 <ul>
                     {entries.map((entry, i) => {
                         switch (entry.role) {
