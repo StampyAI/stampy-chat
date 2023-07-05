@@ -129,6 +129,8 @@ dmypy.json
 .pyre/
 
 # Other
+*test.py
+*test.ipynb
 *alignment_texts.jsonl
 *config.py
 *.DS_Store
@@ -145,3 +147,8 @@ api/dataset_big.pkl
 api/dataset_300.pkl
 
 api/.env.backup
+
+src/dataset_tests.ipynb
+src/ARD_LangChain_QA_Chat.ipynb
+
+src/dataset/data/*
