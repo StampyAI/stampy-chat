@@ -2,6 +2,7 @@ from pathlib import Path
 import csv
 import sys
 import json
+from datetime import datetime
 
 sys.path = [str(Path(__file__).parent.parent)] + sys.path
 from env import PINECONE_INDEX
@@ -32,6 +33,9 @@ for i, question in enumerate(questions):
 with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
 
     writer = csv.writer(f, quoting = csv.QUOTE_MINIMAL)
+
+    # write a header with the current timestamp
+    writer.writerow([datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
 
     for question, answer in zip(questions, answers):
 
