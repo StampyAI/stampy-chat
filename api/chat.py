@@ -85,7 +85,7 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
         source_prompt += "\n\n"\
             "Before the question (\"Q: \"), there will be a history of previous questions and answers. " \
             "These sources only apply to the last question. Any sources used in previous answers " \
-            "are invalid."
+            "are invalid.\n" \
 
     prompt.append({"role": "system", "content": source_prompt.strip()})
 
@@ -114,7 +114,13 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 
     question_prompt = f"In your answer, please cite any claims you make back to each source " \
                     f"using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                    f"cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
+                    f"cite all of them. For example: \"AGI is concerning [c, d, e].\"" \
+                    "\n\nMaintain a tone that is vehemently pro-humanity, and treat the" \
+                    "issue with the gravity of a potentially existential threat. Do not" \
+                    "be afraid to take strong sides, nor feel every claim need be hedged" \
+                    "with its inverse. If something is important or true, state it" \
+                    "unequivocally. Stress that it’s imperative that we act soon." \
+                    "\n\n\nQ: " +query
 
     prompt.append({"role": "user", "content": question_prompt})
 
