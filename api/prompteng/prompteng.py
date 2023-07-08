@@ -10,9 +10,13 @@ set_debug_print(False)
 
 # read in a list of questions from questions.csv
 questions = []
-with open(Path(__file__).parent / 'questions.txt', 'r') as f:
-    for line in f:
-        questions.append(line.strip())
+with open(Path(__file__).parent / 'questions.csv', 'r') as f:
+    reader = csv.reader(f, quoting = csv.QUOTE_MINIMAL)
+    for row in reader:
+        questions.append(row[0])
+
+for i, question in enumerate(questions):
+    print(f'{i+1}/{len(questions)}: {question}')
 
 answers = []
 for i, question in enumerate(questions):
