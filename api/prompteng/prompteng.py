@@ -16,8 +16,6 @@ with open(Path(__file__).parent / 'data/questions.csv', 'r') as f:
     for row in reader:
         questions.append(row[0])
 
-questions = questions[:3] # delete me
-
 for i, question in enumerate(questions):
     print(f'{i+1}/{len(questions)}: {question}')
 
