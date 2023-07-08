@@ -10,7 +10,7 @@ set_debug_print(False)
 
 # read in a list of questions from questions.csv
 questions = []
-with open(Path(__file__).parent / 'questions.csv', 'r') as f:
+with open(Path(__file__).parent / 'data/questions.csv', 'r') as f:
     reader = csv.reader(f, quoting = csv.QUOTE_MINIMAL)
     for row in reader:
         questions.append(row[0])
@@ -18,15 +18,16 @@ with open(Path(__file__).parent / 'questions.csv', 'r') as f:
 for i, question in enumerate(questions):
     print(f'{i+1}/{len(questions)}: {question}')
 
+print('-' * 60)
+
 answers = []
 for i, question in enumerate(questions):
     print(f'{i+1}/{len(questions)}: {question}')
     response = talk_to_robot_simple(PINECONE_INDEX, question, log = lambda x: None)
     answers.append(json.loads(response))
-    print(' --- done --- ')
 
 # write answers to answers.csv
-with open(Path(__file__).parent / 'answers.csv', 'w') as f:
+with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
     writer = csv.writer(f, quoting = csv.QUOTE_MINIMAL)
 
     # write header
@@ -50,5 +51,3 @@ with open(Path(__file__).parent / 'answers.csv', 'w') as f:
 
 
         writer.writerow(row)
-
-
