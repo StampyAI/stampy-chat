@@ -40,7 +40,10 @@ with open(Path(__file__).parent / 'answers.csv', 'w') as f:
             if 'author' in citations[c]: citation.append(citations[c]['author'])
             if 'date' in citations[c]: citation.append(citations[c]['date'])
             if 'url' in citations[c]: citation.append(citations[c]['url'])
+            citation = [x.strip() for x in citation]
+            citation = [x for x in citation if x != '']
             row.append(' --- '.join(citation))
+
 
         writer.writerow(row)
 
