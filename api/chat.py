@@ -154,7 +154,7 @@ def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: 
 
 
         t2 = time.time()
-        print("Time to get response: ", t2 - t1, " s")
+        print(f'Time to get response: {t2-t1:.2f}s')
 
         if DEBUG_PRINT:
             print('\n' * 10)

@@ -76,7 +76,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     query_embedding = get_embedding(user_query)
 
     t1 = time.time()
-    print("Time to get embedding: ", t1 - t)
+    print(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
         namespace="alignment-search",  # ugly, sorry
@@ -103,7 +103,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     t2 = time.time()
 
-    print("Time to get top-k blocks: ", t2 - t1)
+    print(f'Time to get top-k blocks: {t2-t1:.2f}s')
     
     # for all blocks that are "the same" (same title, author, date, url, tags),
     # combine their text with "....." in between. Return them in order such
