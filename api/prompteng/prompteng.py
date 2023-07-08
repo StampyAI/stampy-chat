@@ -1,6 +1,7 @@
 from pathlib import Path
 import csv
 import sys
+import json
 
 sys.path = [str(Path(__file__).parent.parent)] + sys.path
 from env import PINECONE_INDEX
@@ -15,12 +16,32 @@ with open(Path(__file__).parent / 'questions.txt', 'r') as f:
 
 answers = []
 for i, question in enumerate(questions):
-    print(f'{i}/{len(questions)}: {question}')
-    answers.append(talk_to_robot_simple(PINECONE_INDEX, question, log = lambda x: None))
+    print(f'{i+1}/{len(questions)}: {question}')
+    response = talk_to_robot_simple(PINECONE_INDEX, question, log = lambda x: None)
+    answers.append(json.loads(response))
     print(' --- done --- ')
 
 # write answers to answers.csv
 with open(Path(__file__).parent / 'answers.csv', 'w') as f:
     writer = csv.writer(f, quoting = csv.QUOTE_MINIMAL)
-    writer.writerow(['question', 'answer'])
-    writer.writerows(zip(questions, answers))
+
+    # write header
+    writer.writerow(['question', 'answer'] + [chr(i) for i in range(ord('a'), ord('z') + 1)])
+
+    for question, answer in zip(questions, answers):
+
+        row = [question, answer['response']]
+        citations = answer['citations']
+
+        for c in (chr(i) for i in range(ord('a'), ord('z') + 1)):
+            if c not in citations: break
+            citation = []
+            if 'title' in citations[c]: citation.append(citations[c]['title'])
+            if 'author' in citations[c]: citation.append(citations[c]['author'])
+            if 'date' in citations[c]: citation.append(citations[c]['date'])
+            if 'url' in citations[c]: citation.append(citations[c]['url'])
+            row.append(' --- '.join(citation))
+
+        writer.writerow(row)
+
+
