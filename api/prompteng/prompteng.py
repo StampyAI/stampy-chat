@@ -15,6 +15,8 @@ with open(Path(__file__).parent / 'data/questions.csv', 'r') as f:
     for row in reader:
         questions.append(row[0])
 
+questions = questions[:3] # delete me
+
 for i, question in enumerate(questions):
     print(f'{i+1}/{len(questions)}: {question}')
 
@@ -28,14 +30,13 @@ for i, question in enumerate(questions):
 
 # write answers to answers.csv
 with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
-    writer = csv.writer(f, quoting = csv.QUOTE_MINIMAL)
 
-    # write header
-    writer.writerow(['question', 'answer'] + [chr(i) for i in range(ord('a'), ord('z') + 1)])
+    writer = csv.writer(f, quoting = csv.QUOTE_MINIMAL)
 
     for question, answer in zip(questions, answers):
 
-        row = [question, answer['response']]
+        writer.writerow([question, answer['response']])
+
         citations = answer['citations']
 
         for c in (chr(i) for i in range(ord('a'), ord('z') + 1)):
@@ -47,7 +48,5 @@ with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
             if 'url' in citations[c]: citation.append(citations[c]['url'])
             citation = [x.strip() for x in citation]
             citation = [x for x in citation if x != '']
-            row.append(' --- '.join(citation))
+            writer.writerow([c, ' --- '.join(citation)])
 
-
-        writer.writerow(row)
