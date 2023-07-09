@@ -27,6 +27,10 @@ ENCODER = tiktoken.get_encoding("cl100k_base")
 
 DEBUG_PRINT = True
 
+def set_debug_print(val: bool):
+    global DEBUG_PRINT
+    DEBUG_PRINT = val
+
 # --------------------------------- prompt code --------------------------------
 
 
@@ -108,9 +112,9 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     prompt.extend(history_trnc[::-1])
 
 
-    question_prompt = f"In your answer, please cite any claims you make back to each source " \
-                    f"using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                    f"cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
+    question_prompt = "In your answer, please cite any claims you make back to each source " \
+                      "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
+                      "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
 
     prompt.append({"role": "user", "content": question_prompt})
 
@@ -187,10 +191,10 @@ def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STA
     yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, history, k, log))
 
 # wayyy simplified api
-def talk_to_robot_simple(index, query: str):
+def talk_to_robot_simple(index, query: str, log: Callable = print):
     res = {'response': ''}
 
-    for block in talk_to_robot_internal(index, query, []):
+    for block in talk_to_robot_internal(index, query, [], log = log):
         if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
             citations = {}
             for i, c in enumerate(block['citations']):
