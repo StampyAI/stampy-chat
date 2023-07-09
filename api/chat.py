@@ -112,9 +112,9 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
     prompt.extend(history_trnc[::-1])
 
 
-    question_prompt = f"In your answer, please cite any claims you make back to each source " \
-                    f"using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                    f"cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
+    question_prompt = "In your answer, please cite any claims you make back to each source " \
+                      "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
+                      "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
 
     prompt.append({"role": "user", "content": question_prompt})
 
