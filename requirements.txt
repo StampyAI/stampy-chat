@@ -1,0 +1,8 @@
+flask
+flask_cors
+numpy
+openai
+regex
+tiktoken
+pinecone-client
+discord_webhook
