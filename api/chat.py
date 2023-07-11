@@ -124,7 +124,9 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
         question_prompt += "This user is new to the field of AI Alignment and Safety - don't " \
                 "assume they know any technical terms or jargon. Still give a complete answer " \
                 "without patronizing the user, but take any extra time needed to " \
-                "explain new concepts or to illustrate your answer with examples.\n\n"
+                "explain new concepts or to illustrate your answer with examples. "\
+                "Put extra effort into explaining the intuition behind concepts " \
+                "rather than just giving a formal definition.\n\n"
 
     elif mode != "default": raise ValueError("Invalid mode: " + mode)
             
