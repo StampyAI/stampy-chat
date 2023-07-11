@@ -48,7 +48,7 @@ def cap(text: str, max_tokens: int) -> str:
 
 
 
-def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
+def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
 
     prompt = []
 
@@ -114,7 +114,22 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 
     question_prompt = "In your answer, please cite any claims you make back to each source " \
                       "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                      "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\nQ: " + query
+                      "cite all of them. For example: \"AGI is concerning [c, d, e].\n\n"
+
+    if mode == "crux":
+        question_prompt += "Answer very concisely, getting to the crux of the matter in as " \
+                "few words as possible. Limit your answer to 1-2 sentences.\n\n"
+
+    elif mode == "rookie":
+        question_prompt += "This user is new to the field of AI Alignment and Safety - don't " \
+                "assume they know any technical terms or jargon. Still give a complete answer " \
+                "without patronizing the user, but take any extra time needed to " \
+                "explain new concepts or to illustrate your answer with examples.\n\n"
+
+    elif mode != "default": raise ValueError("Invalid mode: " + mode)
+            
+
+    question_prompt += "Q: " + query
 
     prompt.append({"role": "user", "content": question_prompt})
 
@@ -124,7 +139,7 @@ def construct_prompt(query: str, history: List[Dict[str, str]], context: List[Bl
 import time
 import json
 
-def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
+def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
         yield {"state": "loading", "phase": "semantic"}
@@ -134,7 +149,7 @@ def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: 
 
         # 2. Generate a prompt
         yield {"state": "loading", "phase": "prompt"}
-        prompt = construct_prompt(query, history, top_k_blocks)
+        prompt = construct_prompt(query, mode, history, top_k_blocks)
 
         # 3. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
@@ -187,14 +202,14 @@ def talk_to_robot_internal(index, query: str, history: List[Dict[str, str]], k: 
         yield {'state': 'error', 'error': str(e)}
 
 # convert talk_to_robot_internal from dict generator into json generator
-def talk_to_robot(index, query: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
-    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, history, k, log))
+def talk_to_robot(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
+    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, mode, history, k, log))
 
 # wayyy simplified api
 def talk_to_robot_simple(index, query: str, log: Callable = print):
     res = {'response': ''}
 
-    for block in talk_to_robot_internal(index, query, [], log = log):
+    for block in talk_to_robot_internal(index, query, "default", [], log = log):
         if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
             citations = {}
             for i, c in enumerate(block['citations']):
