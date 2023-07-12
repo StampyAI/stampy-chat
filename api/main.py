@@ -41,9 +41,10 @@ def semantic():
 def chat():
 
     query = request.json['query']
+    mode = request.json['mode']
     history = request.json['history']
 
-    return Response(stream(talk_to_robot(PINECONE_INDEX, query, history, log = log)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history, log = log)), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------

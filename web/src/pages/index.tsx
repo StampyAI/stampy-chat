@@ -3,7 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
 import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from 'next/image';
 
@@ -242,6 +242,8 @@ type State = {
     response: AssistantEntry;
 };
 
+type Mode = "rookie" | "concise" | "default";
+
 
 // smooth-scroll to the bottom of the window if we're already less than 30% a screen away
 // note: finicky interaction with "smooth" - maybe fix later.
@@ -255,6 +257,21 @@ const Home: NextPage = () => {
     const [ entries, setEntries ] = useState<Entry[]>([]);
     const [ runningIndex, setRunningIndex ] = useState(0);
     const [ loadState, setLoadState ] = useState<State>({state: "idle"});
+
+    // [state, ready to save to localstorage]
+    const [ mode, setMode ] = useState<[Mode, boolean]>(["default", false]);
+
+    // store mode in localstorage
+    useEffect(() => {
+        if (mode[1]) localStorage.setItem("chat_mode", mode[0]);
+    }, [mode]);
+
+    // initial load
+    useEffect(() => {
+        const mode = localStorage.getItem("chat_mode") as Mode || "default";
+        setMode([mode, true]);
+    }, []);
+
 
     const search = async (
         query: string,
@@ -287,7 +304,7 @@ const Home: NextPage = () => {
                     "Allow-Control-Allow-Origin": "*"
                 },
 
-                body: JSON.stringify({query: query, history:
+                body: JSON.stringify({query: query, mode: mode[0], history:
                     old_entries.filter((entry) => entry.role !== "error")
                                .map((entry) => {
                                    return {
@@ -434,7 +451,7 @@ const Home: NextPage = () => {
             const data = (await res.json()).data;
 
             setEntries([...new_entries, {
-                role: "stampy", 
+                role: "stampy",
                 content: data.text,
                 url: "https://aisafety.info/?state=" + data.pageid,
             }]);
@@ -453,7 +470,7 @@ const Home: NextPage = () => {
 
             enable((f_old: Followup[]) => {
                 const f_old_filtered = f_old.filter((f) => f.pageid !== data.pageid && !fpids.has(f.pageid));
-                return [...f_new, ...f_old_filtered].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr 
+                return [...f_new, ...f_old_filtered].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr
             });
 
             scroll30();
@@ -467,8 +484,38 @@ const Home: NextPage = () => {
             </Head>
             <main>
                 <Header page="index" />
+                {/* three buttons for the three modes, place far right, 1rem between each */}
+                <div className="flex flex-row justify-center w-fit ml-auto mr-0 mb-5 gap-2">
+                    <button className={
+                        "border border-gray-300 px-1 " + (mode[1] && mode[0] === "rookie" ? "bg-gray-200" : "")
+                    } onClick={() => { setMode(["rookie", true]); }}
+                        title="For people who are new to the field of AI alignment. The
+                               answer might be longer, since technical terms will be
+                               explained in more detail and less background will be
+                               assumed.">
+                        rookie
+                    </button>
+                    //
+                    <button className={
+                        "border border-gray-300 px-1 " + (mode[1] && mode[0] === "concise" ? "bg-gray-200" : "")
+                    } onClick={() => { setMode(["concise", true]); }}
+                        title="Quick and to the point. Followup questions may need to be
+                               asked to get the full picture of what's going on.">
+                        concise
+                    </button>
+                    //
+                    <button className={
+                        "border border-gray-300 px-1 " + (mode[1] && mode[0] === "default" ? "bg-gray-200" : "")
+                    } onClick={() => { setMode(["default", true]); }}
+                        title="A balanced default mode.">
+                        default
+                    </button>
+                </div>
+
+
                 <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b> using data through June 2022. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
+              
                 <ul>
                     {entries.map((entry, i) => {
                         switch (entry.role) {
