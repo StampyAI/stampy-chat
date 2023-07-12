@@ -114,7 +114,7 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
 
     question_prompt = "In your answer, please cite any claims you make back to each source " \
                       "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
-                      "cite all of them. For example: \"AGI is concerning [c, d, e].\n\n"
+                      "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\n"
 
     if mode == "crux":
         question_prompt += "Answer very concisely, getting to the crux of the matter in as " \
