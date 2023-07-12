@@ -116,7 +116,7 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
                       "using the format: [a], [b], etc. If you use multiple sources to make a claim " \
                       "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\n"
 
-    if mode == "crux":
+    if mode == "concise":
         question_prompt += "Answer very concisely, getting to the crux of the matter in as " \
                 "few words as possible. Limit your answer to 1-2 sentences.\n\n"
 

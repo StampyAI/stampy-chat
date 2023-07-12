@@ -236,7 +236,7 @@ type State = {
     response: AssistantEntry;
 };
 
-type Mode = "rookie" | "crux" | "default";
+type Mode = "rookie" | "concise" | "default";
 
 
 // smooth-scroll to the bottom of the window if we're already less than 30% a screen away
@@ -491,11 +491,11 @@ const Home: NextPage = () => {
                     </button>
                     //
                     <button className={
-                        "border border-gray-300 px-1 " + (mode[1] && mode[0] === "crux" ? "bg-gray-200" : "")
-                    } onClick={() => { setMode(["crux", true]); }}
+                        "border border-gray-300 px-1 " + (mode[1] && mode[0] === "concise" ? "bg-gray-200" : "")
+                    } onClick={() => { setMode(["concise", true]); }}
                         title="Quick and to the point. Followup questions may need to be
                                asked to get the full picture of what's going on.">
-                        crux
+                        concise
                     </button>
                     //
                     <button className={
