@@ -4,6 +4,7 @@ import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Image from 'next/image';
 
 import Header from "../header";
@@ -72,9 +73,14 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
     if (citation.date && citation.date !== "")
         c_str += " - " + citation.date;
 
+    // if we don't have a url, link to a duckduckgo search for the title instead
+    const url = citation.url && citation.url !== ""
+                ? citation.url 
+                : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
+
     return (
         <A className={Colours[i % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
-            href={citation.url}>
+            href={url}>
             <span className="mx-1"> [{i + 1}] </span>
             <p className="mx-1 my-0"> {c_str} </p>
         </A>
@@ -474,7 +480,7 @@ const Home: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Alignment Search</title>
+                <title>AI Safety Info</title>
             </Head>
             <main>
                 <Header page="index" />
@@ -507,10 +513,9 @@ const Home: NextPage = () => {
                 </div>
 
 
+                <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b> using data through June 2022. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
-
-
-
+              
                 <ul>
                     {entries.map((entry, i) => {
                         switch (entry.role) {
