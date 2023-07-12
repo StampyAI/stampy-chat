@@ -41,11 +41,11 @@ const Semantic: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Alignment Search</title>
+                <title>AI Safety Info</title>
             </Head>
             <main>
                 <Header page="semantic" />
-                <h2>See the raw results of a semantic search</h2>
+                <h2>Retrieve relevant data sources from alignment research</h2>
                 <SearchBox search={semantic_search} />
                 <ul>
                     {results.map((entry, i) => (

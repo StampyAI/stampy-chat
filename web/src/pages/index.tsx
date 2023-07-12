@@ -4,6 +4,7 @@ import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
 import { useState } from "react";
+import Link from "next/link";
 import Image from 'next/image';
 
 import Header from "../header";
@@ -462,10 +463,11 @@ const Home: NextPage = () => {
     return (
         <>
             <Head>
-                <title>Alignment Search</title>
+                <title>AI Safety Info</title>
             </Head>
             <main>
                 <Header page="index" />
+                <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b> using data through June 2022. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
                 <ul>
                     {entries.map((entry, i) => {
