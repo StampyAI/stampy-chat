@@ -11,15 +11,22 @@ import time
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
-# COMPLETIONS_MODEL = "gpt-3.5-turbo"
-COMPLETIONS_MODEL = "gpt-4"
 
-STANDARD_K = 20 if COMPLETIONS_MODEL == 'gpt-4' else 10
+# COMPLETIONS_MODEL = "gpt-3.5-turbo"
+# STANDARD_K = 10
+# NUM_TOKENS = 4095
+
+# COMPLETIONS_MODEL = "gpt-4"
+# STANDARD_K = 20
+# NUM_TOKENS = 8191
+
+COMPLETIONS_MODEL = "gpt-3.5-turbo-16k"
+STANDARD_K = 20
+NUM_TOKENS = 16383
 
 # parameters
 
 # NOTE: All this is approximate, there's bits I'm intentionally not counting. Leave a buffer beyond what you might expect.
-NUM_TOKENS = 8191 if COMPLETIONS_MODEL == 'gpt-4' else 4095
 HISTORY_FRACTION = 0.25 # the (approximate) fraction of num_tokens to use for history text before truncating
 CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for context text before truncating
 

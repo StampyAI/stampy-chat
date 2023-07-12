@@ -26,7 +26,6 @@ answers = []
 for i, question in enumerate(questions):
     print(f'{i+1}/{len(questions)}: {question}')
     response = talk_to_robot_simple(PINECONE_INDEX, question, log = lambda x: None)
-    time.sleep(30) # to avoid rate limit
     answers.append(json.loads(response))
     with open(Path(__file__).parent / f'data/answer_{i}.json', 'w') as f:
         f.write(response)
