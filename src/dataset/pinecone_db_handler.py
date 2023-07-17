@@ -12,10 +12,18 @@ logger = logging.getLogger(__name__)
 
 class PineconeDB:
     def __init__(
-        self, 
+        self,
+        index_name: str = PINECONE_INDEX_NAME,
+        values_dims: int = PINECONE_VALUES_DIMS,
+        metric: str = PINECONE_METRIC,
+        metadata_entries: list = PINECONE_METADATA_ENTRIES,
         create_index: bool = False,
+        log_index_stats: bool = True,
     ):
-        self.index_name = PINECONE_INDEX_NAME
+        self.index_name = index_name
+        self.values_dims = values_dims
+        self.metric = metric
+        self.metadata_entries = metadata_entries
         
         pinecone.init(
             api_key = PINECONE_API_KEY,
@@ -27,9 +35,9 @@ class PineconeDB:
         
         self.index = pinecone.Index(index_name=self.index_name)
     
-    def __str__(self) -> str:
-        index_stats_response = self.index.describe_index_stats()
-        return f"{self.index_name}:\n{json.dumps(index_stats_response, indent=4)}"
+        if log_index_stats:
+            index_stats_response = self.index.describe_index_stats()
+            logger.info(f"{self.index_name}:\n{index_stats_response}")
     
     def upsert_entry(self, entry, chunks, embeddings, upsert_size=100):
         self.index.upsert(
@@ -89,9 +97,9 @@ class PineconeDB:
         
         pinecone.create_index(
             name=self.index_name,
-            dimension=PINECONE_VALUES_DIMS,
-            metric=PINECONE_METRIC,
-            metadata_config = {"indexed": PINECONE_METADATA_ENTRIES}
+            dimension=self.values_dims,
+            metric=self.metric,
+            metadata_config = {"indexed": self.metadata_entries},
         )
 
     def delete_index(self):
