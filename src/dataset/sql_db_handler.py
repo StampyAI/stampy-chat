@@ -1,6 +1,7 @@
 # dataset/sql_db_handler.py
 
 from typing import List, Dict, Union
+import numpy as np
 import sqlite3
 
 from .settings import SQL_DB_PATH
@@ -10,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class SQLDB:
-    def __init__(self):
-        self.db_name = SQL_DB_PATH
+    def __init__(self, db_name: str = SQL_DB_PATH):
+        self.db_name = db_name
         
         self.create_tables()
 
@@ -43,6 +44,7 @@ class SQLDB:
                     CREATE TABLE IF NOT EXISTS chunk_database (
                         id TEXT PRIMARY KEY,
                         text TEXT,
+                        embedding BLOB,
                         entry_id TEXT,
                         FOREIGN KEY (entry_id) REFERENCES entry_database(id)
                     )
@@ -87,18 +89,42 @@ class SQLDB:
 
             finally:
                 conn.commit()
-    
-    def upsert_chunks(self, chunks_ids_batch: List[str], chunks_batch: List[str]) -> bool:
+                
+    def upsert_chunks(self, chunks_ids_batch: List[str], chunks_batch: List[str], embeddings_batch: List[np.ndarray]) -> bool:
         with sqlite3.connect(self.db_name) as conn:
             cursor = conn.cursor()
             try:
-                for chunk_id, chunk in zip(chunks_ids_batch, chunks_batch):
+                for chunk_id, chunk, embedding in zip(chunks_ids_batch, chunks_batch, embeddings_batch):
                     cursor.execute("""
                         INSERT OR REPLACE INTO chunk_database
-                        (id, text)
-                        VALUES (?, ?)
-                    """, (chunk_id, chunk))
+                        (id, text, embedding)
+                        VALUES (?, ?, ?)
+                    """, (chunk_id, chunk, embedding.tobytes()))
             except sqlite3.Error as e:
                 logger.error(f"The error '{e}' occurred.")
             finally:
                 conn.commit()
+
+                
+    def stream_chunks(self):
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+
+            # Join entry_database and chunk_database tables and order by source
+            cursor.execute("""
+                SELECT c.id, c.text, c.embedding, e.source 
+                FROM chunk_database c
+                JOIN entry_database e ON c.entry_id = e.id
+                ORDER BY e.source
+            """)
+
+            for row in cursor:
+                # Convert bytes back to numpy array
+                embedding = np.frombuffer(row[2], dtype=np.float64) if row[2] else None
+
+                yield {
+                    'id': row[0],
+                    'text': row[1],
+                    'embedding': embedding,
+                    'source': row[3],
+                }
