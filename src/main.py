@@ -17,11 +17,8 @@ from dataset.update_dataset import ARDUpdater
 
 
 def update_sql_and_pinecone_dbs():
-    updater = ARDUpdater(
-        min_tokens_per_block=200,
-        max_tokens_per_block=300,
-    )
-    updater.update(['gwern_blog'])
+    updater = ARDUpdater()
+    updater.update()
 
 
 if __name__ == "__main__":
