@@ -1,3 +1,4 @@
+# [https://chat.stampy.ai](https://chat.stampy.ai)
 # stampy-chat
 
 The Stampy conversational chatbot answers questions about AI Safety & Alignment based on information retrieved from the [Alignment Research Dataset (ARD)](https://github.com/moirage/alignment-research-dataset). The project has 3 components:
@@ -21,9 +22,6 @@ In general, the Stampy project serves users at 3 levels of understanding:
 - **Knowledgeable** experts who might want to share their research by answering questions.
 
 Given the disparate backgrounds of users, for both the website and chatbot, we should consider having users identify their starting level (new, moderate, knowledgeable). On the website, the list of starter and recommended questions would be tuned to the user’s level. Similarly, the chatbot's usage of technical terminology could be adjusted to their level.
-
-
-
 
 ## Usage
 
@@ -57,10 +55,14 @@ npm run dev
 In the second window, a URL will be printed. Probably `http://localhost:3000`.
 Paste this into your browser to see the app.
 
+### Accessing Dataset
 
-
-
-
+If you'll be loading data alignment research dataset to be embedded and stored in pinecone,
+you'll need to access to our [private version of the dataset](https://huggingface.co/datasets/StampyAI/ard-private). 
+1. Create a free [HuggingFace account](https://huggingface.co/join).
+2. Give admin your account name to be added to the organization. DM ccstan on Discord. 
+3. Create an [access token](https://huggingface.co/settings/tokens).
+4. Follow [login instructions](https://huggingface.co/docs/huggingface_hub/quick-start) to access private datasets.
 
 ## Original Prototypes
 
@@ -69,6 +71,6 @@ The teams collaborated and key features were combined into one project.
 
 Name | Demo App | Code Notes
 -- | -- | --
-McGill's AlignmentSearch | https://alignmentsearch.up.railway.app/ | https://github.com/FraserLee/AlignmentSearch<br>https://tinyurl.com/alignmentsearchgdocs
+McGill's AlignmentSearch | https://alignmentsearch.up.railway.app/ | https://github.com/FraserLee/AlignmentSearch<br>https://www.lesswrong.com/posts/bGn9ZjeuJCg7HkKBj/introducing-alignmentsearch-an-ai-alignment-informed
 Craig's AlignmentGPT | http://tidblitz.com/ | https://github.com/cvarrichio/alignmentchat
 Stampy's Chat | http://chat.stampy.ai/ | https://github.com/ccstan99/stampy-chat<br>https://github.com/stampyAI/stampy-nlp/

@@ -1,0 +1,22 @@
+name: Deploy to Production Server
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update and Start Stampy Chat
+        uses: appleboy/ssh-action@v0.1.2
+        with:
+          host: ${{secrets.PROD_HOST}}
+          username: ${{secrets.PROD_USERNAME}}
+          password: ${{secrets.PROD_PASSWORD}}
+          port: ${{secrets.PROD_PORT}}
+          script: |
+            pushd /var/www
+            ./update.sh
+            service website restart
+            service backend restart
+            popd
