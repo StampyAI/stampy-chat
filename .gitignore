@@ -142,13 +142,8 @@ dmypy.json
 temp/
 *tmp.py
 
-api/dataset.pkl
-api/dataset_big.pkl
-api/dataset_300.pkl
-
 api/.env.backup
 
 src/dataset_tests.ipynb
 src/ARD_LangChain_QA_Chat.ipynb
-
-src/dataset/data/*
+src/dataset/data/ARD.db
