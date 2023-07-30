@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
+from urllib.parse import unquote
 import dataclasses
 import json
-from urllib.parse import unquote
+import re
 
 from env import PINECONE_INDEX, log
 from get_blocks import get_top_k_blocks
@@ -65,7 +66,13 @@ def human(id):
     r = requests.get(f"https://aisafety.info/questions/{id}")
     log(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
 
-    return Response(r.text, mimetype='application/json')
+    # run a regex to replace all relative links with absolute links. Just doing
+    # a regex for now since we really don't need to parse everything out then
+    # re-serialize it for something this simple.
+    # <a href=\"/?state=6207\"> -> <a href=\"https://stampy.ai/?state=6207\">
+    text = re.sub(r'<a href=\\"/\?state=(\d+)\\">', r'<a href=\"https://stampy.ai/?state=\1\">', r.text)
+    
+    return Response(text, mimetype='application/json')
 
 # ------------------------------------------------------------------------------
 
