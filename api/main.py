@@ -69,8 +69,10 @@ def human(id):
     # run a regex to replace all relative links with absolute links. Just doing
     # a regex for now since we really don't need to parse everything out then
     # re-serialize it for something this simple.
-    # <a href=\"/?state=6207\"> -> <a href=\"https://stampy.ai/?state=6207\">
-    text = re.sub(r'<a href=\\"/\?state=(\d+)\\">', r'<a href=\"https://aisafety.info/?state=\1\">', r.text)
+    # <a href=\"/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
+    #                               ⬇️
+    # <a href=\"https://stampy.ai/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
+    text = re.sub(r'<a href=\\"/\?state=(\d+.*)\\">', r'<a href=\"https://aisafety.info/?state=\1\\">', r.text)
     
     return Response(text, mimetype='application/json')
 
