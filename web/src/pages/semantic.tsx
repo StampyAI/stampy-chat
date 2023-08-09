@@ -17,7 +17,7 @@ const Semantic: NextPage = () => {
         disable: () => void,
         enable: (f_set: Followup[]) => void,
     ) => {
-        
+
         disable();
 
         const res = await fetch(API_URL + "/semantic", {

@@ -75,7 +75,7 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
 
     // if we don't have a url, link to a duckduckgo search for the title instead
     const url = citation.url && citation.url !== ""
-                ? citation.url 
+                ? citation.url
                 : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
 
     return (
@@ -515,7 +515,7 @@ const Home: NextPage = () => {
 
                 <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b> using data through June 2022. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
-              
+
                 <ul>
                     {entries.map((entry, i) => {
                         switch (entry.role) {

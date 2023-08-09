@@ -13,7 +13,7 @@ const Header: React.FC<{page: "index" | "semantic"}> = ({page}) => {
             <Link href="/">Go Chat</Link>
         </span>
     );
-        
+
     return (<>
                 <div className="flex my-4">
                     <Image src={logo} alt="aisafety.info logo" width={36}/>

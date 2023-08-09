@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import TextareaAutosize from 'react-textarea-autosize';
 import dynamic from 'next/dynamic'
 
-export type Followup = { 
+export type Followup = {
     text: string;
     pageid: string;
     score: number;
@@ -54,7 +54,7 @@ const SearchBoxInternal: React.FC<{search: (
     // point we do a search. Instead it needs to be passed into the search
     // method, for some reason.
     const enable = (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
-        setLoading(false); 
+        setLoading(false);
         setFollowups(f_set);
     };
     const disable = () => {
@@ -69,7 +69,7 @@ const SearchBoxInternal: React.FC<{search: (
     }, [loading]);
 
     // on first mount focus and set cursor to end of input
-    useEffect(() => { 
+    useEffect(() => {
         if (!inputRef.current) return;
         inputRef.current.focus();
         inputRef.current.selectionStart = inputRef.current.textLength;
@@ -84,7 +84,7 @@ const SearchBoxInternal: React.FC<{search: (
                 return <li key={i}>
                     <button className="border border-gray-300 px-1 my-1" onClick={() => {
                             search(followup.pageid + "\n" + followup.text, "followups", disable, enable);
-                        }}> 
+                        }}>
                         <span> {followup.text} </span>
                     </button>
                 </li>
