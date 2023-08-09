@@ -37,3 +37,16 @@ ol {
   @apply list-decimal;
 }
 
+
+/* glossary terms with a definition that shows on hover */
+.glossary-hover {
+  position: absolute;
+  display: none;
+  width: 300px;
+  @apply bg-white hover:bg-gray-300 h-fit px-3;
+  @apply border border-gray-300;
+}
+
+.glossary-link:hover + .glossary-hover {
+  display: block;
+}

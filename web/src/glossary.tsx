@@ -16,7 +16,7 @@ type GlossaryItem = {
 export const GlossaryP: React.FC<{content: string}> = ({content}) => {
     const [glossary, setGlossary] = useState<Map<string, GlossaryItem> | null>(null);
     const [glossaryRegex, setGlossaryRegex] = useState<RegExp | null>(null);
-    
+
     useEffect(() => {
         if (glossary === null) {
             const glossary = new Map(Object.entries(GLOSSARY_JSON));
@@ -37,12 +37,21 @@ export const GlossaryP: React.FC<{content: string}> = ({content}) => {
     // once and use that instead.
 
     return <span dangerouslySetInnerHTML={{__html: content.replace(glossaryRegex!, (match) => {
+
         const item = glossary.get(match.toLowerCase());
         if (item == undefined) return match;
 
         const hover_content = item.contents;
         const pageid = item.pageid;
-        return "AAAAAAAAA";
+
+        return `
+            <a href="https://aisafety.info/?state=${pageid}"
+               target="_blank"
+               class="glossary-link">
+                 ${match}
+            </a>
+            <div class="glossary-hover">${hover_content}</div>
+        `;
 
     })}} />;
 }
