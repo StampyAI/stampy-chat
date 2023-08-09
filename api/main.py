@@ -70,7 +70,7 @@ def human(id):
     # a regex for now since we really don't need to parse everything out then
     # re-serialize it for something this simple.
     # <a href=\"/?state=6207\"> -> <a href=\"https://stampy.ai/?state=6207\">
-    text = re.sub(r'<a href=\\"/\?state=(\d+)\\">', r'<a href=\"https://stampy.ai/?state=\1\">', r.text)
+    text = re.sub(r'<a href=\\"/\?state=(\d+)\\">', r'<a href=\"https://aisafety.info/?state=\1\">', r.text)
     
     return Response(text, mimetype='application/json')
 
