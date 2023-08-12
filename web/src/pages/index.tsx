@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
 import logo from "../logo.svg"
-import { GlossaryP } from "~/glossary";
+import { GlossaryP } from "../glossary";
 
 type Citation = {
     title: string;
