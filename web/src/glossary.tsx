@@ -10,11 +10,12 @@ export type Glossary = Map<string, GlossaryItem>;
 
 export const GlossaryContext = createContext<{g: Glossary, r: RegExp} | null>(null);
 
-// A component which wraps a paragraph and injects glossary terms into it as
-// hoverable pop-up links. The text is immediately rendered normally, but after
-// the glossary is loaded (which happens once per page, asynchronously), the
-// glossary terms are replaced with elements.
-export const GlossaryP: React.FC<{content: string}> = ({content}) => {
+// A component which wraps arbitrary html in a span, and injects glossary terms
+// into it as hoverable pop-up links. The text is immediately rendered normally,
+// but after the glossary is loaded (which happens once per page, asynchronously),
+// the glossary terms are replaced with elements.
+
+export const GlossarySpan: React.FC<{content: string}> = ({content}) => {
 
     const g = useContext(GlossaryContext);
 

@@ -10,7 +10,7 @@ import Image from 'next/image';
 import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
 import logo from "../logo.svg"
-import { GlossaryP } from "../glossary";
+import { GlossarySpan } from "../glossary";
 
 type Citation = {
     title: string;
@@ -203,7 +203,7 @@ const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
                 response.split("\n").map(paragraph => ( <p> {
                     paragraph.split(in_text_citation_regex).map((text, i) => {
                         if (i % 2 === 0) {
-                            return <GlossaryP content={text.trim()} />;
+                            return <GlossarySpan content={text.trim()} />;
                         }
                         i = parseInt(text) - 1;
                         if (!citations.has(i)) return `[${text}]`;

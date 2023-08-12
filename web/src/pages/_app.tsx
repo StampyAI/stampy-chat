@@ -43,5 +43,3 @@ const tempHackFetch = (_url: string) => {
     }, 1000);
   });
 }
-  
-
