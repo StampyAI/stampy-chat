@@ -52,7 +52,3 @@ export const GlossarySpan: React.FC<{content: string}> = ({content}) => {
 
     })}} />;
 }
-
-
-
-

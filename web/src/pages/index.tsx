@@ -540,7 +540,7 @@ const Home: NextPage = () => {
                                         maxWidth: "99.8%",
                                     }}
                                 >
-                                    <div dangerouslySetInnerHTML={{__html: entry.content}} />
+                                    <div><GlossarySpan content={entry.content} /></div>
                                     <div className="mb-3 flex justify-end">
                                         <a href={entry.url} target="_blank"
                                            className="flex items-center space-x-1">
