@@ -43,11 +43,12 @@ ol {
   position: absolute;
   display: none;
   width: 300px;
-  transform: translate(-50%, 1.7rem);
+  transform: translateY(1.7rem);
   @apply bg-white hover:bg-gray-300 h-fit px-3;
   @apply border border-gray-300;
 }
 
-.glossary-link:hover + .glossary-hover {
+/* .glossary-link:hover + .glossary-hover { */
+.glossary-hover:has(+ .glossary-link:hover) {
   display: initial;
 }

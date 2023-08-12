@@ -42,12 +42,12 @@ export const GlossarySpan: React.FC<{content: string}> = ({content}) => {
         const pageid = item.pageid;
 
         return `
+            <div class="glossary-hover" nowrap>${hover_content}</div>
             <a href="https://aisafety.info/?state=${pageid}"
                target="_blank"
                class="glossary-link">
                  ${match}
             </a>
-            <div class="glossary-hover">${hover_content}</div>
         `;
 
     })}} />;
