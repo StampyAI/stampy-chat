@@ -9,54 +9,54 @@ import { useState } from "react";
 
 const Semantic: NextPage = () => {
 
-    const [results, setResults] = useState<SemanticEntry[]>([]);
+  const [results, setResults] = useState<SemanticEntry[]>([]);
 
-    const semantic_search = async (
-        query: string,
-        _query_source: "search" | "followups",
-        disable: () => void,
-        enable: (f_set: Followup[]) => void,
-    ) => {
+  const semantic_search = async (
+    query: string,
+    _query_source: "search" | "followups",
+    disable: () => void,
+    enable: (f_set: Followup[]) => void,
+  ) => {
 
-        disable();
+    disable();
 
-        const res = await fetch(API_URL + "/semantic", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", },
-            body: JSON.stringify({query: query}),
-        })
+    const res = await fetch(API_URL + "/semantic", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", },
+      body: JSON.stringify({query: query}),
+    })
 
-        if (!res.ok) {
-            enable([]);
-            console.log("load failure: " + res.status);
-        }
+    if (!res.ok) {
+      enable([]);
+      console.log("load failure: " + res.status);
+    }
 
-        const data = await res.json();
+    const data = await res.json();
 
-        setResults(data);
-        enable([]);
+    setResults(data);
+    enable([]);
 
-    };
+  };
 
-    return (
-        <>
-            <Head>
-                <title>AI Safety Info</title>
-            </Head>
-            <main>
-                <Header page="semantic" />
-                <h2>Retrieve relevant data sources from alignment research</h2>
-                <SearchBox search={semantic_search} />
-                <ul>
-                    {results.map((entry, i) => (
-                        <li key={"entry" + i}>
-                            <ShowSemanticEntry entry={entry} />
-                        </li>
-                    ))}
-                </ul>
-            </main>
-        </>
-    );
+  return (
+    <>
+      <Head>
+        <title>AI Safety Info</title>
+      </Head>
+      <main>
+        <Header page="semantic" />
+        <h2>Retrieve relevant data sources from alignment research</h2>
+        <SearchBox search={semantic_search} />
+        <ul>
+          {results.map((entry, i) => (
+            <li key={"entry" + i}>
+              <ShowSemanticEntry entry={entry} />
+            </li>
+          ))}
+        </ul>
+      </main>
+    </>
+  );
 };
 
 // Round trip test. If this works, our heavier usecase probably will (famous last words)
@@ -65,35 +65,35 @@ const Semantic: NextPage = () => {
 // shouldn't be too much harder.
 
 type SemanticEntry = {
-    title: string;
-    author: string;
-    date: string;
-    url: string;
-    tags: string;
-    text: string;
+  title: string;
+  author: string;
+  date: string;
+  url: string;
+  tags: string;
+  text: string;
 };
 
 const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
 
-    return (
-        <div className="my-3">
+  return (
+    <div className="my-3">
 
-            {/* horizontally split first row, title on left, author on right */}
-            <div className="flex">
-                <h3 className="text-xl flex-1">{entry.title}</h3>
-                <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
-            </div>
-            { entry.text.split("\n").map((paragraph, i) => {
-                const p = paragraph.trim();
-                if (p === "") return <></>;
-                if (p === ".....") return <hr key={"b" + i} />;
-                return <p className="text-sm" key={"p" + i}> {paragraph} </p>
-              })
-            }
+      {/* horizontally split first row, title on left, author on right */}
+      <div className="flex">
+        <h3 className="text-xl flex-1">{entry.title}</h3>
+        <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
+      </div>
+      { entry.text.split("\n").map((paragraph, i) => {
+        const p = paragraph.trim();
+        if (p === "") return <></>;
+        if (p === ".....") return <hr key={"b" + i} />;
+        return <p className="text-sm" key={"p" + i}> {paragraph} </p>
+        })
+      }
 
-            <a href={entry.url}>Read more</a>
-        </div>
-    );
+      <a href={entry.url}>Read more</a>
+    </div>
+  );
 };
 
 
