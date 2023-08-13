@@ -10,6 +10,7 @@ import Image from 'next/image';
 import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
 import logo from "../logo.svg"
+import { GlossarySpan } from "../glossary";
 
 type Citation = {
     title: string;
@@ -205,7 +206,7 @@ const ShowAssistantEntry: React.FC<{entry: AssistantEntry}> = ({entry}) => {
                 response.split("\n").map(paragraph => ( <p> {
                     paragraph.split(in_text_citation_regex).map((text, i) => {
                         if (i % 2 === 0) {
-                            return text.trim();
+                            return <GlossarySpan content={text.trim()} />;
                         }
                         i = parseInt(text) - 1;
                         if (!citations.has(i)) return `[${text}]`;
@@ -542,7 +543,7 @@ const Home: NextPage = () => {
                                         maxWidth: "99.8%",
                                     }}
                                 >
-                                    <div dangerouslySetInnerHTML={{__html: entry.content}} />
+                                    <div><GlossarySpan content={entry.content} /></div>
                                     <div className="mb-3 flex justify-end">
                                         <a href={entry.url} target="_blank"
                                            className="flex items-center space-x-1">
