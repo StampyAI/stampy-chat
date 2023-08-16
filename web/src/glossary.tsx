@@ -41,14 +41,21 @@ export const GlossarySpan: React.FC<{content: string}> = ({content}) => {
         const hover_content = item.contents;
         const pageid = item.pageid;
 
-        return `
-            <div class="glossary-hover" nowrap>${hover_content}</div>
-            <a href="https://aisafety.info/?state=${pageid}"
-               target="_blank"
-               class="glossary-link">
-                 ${match}
-            </a>
-        `;
+        if (pageid == undefined || pageid.trim() == "") {
+            return `
+                <div class="glossary-hover" nowrap>${hover_content}</div>
+                <span class="glossary-link">${match}</span>
+            `;
+        } else {
+            return `
+                <div class="glossary-hover" nowrap>${hover_content}</div>
+                <a href="https://aisafety.info/?state=${pageid}"
+                   target="_blank"
+                   class="glossary-link">
+                     ${match}
+                </a>
+            `;
+        }
 
     })}} />;
 }
