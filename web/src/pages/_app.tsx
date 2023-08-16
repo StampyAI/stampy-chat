@@ -15,7 +15,12 @@ const MyApp: AppType = ({ Component, pageProps }) => {
         .then((res) => res.json())
         .then((data) => {
           const glossary: Glossary = new Map(Object.entries(data));
-          const regex = new RegExp(Array.from(glossary.keys()).join("|"), "gim");
+          const keys = Array.from(glossary.keys())
+                            .sort((a, b) => b.length - a.length) // sort by length descending
+                            .map((k) => k.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')) // escape regex chars
+                            .map((k) => `\\b${k}\\b`); // add word boundaries
+
+          const regex = new RegExp(keys.join("|"), "gim");
           setGlossary({ g: glossary, r: regex });
         });
   }, []);

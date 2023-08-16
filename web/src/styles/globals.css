@@ -53,3 +53,7 @@ ol {
 .glossary-hover:has(+ .glossary-link:hover) {
   display: initial;
 }
+
+.glossary-link {
+  @apply underline hover:no-underline;
+}
