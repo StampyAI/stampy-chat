@@ -28,7 +28,7 @@ Open two terminal windows. In the first, run:
 
 ```bash
 cd api
-pipenv install --dev # (skip this line after the first time)
+pipenv install --dev --ignore-pipfile # (skip this line after the first time)
 pipenv run python3 main.py
 ```
 
