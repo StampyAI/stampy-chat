@@ -58,9 +58,9 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     if index is None:
 
-        print('Pinecone index not found, performing semantic search on alignmentsearch-api.up.railway.app endpoint.')
+        print('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
-            "https://alignmentsearch-api.up.railway.app/semantic",
+            "https://chat.stampy.ai/semantic",
             json = {
                 "query": user_query,
                 "k": k
@@ -79,7 +79,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     print(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
-        namespace="alignment-search",  # ugly, sorry
+        namespace="",  # ugly, sorry
         top_k=k,
         include_values=False,
         include_metadata=True,

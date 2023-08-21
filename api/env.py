@@ -12,6 +12,8 @@ else:
 
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
+PINECONE_INDEX   = os.environ.get('PINECONE_INDEX_NAME')
+PINECONE_ENV     = os.environ.get('PINECONE_ENVIRONMENT')
 LOGGING_URL      = os.environ.get('LOGGING_URL')
 PINECONE_INDEX   = None
 
@@ -22,10 +24,10 @@ if PINECONE_API_KEY is not None and PINECONE_API_KEY != "":
 
     pinecone.init(
         api_key = PINECONE_API_KEY,
-        environment = "us-east1-gcp",
+        environment = PINECONE_ENV,
     )
 
-    PINECONE_INDEX = pinecone.Index(index_name="alignment-search")
+    PINECONE_INDEX = pinecone.Index(index_name=PINECONE_INDEX)
 
 # log something only if the logging url is set
 def log(*args, end="\n"):
