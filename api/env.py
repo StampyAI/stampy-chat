@@ -12,7 +12,7 @@ else:
 
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-PINECONE_INDEX   = os.environ.get('PINECONE_INDEX_NAME')
+PINECONE_INDEX_NAME = os.environ.get('PINECONE_INDEX_NAME')
 PINECONE_ENV     = os.environ.get('PINECONE_ENVIRONMENT')
 LOGGING_URL      = os.environ.get('LOGGING_URL')
 PINECONE_INDEX   = None
@@ -27,7 +27,7 @@ if PINECONE_API_KEY is not None and PINECONE_API_KEY != "":
         environment = PINECONE_ENV,
     )
 
-    PINECONE_INDEX = pinecone.Index(index_name=PINECONE_INDEX)
+    PINECONE_INDEX = pinecone.Index(index_name=PINECONE_INDEX_NAME)
 
 # log something only if the logging url is set
 def log(*args, end="\n"):
