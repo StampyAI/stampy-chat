@@ -79,7 +79,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     print(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
-        namespace="",  # ugly, sorry
+        namespace='regular',
         top_k=k,
         include_values=False,
         include_metadata=True,
@@ -94,10 +94,9 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
         blocks.append(Block(
             title = match['metadata']['title'],
-            author = match['metadata']['author'],
+            author = match['metadata']['authors'],
             date = date,
             url = match['metadata']['url'],
-            tags = match['metadata']['tags'],
             text = strip_block(match['metadata']['text'])
         ))
 
