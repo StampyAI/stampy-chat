@@ -129,7 +129,7 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
                 "rather than just giving a formal definition.\n\n"
 
     elif mode != "default": raise ValueError("Invalid mode: " + mode)
-            
+
 
     question_prompt += "Q: " + query
 
@@ -153,10 +153,24 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
         yield {"state": "loading", "phase": "prompt"}
         prompt = construct_prompt(query, mode, history, top_k_blocks)
 
-        # 3. Count number of tokens left for completion (-50 for a buffer)
+        # 3. Run both the standalone query and the full prompt through
+        # moderation to see if it will be accepted by OpenAI's api
+
+        mod_res = openai.Moderation.create(
+            input = [
+                query,
+                '\n\n'.join([message["content"] for message in prompt]),
+            ]
+        )
+
+        if any(map(lambda x: x["flagged"], mod_res["results"])):
+            raise ValueError("This conversation was rejected by OpenAI's moderation filter. Sorry.")
+
+
+        # 4. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
 
-        # 4. Answer the user query
+        # 5. Answer the user query
         yield {"state": "loading", "phase": "llm"}
         t1 = time.time()
         response = ''

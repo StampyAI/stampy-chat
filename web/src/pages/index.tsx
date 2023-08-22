@@ -418,6 +418,7 @@ const Home: NextPage = () => {
 
                 case "error":
                   setEntries([...new_entries, {role: "error", content: data.error}]);
+                  setLoadState({state: "idle"});
                   break read;
 
               }
@@ -478,6 +479,19 @@ const Home: NextPage = () => {
       scroll30();
     }
   };
+
+  var last_entry = <></>;
+  if (loadState.state === "loading") {
+    switch (loadState.phase) {
+      case "semantic": last_entry = <p>Loading: Performing semantic search...</p>; break;
+      case "prompt": last_entry = <p>Loading: Creating prompt...</p>; break;
+      case "llm": last_entry = <p>Loading: Waiting for LLM...</p>; break;
+    }
+  } else if (loadState.state === "streaming") {
+    last_entry = <ShowAssistantEntry entry={loadState.response}/>;
+  }
+
+
 
   return (
     <>
@@ -556,18 +570,7 @@ const Home: NextPage = () => {
 
           <SearchBox search={search} />
 
-          {(() => {
-            if (loadState.state === "loading") {
-              switch (loadState.phase) {
-                case "semantic": return <p>Loading: Performing semantic search...</p>;
-                case "prompt": return <p>Loading: Creating prompt...</p>;
-                case "llm": return <p>Loading: Waiting for LLM...</p>;
-              }
-            } else if (loadState.state === "streaming") {
-              return <ShowAssistantEntry entry={loadState.response}/>;
-            }
-            return <></>;
-          })()}
+          { last_entry }
 
         </ul>
       </main>
