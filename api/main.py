@@ -55,28 +55,7 @@ def chat():
 def chat_simplified(param=''):
     return Response(talk_to_robot_simple(PINECONE_INDEX, unquote(param)))
 
-# ---------------------- human authored content retrieval ----------------------
-
-# act as a proxy, forwarding any requests to /human/<id> to
-# https://aisafety.info/questions/<id> in order to get around CORS
-@app.route('/human/<id>', methods=['GET'])
-@cross_origin()
-def human(id):
-    import requests
-    r = requests.get(f"https://aisafety.info/questions/{id}")
-    log(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
-
-    # run a regex to replace all relative links with absolute links. Just doing
-    # a regex for now since we really don't need to parse everything out then
-    # re-serialize it for something this simple.
-    # <a href=\"/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
-    #                               ⬇️
-    # <a href=\"https://stampy.ai/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
-    text = re.sub(r'<a href=\\"/\?state=(\d+.*)\\">', r'<a href=\"https://aisafety.info/?state=\1\\">', r.text)
-    
-    return Response(text, mimetype='application/json')
-
 # ------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=True, port=3001)

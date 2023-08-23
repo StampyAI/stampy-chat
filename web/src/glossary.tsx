@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, FC } from "react";
 
 type GlossaryItem = {
   term: string;
@@ -15,7 +15,7 @@ export const GlossaryContext = createContext<{g: Glossary, r: RegExp} | null>(nu
 // but after the glossary is loaded (which happens once per page, asynchronously),
 // the glossary terms are replaced with elements.
 
-export const GlossarySpan: React.FC<{content: string}> = ({content}) => {
+export const GlossarySpan: FC<{content: string}> = ({content}) => {
 
   const g = useContext(GlossaryContext);
 

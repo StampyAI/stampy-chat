@@ -1,5 +1,3 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
-
 import Head from "next/head";
 import React from "react";
 import { type NextPage } from "next";
@@ -11,6 +9,7 @@ import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
 import logo from "../logo.svg"
 import { GlossarySpan } from "../glossary";
+import { API_URL, STAMPY_URL } from "../settings"
 
 type Citation = {
   title: string;
@@ -435,7 +434,7 @@ const Home: NextPage = () => {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
       const query_id = query.split("\n", 2)[0];
 
-      const res = await fetch(API_URL + "/human/" + query_id, {
+      const res = await fetch(`${STAMPY_URL}/questions/${query_id}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
