@@ -23,6 +23,7 @@ discord-webhook = "*"
 requests = "*"
 
 [dev-packages]
+stampy-chat = {editable = true, path = "."}
 
 [requires]
 python_version = "3.11"

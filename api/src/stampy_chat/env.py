@@ -9,6 +9,7 @@ if os.path.exists('.env'):
 else:
     print("'api/.env' not found. Rename the 'api/.env.example' file and fill in values.")
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "WARNING").upper()
 
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')

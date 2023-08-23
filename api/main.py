@@ -2,12 +2,10 @@ from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 from urllib.parse import unquote
 import dataclasses
-import json
-import re
 
-from env import PINECONE_INDEX, log
-from get_blocks import get_top_k_blocks
-from chat import talk_to_robot, talk_to_robot_simple
+from stampy_chat.env import PINECONE_INDEX, log
+from stampy_chat.get_blocks import get_top_k_blocks
+from stampy_chat.chat import talk_to_robot, talk_to_robot_simple
 
 
 # ---------------------------------- web setup ---------------------------------

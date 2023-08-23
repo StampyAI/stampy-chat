@@ -1,8 +1,4 @@
 # ------------------------------- env, constants -------------------------------
-import logging
-from followups import multisearch_authored
-from get_blocks import get_top_k_blocks, Block
-
 from dataclasses import asdict
 from typing import List, Dict, Callable
 import openai
@@ -10,6 +6,9 @@ import re
 import tiktoken
 import time
 
+from stampy_chat.followups import multisearch_authored
+from stampy_chat.get_blocks import get_top_k_blocks, Block
+from stampy_chat import logging
 
 logger = logging.getLogger(__name__)
 
@@ -151,15 +150,7 @@ def check_openai_moderation(prompt: Prompt, query: str, log: Callable):
     mod_res = openai.Moderation.create( input = [ query, prompt_string ])
 
     if any(map(lambda x: x["flagged"], mod_res["results"])):
-
-        # this is a biiig ask of a discord webhook - put most important
-        # info at start such that it's more likely to not be cut off
-        log('-' * 80)
-        log("MODERATION REJECTED")
-        log("MODERATION RESPONSE:\n\n" + json.dumps(mod_res["results"], indent=2))
-        log("REJECTED QUERY: " + query)
-        log("REJECTED PROMPT:\n\n" + prompt_string)
-        log('-' * 80)
+        logger.moderation_issue(query, prompt_string, mod_res)
 
         raise ValueError("This conversation was rejected by OpenAI's moderation filter. Sorry.")
 
@@ -211,7 +202,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
 
 
         logger.info(f'Time to get response: {time.time() - t1:.2f}s')
-        if logger.isEnabledFor(logging.DEBUG):
+        if logger.is_debug():
             logger.debug('\n' * 10)
             logger.debug(" ------------------------------ prompt: -----------------------------")
             for message in prompt:
@@ -223,8 +214,8 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
             logger.debug(' ------------------------------ response: -----------------------------')
             logger.debug(response)
 
-        log(query)
-        log(response)
+        logger.query(query)
+        logger.response(response)
 
         # yield done state, possibly with followup questions
         fin_json = {'state': 'done'}
