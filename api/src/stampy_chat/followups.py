@@ -1,8 +1,8 @@
-import logging
 from dataclasses import dataclass
 from typing import List
 from urllib.parse import quote
 import requests
+from stampy_chat import logging
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def multisearch_authored(queries: List[str]):
 
     followups = followups[:MAX_FOLLOWUPS]
 
-    if logger.isEnabledFor(logging.DEBUG):
+    if logger.is_debug():
         logger.debug(" ------------------------------ suggested followups: -----------------------------")
         for followup in followups:
             if followup.score > SIMILARITY_THRESHOLD:
