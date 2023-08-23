@@ -1,13 +1,16 @@
-from pathlib import Path
+import logging
 import csv
 import sys
 import json
+from pathlib import Path
 from datetime import datetime
 
 sys.path = [str(Path(__file__).parent.parent)] + sys.path
 from env import PINECONE_INDEX
-from chat import talk_to_robot_simple, set_debug_print
-set_debug_print(False)
+from chat import talk_to_robot_simple
+
+logging.basicConfig(level=logging.DEBUG)
+
 
 # read in a list of questions from questions.csv
 questions = []
@@ -51,4 +54,3 @@ with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
             citation = [x.strip() for x in citation]
             citation = [x for x in citation if x != '']
             writer.writerow([c, ' --- '.join(citation)])
-

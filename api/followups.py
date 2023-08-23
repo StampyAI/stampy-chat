@@ -1,7 +1,10 @@
+import logging
 from dataclasses import dataclass
 from typing import List
 from urllib.parse import quote
 import requests
+
+logger = logging.getLogger(__name__)
 
 SIMILARITY_THRESHOLD = 0.4 # bit of a shot in the dark - play with this later
 MAX_FOLLOWUPS = 3
@@ -15,11 +18,11 @@ class Followup:
 # do a search like this:
 # https://nlp.stampy.ai/api/search?query=what%20is%20agi
 
-def search_authored(query: str, DEBUG_PRINT: bool = False):
-    multisearch_authored([query], DEBUG_PRINT)
+def search_authored(query: str):
+    multisearch_authored([query])
 
 # search with multiple queries, combine results
-def multisearch_authored(queries: List[str], DEBUG_PRINT: bool = False):
+def multisearch_authored(queries: List[str]):
 
     followups = {}
 
@@ -36,20 +39,18 @@ def multisearch_authored(queries: List[str], DEBUG_PRINT: bool = False):
 
     followups = followups[:MAX_FOLLOWUPS]
 
-    if DEBUG_PRINT:
-        print(" ------------------------------ suggested followups: -----------------------------")
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug(" ------------------------------ suggested followups: -----------------------------")
         for followup in followups:
             if followup.score > SIMILARITY_THRESHOLD:
-                print(f'{followup.score:.2f} - suggested to user')
+                logger.debug(f'{followup.score:.2f} - suggested to user')
             else:
-                print(f'{followup.score:.2f} - not suggested')
+                logger.debug(f'{followup.score:.2f} - not suggested')
 
-            print(followup.text)
-            print(followup.pageid)
-            print()
+            logger.debug(followup.text)
+            logger.debug(followup.pageid)
+            logger.debug('')
 
     followups = [ f for f in followups if f.score > SIMILARITY_THRESHOLD ]
 
     return followups
-
-    
