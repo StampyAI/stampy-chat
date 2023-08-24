@@ -1,28 +1,61 @@
 import json
 from logging import *
-from stampy_chat.env import LOG_LEVEL
+from discord_webhook import DiscordWebhook
+from stampy_chat.env import LOG_LEVEL, DISCORD_LOGGING_URL
+from stampy_chat.db.session import ItemAdder
+from stampy_chat.db.models import Interaction
 
 
 class ChatLogger(Logger):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.item_adder = ItemAdder()
+
     def is_debug(self):
         return self.isEnabledFor(DEBUG)
 
-    def query(self, query):
-        self.info('query: %s', query)
+    def interaction(self, query, response, history, prompt, blocks):
+        prompt = [i for i in prompt if i.get('role') == 'system']
+        prompt = prompt[0].get('content') if prompt else None
 
-    def response(self, response):
+        self.item_adder.add(
+            Interaction(
+                # session_id=session_id,
+                interaction_no=len([i for i in history if i.get('role') == 'user']),
+                query=query,
+                prompt=prompt,
+                response=response,
+                chunks=",".join(b.id for b in blocks),
+            )
+        )
+        self.info('query: %s', query)
         self.info('response: %s', response)
 
     def moderation_issue(self, query, prompt_string, mod_res):
         # this is a biiig ask of a discord webhook - put most important
         # info at start such that it's more likely to not be cut off
-        self.warn('-' * 80)
-        self.warn("MODERATION REJECTED")
-        self.warn("MODERATION RESPONSE:\n\n%s", json.dumps(mod_res["results"], indent=2))
-        self.warn("REJECTED QUERY: %s", query)
-        self.warn("REJECTED PROMPT:\n\n %s", prompt_string)
-        self.warn('-' * 80)
+        messages = [
+            '-' * 80,
+            "MODERATION REJECTED",
+            "MODERATION RESPONSE:\n\n" + json.dumps(mod_res["results"], indent=2),
+            "REJECTED QUERY: " + query,
+            "REJECTED PROMPT:\n\n " + prompt_string,
+            '-' * 80,
+        ]
+        for message in messages:
+            self.warn(message)
+            self.to_discord(message)
+
+    def to_discord(self, message):
+        if not DISCORD_LOGGING_URL:
+            return
+
+        while len(message) > 2000 - 8:
+            m_section, message = message[:2000 - 8], message[2000 - 8:]
+            m_section = "```\n" + m_section + "\n```"
+            DiscordWebhook(url=DISCORD_LOGGING_URL, content=m_section).execute()
+        DiscordWebhook(url=DISCORD_LOGGING_URL, content="```\n" + message + "\n```").execute()
 
 
 setLoggerClass(ChatLogger)

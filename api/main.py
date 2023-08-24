@@ -3,7 +3,7 @@ from flask_cors import CORS, cross_origin
 from urllib.parse import unquote
 import dataclasses
 
-from stampy_chat.env import PINECONE_INDEX, log
+from stampy_chat.env import PINECONE_INDEX
 from stampy_chat.get_blocks import get_top_k_blocks
 from stampy_chat.chat import talk_to_robot, talk_to_robot_simple
 
@@ -27,7 +27,7 @@ def stream(src):
 @cross_origin()
 def semantic():
     query = request.json['query']
-    k = request.json['k'] if 'k' in request.json else 20
+    k = request.json.get('k', 20)
     return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(PINECONE_INDEX, query, k)])
 
 
@@ -43,7 +43,7 @@ def chat():
     mode = request.json['mode']
     history = request.json['history']
 
-    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history, log = log)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history)), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------

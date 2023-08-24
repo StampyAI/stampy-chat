@@ -21,6 +21,9 @@ pinecone-client = "*"
 python-dotenv = "*"
 discord-webhook = "*"
 requests = "*"
+alembic = "*"
+sqlalchemy = "*"
+mysql-connector-python = "*"
 
 [dev-packages]
 stampy-chat = {editable = true, path = "."}

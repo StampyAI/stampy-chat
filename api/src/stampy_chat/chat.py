@@ -11,11 +11,6 @@ from stampy_chat.get_blocks import get_top_k_blocks, Block
 from stampy_chat import logging
 
 logger = logging.getLogger(__name__)
-print('got logger')
-logger.debug('testing debyg')
-logger.info('testing info')
-logger.warning('testing warn')
-logger.error('testing error')
 
 
 # OpenAI models
@@ -147,7 +142,7 @@ import time
 import json
 
 
-def check_openai_moderation(prompt: Prompt, query: str, log: Callable):
+def check_openai_moderation(prompt: Prompt, query: str):
     # 3. Run both the standalone query and the full prompt through
     # moderation to see if it will be accepted by OpenAI's api
 
@@ -169,7 +164,7 @@ def remaining_tokens(prompt: Prompt):
     return NUM_TOKENS - used_tokens - TOKENS_BUFFER
 
 
-def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = logger.info):
+def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
         yield {"state": "loading", "phase": "semantic"}
@@ -183,7 +178,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
 
         # 3. Run both the standalone query and the full prompt through
         # moderation to see if it will be accepted by OpenAI's api
-        check_openai_moderation(prompt, query, log)
+        check_openai_moderation(prompt, query)
 
         # 4. Count number of tokens left for completion (-50 for a buffer)
         max_tokens_completion = remaining_tokens(prompt)
@@ -219,8 +214,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
             logger.debug(' ------------------------------ response: -----------------------------')
             logger.debug(response)
 
-        logger.query(query)
-        logger.response(response)
+        logger.interaction(query, response, history, prompt, top_k_blocks)
 
         # yield done state, possibly with followup questions
         fin_json = {'state': 'done'}
@@ -234,14 +228,14 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
         yield {'state': 'error', 'error': str(e)}
 
 # convert talk_to_robot_internal from dict generator into json generator
-def talk_to_robot(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = logger.info):
-    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, mode, history, k, log))
+def talk_to_robot(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K):
+    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, mode, history, k))
 
 # wayyy simplified api
-def talk_to_robot_simple(index, query: str, log: Callable = logger.info):
+def talk_to_robot_simple(index, query: str):
     res = {'response': ''}
 
-    for block in talk_to_robot_internal(index, query, "default", [], log = log):
+    for block in talk_to_robot_internal(index, query, "default", []):
         if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
             citations = {}
             for i, c in enumerate(block['citations']):
