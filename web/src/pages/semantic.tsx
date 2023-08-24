@@ -1,30 +1,31 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
-
 import { type NextPage } from "next";
+import { useState } from "react";
 import React from "react";
 import Head from "next/head";
-import Header from "../header";
-import { SearchBox, Followup } from "../searchbox";
-import { useState } from "react";
+import Header from "../components/header";
+import { SearchBox } from "../components/searchbox";
+import type { Followup } from "../types";
+import { API_URL } from "../settings";
 
 const Semantic: NextPage = () => {
-
   const [results, setResults] = useState<SemanticEntry[]>([]);
 
   const semantic_search = async (
     query: string,
     _query_source: "search" | "followups",
     disable: () => void,
-    enable: (f_set: Followup[]) => void,
+    enable: (f_set: Followup[]) => void
   ) => {
-
     disable();
 
     const res = await fetch(API_URL + "/semantic", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", },
-      body: JSON.stringify({query: query}),
-    })
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({ query: query }),
+    });
 
     if (!res.ok) {
       enable([]);
@@ -35,7 +36,6 @@ const Semantic: NextPage = () => {
 
     setResults(data);
     enable([]);
-
   };
 
   return (
@@ -73,28 +73,31 @@ type SemanticEntry = {
   text: string;
 };
 
-const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
-
+const ShowSemanticEntry: React.FC<{ entry: SemanticEntry }> = ({ entry }) => {
   return (
     <div className="my-3">
-
       {/* horizontally split first row, title on left, author on right */}
       <div className="flex">
-        <h3 className="text-xl flex-1">{entry.title}</h3>
-        <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
+        <h3 className="flex-1 text-xl">{entry.title}</h3>
+        <p className="my-0 flex-1 text-right">
+          {entry.author} - {entry.date}
+        </p>
       </div>
-      { entry.text.split("\n").map((paragraph, i) => {
+      {entry.text.split("\n").map((paragraph, i) => {
         const p = paragraph.trim();
         if (p === "") return <></>;
         if (p === ".....") return <hr key={"b" + i} />;
-        return <p className="text-sm" key={"p" + i}> {paragraph} </p>
-        })
-      }
+        return (
+          <p className="text-sm" key={"p" + i}>
+            {" "}
+            {paragraph}{" "}
+          </p>
+        );
+      })}
 
       <a href={entry.url}>Read more</a>
     </div>
   );
 };
-
 
 export default Semantic;
