@@ -8,6 +8,8 @@ import regex as re
 import requests
 import time
 
+from env import PINECONE_NAMESPACE
+
 # ---------------------------------- constants ---------------------------------
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
@@ -60,7 +62,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
         print('Pinecone index not found, performing semantic search on alignmentsearch-api.up.railway.app endpoint.')
         response = requests.post(
-            "https://alignmentsearch-api.up.railway.app/semantic",
+            "https://alignmentsearch-api.up.railway.app/semantic",  # TODO: change to https://chat.stampy.ai:8443/semantic ?
             json = {
                 "query": user_query,
                 "k": k
@@ -79,11 +81,11 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     print(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
-        namespace="alignment-search",  # ugly, sorry
+        vector=query_embedding,
         top_k=k,
         include_values=False,
         include_metadata=True,
-        vector=query_embedding
+        namespace=PINECONE_NAMESPACE,
     )
     blocks = []
     for match in query_response['matches']:
