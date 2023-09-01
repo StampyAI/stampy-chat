@@ -1,4 +1,3 @@
-from typing import List, Tuple
 import dataclasses
 import datetime
 import itertools
@@ -7,7 +6,12 @@ import openai
 import regex as re
 import requests
 import time
+from typing import List, Tuple
 from stampy_chat.env import PINECONE_NAMESPACE
+from stampy_chat import logging
+
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------- constants ---------------------------------
 
@@ -60,7 +64,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     if index is None:
 
-        print('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
+        logger.info('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
             "https://chat.stampy.ai:8443/semantic",
             json = {
@@ -78,7 +82,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     query_embedding = get_embedding(user_query)
 
     t1 = time.time()
-    print(f'Time to get embedding: {t1-t:.2f}s')
+    logger.debug(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
         namespace=PINECONE_NAMESPACE,
@@ -115,7 +119,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     t2 = time.time()
 
-    print(f'Time to get top-k blocks: {t2-t1:.2f}s')
+    logger.debug(f'Time to get top-k blocks: {t2-t1:.2f}s')
 
     # for all blocks that are "the same" (same title, author, date, url, tags),
     # combine their text with "....." in between. Return them in order such
@@ -130,7 +134,8 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
         group = list(group)
-        if len(group) == 0: continue
+        if not group:
+            continue
 
         # group = group[:3] # limit to a max of 3 blocks from any one source
 
@@ -150,6 +155,5 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 def strip_block(text: str) -> str:
     r = re.match(r"^\"(.*)\"\s*-\s*Title:.*$", text, re.DOTALL)
     if not r:
-        print("Warning: couldn't strip block")
-        print(text)
+        logger.warning("couldn't strip block:\n%s", text)
     return r.group(1) if r else text

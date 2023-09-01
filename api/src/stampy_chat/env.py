@@ -1,7 +1,6 @@
 import os
 import openai
 import pinecone
-from discord_webhook import DiscordWebhook
 
 if os.path.exists('.env'):
     from dotenv import load_dotenv
@@ -25,6 +24,7 @@ PINECONE_ENVIRONMENT = os.environ.get('PINECONE_ENVIRONMENT', "us-east1-gcp")
 PINECONE_INDEX_NAME  = os.environ.get("PINECONE_INDEX_NAME", "alignment-search")
 PINECONE_INDEX       = None
 PINECONE_NAMESPACE   = os.environ.get("PINECONE_NAMESPACE", "alignment-search")  # "normal" or "finetuned" for the new index, "alignment-search" for the old one
+
 # Only init pinecone if we have an env value for it.
 if PINECONE_API_KEY:
     pinecone.init(
@@ -33,17 +33,6 @@ if PINECONE_API_KEY:
     )
 
     PINECONE_INDEX = pinecone.Index(index_name=PINECONE_INDEX_NAME)
-
-# log something only if the logging url is set
-def log(*args, end="\n"):
-    message = " ".join([str(arg) for arg in args]) + end
-    # print(message)
-    if DISCORD_LOGGING_URL is not None and DISCORD_LOGGING_URL != "":
-        while len(message) > 2000 - 8:
-            m_section, message = message[:2000 - 8], message[2000 - 8:]
-            m_section = "```\n" + m_section + "\n```"
-            DiscordWebhook(url=DISCORD_LOGGING_URL, content=m_section).execute()
-        DiscordWebhook(url=DISCORD_LOGGING_URL, content="```\n" + message + "\n```").execute()
 
 ### MySQL ###
 user = os.environ.get("CHAT_DB_USER", "user")

@@ -5,7 +5,8 @@ import dataclasses
 import json
 import re
 
-from stampy_chat.env import PINECONE_INDEX, FLASK_PORT, log
+from stampy_chat import logging
+from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
 from stampy_chat.get_blocks import get_top_k_blocks
 from stampy_chat.chat import talk_to_robot, talk_to_robot_simple
 
@@ -29,7 +30,7 @@ def stream(src):
 @cross_origin()
 def semantic():
     query = request.json['query']
-    k = request.json['k'] if 'k' in request.json else 20
+    k = request.json.get('k', 20)
     return jsonify([dataclasses.asdict(block) for block in get_top_k_blocks(PINECONE_INDEX, query, k)])
 
 
@@ -45,7 +46,7 @@ def chat():
     mode = request.json['mode']
     history = request.json['history']
 
-    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history, log = log)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history)), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------
@@ -64,7 +65,7 @@ def chat_simplified(param=''):
 def human(id):
     import requests
     r = requests.get(f"https://aisafety.info/questions/{id}")
-    log(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
+    logging.info(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
 
     # run a regex to replace all relative links with absolute links. Just doing
     # a regex for now since we really don't need to parse everything out then
