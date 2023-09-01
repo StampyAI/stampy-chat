@@ -1,11 +1,10 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3000";
-
 import { type NextPage } from "next";
 import React from "react";
 import Head from "next/head";
 import Header from "../header";
 import { SearchBox, Followup } from "../searchbox";
 import { useState } from "react";
+import { API_URL } from "../settings"
 
 const Semantic: NextPage = () => {
 

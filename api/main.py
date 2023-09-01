@@ -5,9 +5,9 @@ import dataclasses
 import json
 import re
 
-from env import PINECONE_INDEX, log
-from get_blocks import get_top_k_blocks
-from chat import talk_to_robot, talk_to_robot_simple
+from stampy_chat.env import PINECONE_INDEX, FLASK_PORT, log
+from stampy_chat.get_blocks import get_top_k_blocks
+from stampy_chat.chat import talk_to_robot, talk_to_robot_simple
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -73,10 +73,10 @@ def human(id):
     #                               ⬇️
     # <a href=\"https://stampy.ai/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
     text = re.sub(r'<a href=\\"/\?state=(\d+.*)\\">', r'<a href=\"https://aisafety.info/?state=\1\\">', r.text)
-    
+
     return Response(text, mimetype='application/json')
 
 # ------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    app.run(debug=True, port=FLASK_PORT)
