@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+stampy-chat = {editable = true, path = "."}
 # ---- <flask stuff> ----
 flask = "==1.1.2"
 gunicorn = "==20.0.4"
