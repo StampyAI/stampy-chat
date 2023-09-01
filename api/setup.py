@@ -20,6 +20,10 @@ setup(
         'pinecone-client',
         'python-dotenv',
         'discord-webhook',
-        'requests'
+        'requests',
+
+        'alembic',
+        'sqlalchemy',
+        'mysql-connector-python',
     ],
 )
