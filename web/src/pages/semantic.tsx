@@ -65,7 +65,7 @@ const Semantic: NextPage = () => {
 
 type SemanticEntry = {
   title: string;
-  author: string;
+  authors: string[];
   date: string;
   url: string;
   tags: string;
@@ -77,10 +77,10 @@ const ShowSemanticEntry: React.FC<{entry: SemanticEntry}> = ({entry}) => {
   return (
     <div className="my-3">
 
-      {/* horizontally split first row, title on left, author on right */}
+      {/* horizontally split first row, title on left, authors on right */}
       <div className="flex">
         <h3 className="text-xl flex-1">{entry.title}</h3>
-        <p className="flex-1 text-right my-0">{entry.author} - {entry.date}</p>
+        <p className="flex-1 text-right my-0">{entry.authors.join(', ')} - {entry.date}</p>
       </div>
       { entry.text.split("\n").map((paragraph, i) => {
         const p = paragraph.trim();

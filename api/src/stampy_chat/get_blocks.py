@@ -7,6 +7,7 @@ import openai
 import regex as re
 import requests
 import time
+from stampy_chat.env import PINECONE_NAMESPACE
 
 # ---------------------------------- constants ---------------------------------
 
@@ -16,13 +17,14 @@ EMBEDDING_MODEL = "text-embedding-ada-002"
 
 @dataclasses.dataclass
 class Block:
+    id: str
     title: str
-    author: str
+    authors: List[str]
     date: str
     url: str
     tags: str
     text: str
-    
+
 # ------------------------------------------------------------------------------
 
 # Get the embedding for a given text. The function will retry with exponential backoff if the API rate limit is reached, up to 4 times.
@@ -79,7 +81,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     print(f'Time to get embedding: {t1-t:.2f}s')
 
     query_response = index.query(
-        namespace="alignment-search",  # ugly, sorry
+        namespace=PINECONE_NAMESPACE,
         top_k=k,
         include_values=False,
         include_metadata=True,
@@ -88,28 +90,38 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     blocks = []
     for match in query_response['matches']:
 
-        date = match['metadata']['date']
+        date = match['metadata']['date_published']
 
-        if type(date) == datetime.date: date = date.strftime("%Y-%m-%d") # iso8601
+        if isinstance(date, datetime.date):
+            date = date.isoformat()
+        elif isinstance(date, datetime.datetime):
+            date = date.date().isoformat
+        elif isinstance(date, float):
+            date = datetime.datetime.fromtimestamp(date).date().isoformat()
+
+        authors = match['metadata'].get('authors')
+        if not authors and match['metadata'].get('author'):
+            authors = [match['metadata'].get('author')]
 
         blocks.append(Block(
+            id = match['id'],
             title = match['metadata']['title'],
-            author = match['metadata']['author'],
+            authors = authors,
             date = date,
             url = match['metadata']['url'],
-            tags = match['metadata']['tags'],
+            tags = match['metadata'].get('tags'),
             text = strip_block(match['metadata']['text'])
         ))
 
     t2 = time.time()
 
     print(f'Time to get top-k blocks: {t2-t1:.2f}s')
-    
+
     # for all blocks that are "the same" (same title, author, date, url, tags),
     # combine their text with "....." in between. Return them in order such
     # that the combined block has the minimum index of the blocks combined.
 
-    key = lambda bi: (bi[0].title or "", bi[0].author or "", bi[0].date or "", bi[0].url or "", bi[0].tags or "")
+    key = lambda bi: (bi[0].id, bi[0].title or "", bi[0].authors or [], bi[0].date or "", bi[0].url or "", bi[0].tags or "")
 
     blocks_plus_old_index = [(block, i) for i, block in enumerate(blocks)]
     blocks_plus_old_index.sort(key=key)
@@ -119,14 +131,14 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     for key, group in itertools.groupby(blocks_plus_old_index, key=key):
         group = list(group)
         if len(group) == 0: continue
-        
+
         group = group[:3] # limit to a max of 3 blocks from any one source
 
         text = "\n.....\n".join([block[0].text for block in group])
 
         min_index = min([block[1] for block in group])
 
-        unified_blocks.append((Block(key[0], key[1], key[2], key[3], key[4], text), min_index))
+        unified_blocks.append((Block(*key, text), min_index))
 
     unified_blocks.sort(key=lambda bi: bi[1])
     return [block for block, _ in unified_blocks]
