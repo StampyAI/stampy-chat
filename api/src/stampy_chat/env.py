@@ -1,6 +1,7 @@
 import os
 import openai
 import pinecone
+from discord_webhook import DiscordWebhook
 
 if os.path.exists('.env'):
     from dotenv import load_dotenv
