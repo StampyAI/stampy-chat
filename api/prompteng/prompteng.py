@@ -5,8 +5,8 @@ import json
 from datetime import datetime
 
 sys.path = [str(Path(__file__).parent.parent)] + sys.path
-from env import PINECONE_INDEX
-from chat import talk_to_robot_simple, set_debug_print
+from stampy_chat.env import PINECONE_INDEX
+from stampy_chat.chat import talk_to_robot_simple, set_debug_print
 set_debug_print(False)
 
 # read in a list of questions from questions.csv
@@ -51,4 +51,3 @@ with open(Path(__file__).parent / 'data/answers.csv', 'w') as f:
             citation = [x.strip() for x in citation]
             citation = [x for x in citation if x != '']
             writer.writerow([c, ' --- '.join(citation)])
-

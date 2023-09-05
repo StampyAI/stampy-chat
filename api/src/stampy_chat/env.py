@@ -15,6 +15,8 @@ PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
 LOGGING_URL      = os.environ.get('LOGGING_URL')
 PINECONE_INDEX   = None
 
+FLASK_PORT = int(os.environ.get('FLASK_PORT', '3001'))
+
 openai.api_key = OPENAI_API_KEY # non-optional
 
 # Only init pinecone if we have an env value for it.

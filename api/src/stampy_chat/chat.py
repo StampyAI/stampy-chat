@@ -1,13 +1,14 @@
 # ------------------------------- env, constants -------------------------------
-from followups import multisearch_authored
-from get_blocks import get_top_k_blocks, Block
-
 from dataclasses import asdict
 from typing import List, Dict, Callable
 import openai
 import re
 import tiktoken
 import time
+
+from stampy_chat.followups import multisearch_authored
+from stampy_chat.get_blocks import get_top_k_blocks, Block
+
 
 # OpenAI models
 EMBEDDING_MODEL = "text-embedding-ada-002"
