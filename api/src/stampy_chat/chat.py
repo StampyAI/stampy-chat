@@ -71,7 +71,7 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
 
     # Context from top-k blocks
     for i, block in enumerate(context):
-        block_str = f"[{chr(ord('a') + i)}] {block.title} - {block.author} - {block.date}\n{block.text}\n\n"
+        block_str = f"[{chr(ord('a') + i)}] {block.title} - {','.join(block.authors)} - {block.date}\n{block.text}\n\n"
         block_tc = len(ENCODER.encode(block_str))
 
         if token_count + block_tc > int(NUM_TOKENS * CONTEXT_FRACTION):
@@ -148,7 +148,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
         yield {"state": "loading", "phase": "semantic"}
         top_k_blocks = get_top_k_blocks(index, query, k)
 
-        yield {"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.author, 'date': block.date, 'url': block.url} for block in top_k_blocks]}
+        yield {"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.authors, 'date': block.date, 'url': block.url} for block in top_k_blocks]}
 
         # 2. Generate a prompt
         yield {"state": "loading", "phase": "prompt"}

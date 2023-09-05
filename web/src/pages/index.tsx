@@ -13,7 +13,7 @@ import { API_URL } from "../settings"
 
 type Citation = {
   title: string;
-  author: string;
+  authors: string[];
   date: string;
   url: string;
 }
@@ -68,8 +68,8 @@ const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) 
 
   var c_str = citation.title;
 
-  if (citation.author && citation.author !== "")
-    c_str += " - " + citation.author;
+  if (citation.authors && citation.authors.length > 0)
+    c_str += " - " + citation.authors.join(', ');
   if (citation.date && citation.date !== "")
     c_str += " - " + citation.date;
 
@@ -528,7 +528,7 @@ const Home: NextPage = () => {
         </div>
 
 
-        <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b> using data through June 2022. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
+        <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b>. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
 
         <ul>
