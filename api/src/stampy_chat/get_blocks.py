@@ -95,7 +95,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
         if isinstance(date, datetime.date):
             date = date.isoformat()
         elif isinstance(date, datetime.datetime):
-            date = date.date().isoformat
+            date = date.date().isoformat()
         elif isinstance(date, float):
             date = datetime.datetime.fromtimestamp(date).date().isoformat()
 
