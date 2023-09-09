@@ -60,9 +60,9 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
     if index is None:
 
-        print('Pinecone index not found, performing semantic search on alignmentsearch-api.up.railway.app endpoint.')
+        print('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
-            "https://alignmentsearch-api.up.railway.app/semantic",
+            "https://chat.stampy.ai:8443/semantic",
             json = {
                 "query": user_query,
                 "k": k
@@ -104,7 +104,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
             authors = [match['metadata'].get('author')]
 
         blocks.append(Block(
-            id = match['id'],
+            id = match['metadata']['hash_id'],
             title = match['metadata']['title'],
             authors = authors,
             date = date,
@@ -132,7 +132,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
         group = list(group)
         if len(group) == 0: continue
 
-        group = group[:3] # limit to a max of 3 blocks from any one source
+        # group = group[:3] # limit to a max of 3 blocks from any one source
 
         text = "\n.....\n".join([block[0].text for block in group])
 
