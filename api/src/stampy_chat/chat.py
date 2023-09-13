@@ -29,7 +29,7 @@ CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for co
 ENCODER = tiktoken.get_encoding("cl100k_base")
 
 # initialize a budget manager to control costs for gpt-4/other llms
-budget_manager = litellm.BudgetManager(project_name="stamp_chat")
+budget_manager = litellm.BudgetManager(project_name="stampy_chat")
 
 DEBUG_PRINT = True
 
