@@ -1,0 +1,4 @@
+# Stampy chat database migrations
+
+Run `alembic upgrade head` to update the database to the newest state.
+Run `alembic downgrade -<n>` to revert the last `<n>` migrations.

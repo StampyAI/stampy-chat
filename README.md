@@ -22,6 +22,15 @@ Discord](https://discord.com/invite/Bt8PaRTDQC) if you need help with this.
 
 Install `npm`, `python 3.11`, and [`pipenv`](https://pipenv.pypa.io/en/latest/).
 
+### Database setup
+
+Some things (e.g. logging) require a database connection to work correctly. To make this easier, there is a script to set one up locally via Docker. To get this working:
+
+* [Install Docker](https://docs.docker.com/get-docker/)
+* Run the script: `./local_db.sh`
+
+This should start the database, make sure it's up to date, then as a final step display a command that will allow you to connect to it directly if you want to.
+
 ### Running a local version
 
 Open two terminal windows. In the first, run:

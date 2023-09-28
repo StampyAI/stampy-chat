@@ -44,3 +44,11 @@ def log(*args, end="\n"):
             m_section = "```\n" + m_section + "\n```"
             DiscordWebhook(url=DISCORD_LOGGING_URL, content=m_section).execute()
         DiscordWebhook(url=DISCORD_LOGGING_URL, content="```\n" + message + "\n```").execute()
+
+### MySQL ###
+user = os.environ.get("CHAT_DB_USER", "user")
+password = os.environ.get("CHAT_DB_PASSWORD", "we all live in a yellow submarine")
+host = os.environ.get("CHAT_DB_HOST", "127.0.0.1")
+port = os.environ.get("CHAT_DB_PORT", "3306")
+db_name = os.environ.get("CHAT_DB_NAME", "stampy_chat")
+DB_CONNECTION_URI = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db_name}"
