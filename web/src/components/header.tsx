@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from 'next/image';
-import logo from "./logo.svg"
+import logo from "../logo.svg"
 
 const Header: React.FC<{page: "index" | "semantic"}> = ({page}) => {
   const sidebar = page === "index" ? (

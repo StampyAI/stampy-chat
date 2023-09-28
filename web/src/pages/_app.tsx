@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import "~/styles/globals.css";
 
-import { Glossary, GlossaryContext } from "../glossary";
+import { Glossary, GlossaryContext } from "../components/glossary";
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   const [glossary, setGlossary] = useState<{ g: Glossary, r: RegExp } | null>(null);
