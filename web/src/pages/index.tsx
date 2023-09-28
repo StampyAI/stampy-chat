@@ -1,12 +1,9 @@
-import Head from "next/head";
-import React from "react";
 import { type NextPage } from "next";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from 'next/image';
 
-import Header from "../components/header";
-import logo from "../logo.svg"
+import Page from "../components/page"
 import { API_URL } from "../settings"
 import type { Citation, Entry, UserEntry, AssistantEntry, ErrorMessage, StampyMessage } from "../types";
 import { SearchBox, Followup } from "../components/searchbox";
@@ -14,6 +11,7 @@ import { GlossarySpan } from "../components/glossary";
 import { Controls, Mode } from "../components/controls";
 import { ShowAssistantEntry } from "../components/assistant";
 import { ProcessText } from "../components/citations";
+import { Entry as EntryTag } from "../components/entry";
 
 const MAX_FOLLOWUPS = 4;
 
@@ -276,60 +274,22 @@ const Home: NextPage = () => {
 
 
   return (
-    <>
-      <Head>
-        <title>AI Safety Info</title>
-      </Head>
-      <main>
-        <Header page="index" />
-        <Controls mode={mode} setMode={setMode} />
+    <Page page="index">
+      <Controls mode={mode} setMode={setMode} />
 
-        <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b>. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
+      <h2 className="bg-red-100 text-red-800"><b>WARNING</b>: This is a very <b>early prototype</b>. <Link href="http://bit.ly/stampy-chat-issues" target="_blank">Feedback</Link> welcomed.</h2>
 
 
-        <ul>
-          {entries.map((entry, i) => {
-            switch (entry.role) {
-              case "user": return <li key={i}>
-                <p className="border border-gray-300 px-1 text-right"> {entry.content} </p>
-              </li>
+      <ul>
+        {entries.map((entry, i) => (
+           <EntryTag entry={entry} key={i} />
+        ))}
+        <SearchBox search={search} />
 
-              case "error": return <li key={i}>
-                <p className="border bg-red-100 border-red-500 text-red-800 px-1"> {entry.content} </p>
-              </li>
+        { last_entry }
 
-              case "assistant": return <li key={i}>
-                <ShowAssistantEntry entry={entry}/>
-              </li>
-
-              case "stampy": return <li key={i}>
-                <div className="px-4 py-0.5 my-7 bg-slate-500 text-slate-50 rounded"
-                  style={{
-                    marginLeft: "auto",
-                    marginRight: "auto",
-                    maxWidth: "99.8%",
-                  }}
-                >
-                  <div><GlossarySpan content={entry.content} /></div>
-                  <div className="mb-3 flex justify-end">
-                    <a href={entry.url} target="_blank"
-                       className="flex items-center space-x-1">
-                      <span>aisafety.info</span>
-                      <Image src={logo} alt="aisafety.info logo" width={19}/>
-                    </a>
-                  </div>
-                </div>
-              </li>
-            }
-          })}
-
-          <SearchBox search={search} />
-
-          { last_entry }
-
-        </ul>
-      </main>
-    </>
+      </ul>
+    </Page>
   );
 };
 
