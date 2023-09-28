@@ -90,6 +90,7 @@ const Home: NextPage = () => {
           entries,
           updateCurrent
       );
+      setCurrent(undefined);
 
       if (query_source === "search") {
           setRunningIndex(runningIndex + ProcessText(result.content, 0)[1].size);

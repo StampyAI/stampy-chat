@@ -127,15 +127,18 @@ export const queryLLM = async (
   }
 
   try {
-    const results = await extractAnswer(res, baseReferencesIndex, setCurrent);
-    setCurrent(undefined);
-    return results;
+    return await extractAnswer(res, baseReferencesIndex, setCurrent);
   } catch (e) {
     return {
       result: { role: "error", content: e ? e.toString() : "unknown error" },
     };
   }
 };
+
+const cleanStampyContent = (contents: string) => contents.replace(
+    /<a(.*?)href="\/\?state=([a-zA-Z0-9]+.*?)"(.*?)<\/a>/g,
+    (_, pre, linkParts, post) => `<a${pre}href="${STAMPY_URL}/?state=${linkParts}"${post}</a>`
+);
 
 export const getStampyContent = async (
   question_id: string
@@ -157,7 +160,7 @@ export const getStampyContent = async (
 
   let result = {
     role: "stampy",
-    content: data.text,
+    content: cleanStampyContent(data.text),
     url: `${STAMPY_URL}/?state=${data.pageid}`,
   } as StampyMessage;
 
@@ -189,7 +192,7 @@ export const runSearch = async (
   baseReferencesIndex: number,
   entries: Entry[],
   setCurrent: (c: CurrentSearch) => void
-) => {
+): SearchResult => {
   if (query_source === "search") {
     const history = entries
       .filter((entry) => entry.role !== "error")
