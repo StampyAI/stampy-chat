@@ -1,7 +1,6 @@
 import { type NextPage } from "next";
 import React from "react";
-import Head from "next/head";
-import Header from "../components/header";
+import Page from "../components/page"
 import { SearchBox, Followup } from "../components/searchbox";
 import { useState } from "react";
 import { API_URL } from "../settings"
@@ -38,23 +37,17 @@ const Semantic: NextPage = () => {
   };
 
   return (
-    <>
-      <Head>
-        <title>AI Safety Info</title>
-      </Head>
-      <main>
-        <Header page="semantic" />
-        <h2>Retrieve relevant data sources from alignment research</h2>
-        <SearchBox search={semantic_search} />
-        <ul>
-          {results.map((entry, i) => (
-            <li key={"entry" + i}>
-              <ShowSemanticEntry entry={entry} />
-            </li>
-          ))}
-        </ul>
-      </main>
-    </>
+    <Page page="semantic">
+      <h2>Retrieve relevant data sources from alignment research</h2>
+      <SearchBox search={semantic_search} />
+      <ul>
+        {results.map((entry, i) => (
+          <li key={"entry" + i}>
+            <ShowSemanticEntry entry={entry} />
+          </li>
+        ))}
+      </ul>
+    </Page>
   );
 };
 
