@@ -41,13 +41,13 @@ class ChatLogger(Logger):
     def is_debug(self):
         return self.isEnabledFor(DEBUG)
 
-    def interaction(self, query, response, history, prompt, blocks):
+    def interaction(self, session_id, query, response, history, prompt, blocks):
         prompt = [i for i in prompt if i.get('role') == 'system']
         prompt = prompt[0].get('content') if prompt else None
 
         self.item_adder.add(
             Interaction(
-                # session_id=session_id,
+                session_id=session_id,
                 interaction_no=len([i for i in history if i.get('role') == 'user']),
                 query=query,
                 prompt=prompt,

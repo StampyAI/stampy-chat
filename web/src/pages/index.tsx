@@ -45,6 +45,7 @@ const Home: NextPage = () => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [runningIndex, setRunningIndex] = useState(0);
   const [current, setCurrent] = useState<CurrentSearch>();
+  const [sessionId, setSessionId] = useState()
 
   // [state, ready to save to localstorage]
   const [mode, setMode] = useState<[Mode, boolean]>(["default", false]);
@@ -52,12 +53,14 @@ const Home: NextPage = () => {
   // store mode in localstorage
   useEffect(() => {
     if (mode[1]) localStorage.setItem("chat_mode", mode[0]);
+
   }, [mode]);
 
   // initial load
   useEffect(() => {
     const mode = localStorage.getItem("chat_mode") as Mode || "default";
     setMode([mode, true]);
+    setSessionId(crypto.randomUUID());
   }, []);
 
   const updateCurrent = (current: CurrentSearch) => {
@@ -88,7 +91,8 @@ const Home: NextPage = () => {
           mode[0],
           runningIndex,
           entries,
-          updateCurrent
+          updateCurrent,
+          sessionId,
       );
       setCurrent(undefined);
 

@@ -1,9 +1,10 @@
-from flask import Flask, jsonify, request, Response
-from flask_cors import CORS, cross_origin
-from urllib.parse import unquote
 import dataclasses
 import json
 import re
+from urllib.parse import unquote
+
+from flask import Flask, jsonify, request, Response
+from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
 from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
@@ -42,11 +43,12 @@ def semantic():
 @cross_origin()
 def chat():
 
-    query = request.json['query']
-    mode = request.json['mode']
-    history = request.json['history']
+    query = request.json.get('query')
+    mode = request.json.get('mode', 'default')
+    session_id = request.json.get('sessionId')
+    history = request.json.get('history', [])
 
-    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history, session_id)), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------

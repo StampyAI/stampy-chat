@@ -97,6 +97,7 @@ export const extractAnswer = async (
 };
 
 const fetchLLM = async (
+  sessionId: string,
   query: string,
   mode: string,
   history: HistoryEntry[]
@@ -110,7 +111,7 @@ const fetchLLM = async (
       Accept: "text/event-stream",
     },
 
-    body: JSON.stringify({ query, mode, history }),
+    body: JSON.stringify({ sessionId, query, mode, history }),
   });
 
 export const queryLLM = async (
@@ -118,10 +119,11 @@ export const queryLLM = async (
   mode: string,
   history: HistoryEntry[],
   baseReferencesIndex: number,
-  setCurrent: (e?: CurrentSearch) => void
+  setCurrent: (e?: CurrentSearch) => void,
+  sessionId: string
 ): Promise<SearchResult> => {
   // do SSE on a POST request.
-  const res = await fetchLLM(query, mode, history);
+  const res = await fetchLLM(sessionId, query, mode, history);
 
   if (!res.ok) {
     return { result: { role: "error", content: "POST Error: " + res.status } };
@@ -191,7 +193,8 @@ export const runSearch = async (
   mode: string,
   baseReferencesIndex: number,
   entries: Entry[],
-  setCurrent: (c: CurrentSearch) => void
+  setCurrent: (c: CurrentSearch) => void,
+  sessionId: string
 ): SearchResult => {
   if (query_source === "search") {
     const history = entries
@@ -206,7 +209,8 @@ export const runSearch = async (
       mode,
       history,
       baseReferencesIndex,
-      setCurrent
+      setCurrent,
+      sessionId
     );
   } else {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------

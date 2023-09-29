@@ -156,13 +156,19 @@ def remaining_tokens(prompt: Prompt):
     return NUM_TOKENS - used_tokens - TOKENS_BUFFER
 
 
-def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, k: int = STANDARD_K):
+def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, session_id: str, k: int = STANDARD_K):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
         yield {"state": "loading", "phase": "semantic"}
         top_k_blocks = get_top_k_blocks(index, query, k)
 
-        yield {"state": "loading", "phase": "semantic", 'citations': [{'title': block.title, 'author': block.authors, 'date': block.date, 'url': block.url} for block in top_k_blocks]}
+        yield {
+            "state": "loading", "phase": "semantic",
+            "citations": [
+                {'title': block.title, 'author': block.authors, 'date': block.date, 'url': block.url}
+                for block in top_k_blocks
+            ]
+        }
 
         # 2. Generate a prompt
         yield {"state": "loading", "phase": "prompt"}
@@ -205,7 +211,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, k: int
             logger.debug(' ------------------------------ response: -----------------------------')
             logger.debug(response)
 
-        logger.interaction(query, response, history, prompt, top_k_blocks)
+        logger.interaction(session_id, query, response, history, prompt, top_k_blocks)
 
         # yield done state, possibly with followup questions
         fin_json = {'state': 'done'}
