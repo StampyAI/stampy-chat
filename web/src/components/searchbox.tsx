@@ -1,13 +1,9 @@
 import React from "react";
 import { useState, useEffect } from "react";
+import type { Followup } from "../types";
 import TextareaAutosize from 'react-textarea-autosize';
 import dynamic from 'next/dynamic'
-
-export type Followup = {
-  text: string;
-  pageid: string;
-  score: number;
-}
+import type { Followup } from "../types";
 
 // initial questions to fill the search box with.
 export const initialQuestions: string[] = [
@@ -120,4 +116,3 @@ const SearchBoxInternal: React.FC<{search: (
 export const SearchBox = dynamic(() => Promise.resolve(SearchBoxInternal), {
   ssr: false,
 });
-

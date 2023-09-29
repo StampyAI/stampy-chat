@@ -1,8 +1,8 @@
 import { type NextPage } from "next";
 import React from "react";
 import Head from "next/head";
-import Header from "../header";
-import { SearchBox, Followup } from "../searchbox";
+import Header from "../components/header";
+import { SearchBox, Followup } from "../components/searchbox";
 import { useState } from "react";
 import { API_URL } from "../settings"
 
