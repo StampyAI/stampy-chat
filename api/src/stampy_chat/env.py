@@ -18,6 +18,10 @@ DISCORD_LOGGING_URL = os.environ.get('LOGGING_URL')
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
 openai.api_key = OPENAI_API_KEY # non-optional
 
+### Models ###
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-ada-002")
+COMPLETIONS_MODEL = os.environ.get("COMPLETIONS_MODEL", "gpt-3.5-turbo")
+
 ### Pinecone ###
 PINECONE_API_KEY     = os.environ.get('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.environ.get('PINECONE_ENVIRONMENT', "us-east1-gcp")

@@ -1,12 +1,14 @@
-# ------------------------------- env, constants -------------------------------
-from dataclasses import asdict
-from typing import List, Dict, Callable
-import openai
-import re
-from sqlalchemy.orm import PropComparator
-import tiktoken
 import time
+import json
+import re
+import time
+from dataclasses import asdict
+from typing import List, Dict
 
+import openai
+import tiktoken
+
+from stampy_chat.env import COMPLETIONS_MODEL
 from stampy_chat.followups import multisearch_authored
 from stampy_chat.get_blocks import get_top_k_blocks, Block
 from stampy_chat import logging
@@ -14,11 +16,6 @@ from stampy_chat import logging
 
 logger = logging.getLogger(__name__)
 
-
-# OpenAI models
-EMBEDDING_MODEL = "text-embedding-ada-002"
-COMPLETIONS_MODEL = "gpt-3.5-turbo"
-# COMPLETIONS_MODEL = "gpt-4"
 
 STANDARD_K = 20 if COMPLETIONS_MODEL == 'gpt-4' else 10
 
@@ -139,9 +136,6 @@ def construct_prompt(query: str, mode: str, history: Prompt, context: List[Block
     return prompt
 
 # ------------------------------- completion code -------------------------------
-import time
-import json
-
 
 def check_openai_moderation(prompt: Prompt, query: str):
     prompt_string = '\n\n'.join([message["content"] for message in prompt])

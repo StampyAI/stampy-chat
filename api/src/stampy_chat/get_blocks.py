@@ -7,15 +7,11 @@ import regex as re
 import requests
 import time
 from typing import List, Tuple
-from stampy_chat.env import PINECONE_NAMESPACE, REMOTE_CHAT_INSTANCE
+from stampy_chat.env import PINECONE_NAMESPACE, REMOTE_CHAT_INSTANCE, EMBEDDING_MODEL
 from stampy_chat import logging
 
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------- constants ---------------------------------
-
-EMBEDDING_MODEL = "text-embedding-ada-002"
 
 # ------------------------------------ types -----------------------------------
 
