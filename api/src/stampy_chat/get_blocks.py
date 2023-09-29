@@ -7,15 +7,11 @@ import regex as re
 import requests
 import time
 from typing import List, Tuple
-from stampy_chat.env import PINECONE_NAMESPACE
+from stampy_chat.env import PINECONE_NAMESPACE, REMOTE_CHAT_INSTANCE, EMBEDDING_MODEL
 from stampy_chat import logging
 
 
 logger = logging.getLogger(__name__)
-
-# ---------------------------------- constants ---------------------------------
-
-EMBEDDING_MODEL = "text-embedding-ada-002"
 
 # ------------------------------------ types -----------------------------------
 
@@ -66,7 +62,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
         logger.info('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
-            "https://chat.stampy.ai:8443/semantic",
+            REMOTE_CHAT_INSTANCE,
             json = {
                 "query": user_query,
                 "k": k
@@ -93,8 +89,9 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     )
     blocks = []
     for match in query_response['matches']:
+        metadata = match['metadata']
 
-        date = match['metadata']['date_published']
+        date = metadata.get('date_published') or metadata.get('date')
 
         if isinstance(date, datetime.date):
             date = date.isoformat()
@@ -103,18 +100,18 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
         elif isinstance(date, float):
             date = datetime.datetime.fromtimestamp(date).date().isoformat()
 
-        authors = match['metadata'].get('authors')
-        if not authors and match['metadata'].get('author'):
-            authors = [match['metadata'].get('author')]
+        authors = metadata.get('authors')
+        if not authors and metadata.get('author'):
+            authors = [metadata.get('author')]
 
         blocks.append(Block(
-            id = match['metadata']['hash_id'],
-            title = match['metadata']['title'],
+            id = metadata.get('hash_id'),
+            title = metadata['title'],
             authors = authors,
             date = date,
-            url = match['metadata']['url'],
-            tags = match['metadata'].get('tags'),
-            text = strip_block(match['metadata']['text'])
+            url = metadata['url'],
+            tags = metadata.get('tags'),
+            text = strip_block(metadata['text'])
         ))
 
     t2 = time.time()
