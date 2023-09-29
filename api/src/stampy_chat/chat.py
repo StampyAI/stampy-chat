@@ -3,11 +3,16 @@ from dataclasses import asdict
 from typing import List, Dict, Callable
 import openai
 import re
+from sqlalchemy.orm import PropComparator
 import tiktoken
 import time
 
 from stampy_chat.followups import multisearch_authored
 from stampy_chat.get_blocks import get_top_k_blocks, Block
+from stampy_chat import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 # OpenAI models
@@ -21,16 +26,11 @@ STANDARD_K = 20 if COMPLETIONS_MODEL == 'gpt-4' else 10
 
 # NOTE: All this is approximate, there's bits I'm intentionally not counting. Leave a buffer beyond what you might expect.
 NUM_TOKENS = 8191 if COMPLETIONS_MODEL == 'gpt-4' else 4095
+TOKENS_BUFFER = 50  # the number of tokens to leave as a buffer when calculating remaining tokens
 HISTORY_FRACTION = 0.25 # the (approximate) fraction of num_tokens to use for history text before truncating
 CONTEXT_FRACTION = 0.5  # the (approximate) fraction of num_tokens to use for context text before truncating
 
 ENCODER = tiktoken.get_encoding("cl100k_base")
-
-DEBUG_PRINT = True
-
-def set_debug_print(val: bool):
-    global DEBUG_PRINT
-    DEBUG_PRINT = val
 
 # --------------------------------- prompt code --------------------------------
 
@@ -47,9 +47,9 @@ def cap(text: str, max_tokens: int) -> str:
     else: return ENCODER.decode(encoded_text[:max_tokens]) + " ..."
 
 
+Prompt = List[Dict[str, str]]
 
-
-def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], context: List[Block]) -> List[Dict[str, str]]:
+def construct_prompt(query: str, mode: str, history: Prompt, context: List[Block]) -> Prompt:
 
     prompt = []
 
@@ -142,7 +142,27 @@ def construct_prompt(query: str, mode: str, history: List[Dict[str, str]], conte
 import time
 import json
 
-def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
+
+def check_openai_moderation(prompt: Prompt, query: str):
+    prompt_string = '\n\n'.join([message["content"] for message in prompt])
+    mod_res = openai.Moderation.create( input = [ query, prompt_string ])
+
+    if any(map(lambda x: x["flagged"], mod_res["results"])):
+        logger.moderation_issue(query, prompt_string, mod_res)
+
+        raise ValueError("This conversation was rejected by OpenAI's moderation filter. Sorry.")
+
+
+def remaining_tokens(prompt: Prompt):
+    # Count number of tokens left for completion (-50 for a buffer)
+    used_tokens = sum([
+        len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"]))
+        for message in prompt
+    ])
+    return NUM_TOKENS - used_tokens - TOKENS_BUFFER
+
+
+def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, k: int = STANDARD_K):
     try:
         # 1. Find the most relevant blocks from the Alignment Research Dataset
         yield {"state": "loading", "phase": "semantic"}
@@ -156,25 +176,10 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
 
         # 3. Run both the standalone query and the full prompt through
         # moderation to see if it will be accepted by OpenAI's api
-
-        prompt_string = '\n\n'.join([message["content"] for message in prompt])
-        mod_res = openai.Moderation.create( input = [ query, prompt_string ])
-
-        if any(map(lambda x: x["flagged"], mod_res["results"])):
-
-            # this is a biiig ask of a discord webhook - put most important
-            # info at start such that it's more likely to not be cut off
-            log('-' * 80)
-            log("MODERATION REJECTED")
-            log("MODERATION RESPONSE:\n\n" + json.dumps(mod_res["results"], indent=2))
-            log("REJECTED QUERY: " + query)
-            log("REJECTED PROMPT:\n\n" + prompt_string)
-            log('-' * 80)
-
-            raise ValueError("This conversation was rejected by OpenAI's moderation filter. Sorry.")
+        check_openai_moderation(prompt, query)
 
         # 4. Count number of tokens left for completion (-50 for a buffer)
-        max_tokens_completion = NUM_TOKENS - sum([len(ENCODER.encode(message["content"]) + ENCODER.encode(message["role"])) for message in prompt]) - 50
+        max_tokens_completion = remaining_tokens(prompt)
 
         # 5. Answer the user query
         yield {"state": "loading", "phase": "llm"}
@@ -195,43 +200,39 @@ def talk_to_robot_internal(index, query: str, mode: str, history: List[Dict[str,
 
 
         t2 = time.time()
-        print(f'Time to get response: {t2-t1:.2f}s')
-
-        if DEBUG_PRINT:
-            print('\n' * 10)
-            print(" ------------------------------ prompt: -----------------------------")
+        logger.debug(f'Time to get response: {time.time() - t1:.2f}s')
+        if logger.is_debug():
+            logger.debug('\n' * 10)
+            logger.debug(" ------------------------------ prompt: -----------------------------")
             for message in prompt:
-                print(f"----------- {message['role']}: ------------------")
-                print(message['content'])
+                logger.debug("----------- %s: ------------------", message['role'])
+                logger.debug(message['content'])
+            logger.debug('\n' * 10)
+            logger.debug(' ------------------------------ response: -----------------------------')
+            logger.debug(response)
 
-            print('\n' * 10)
-
-            print(' ------------------------------ response: -----------------------------')
-            print(response)
-
-        log(query)
-        log(response)
+        logger.interaction(query, response, history, prompt, top_k_blocks)
 
         # yield done state, possibly with followup questions
         fin_json = {'state': 'done'}
-        followups = multisearch_authored([query, response], DEBUG_PRINT)
+        followups = multisearch_authored([query, response])
         for i, followup in enumerate(followups):
             fin_json[f'followup_{i}'] = asdict(followup)
         yield fin_json
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         yield {'state': 'error', 'error': str(e)}
 
 # convert talk_to_robot_internal from dict generator into json generator
-def talk_to_robot(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K, log: Callable = print):
-    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, mode, history, k, log))
+def talk_to_robot(index, query: str, mode: str, history: List[Dict[str, str]], k: int = STANDARD_K):
+    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, mode, history, k))
 
 # wayyy simplified api
-def talk_to_robot_simple(index, query: str, log: Callable = print):
+def talk_to_robot_simple(index, query: str):
     res = {'response': ''}
 
-    for block in talk_to_robot_internal(index, query, "default", [], log = log):
+    for block in talk_to_robot_internal(index, query, "default", []):
         if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
             citations = {}
             for i, c in enumerate(block['citations']):
