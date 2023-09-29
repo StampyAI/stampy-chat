@@ -6,6 +6,8 @@ from stampy_chat.db.session import ItemAdder
 from stampy_chat.db.models import Interaction
 
 
+MAX_MESSAGE_LEN = 2000 - 8
+
 class DiscordHandler(StreamHandler):
     def emit(self, record):
         # Ignore messages that come from non chat modules
@@ -22,8 +24,8 @@ class DiscordHandler(StreamHandler):
         if not DISCORD_LOGGING_URL:
             return
 
-        while len(message) > 2000 - 8:
-            m_section, message = message[:2000 - 8], message[2000 - 8:]
+        while len(message) > MAX_MESSAGE_LEN:
+            m_section, message = message[:MAX_MESSAGE_LEN], message[MAX_MESSAGE_LEN:]
             m_section = "```\n" + m_section + "\n```"
             DiscordWebhook(url=DISCORD_LOGGING_URL, content=m_section).execute()
         DiscordWebhook(url=DISCORD_LOGGING_URL, content="```\n" + message + "\n```").execute()
