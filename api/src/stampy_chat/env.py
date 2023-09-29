@@ -41,3 +41,6 @@ host = os.environ.get("CHAT_DB_HOST", "127.0.0.1")
 port = os.environ.get("CHAT_DB_PORT", "3306")
 db_name = os.environ.get("CHAT_DB_NAME", "stampy_chat")
 DB_CONNECTION_URI = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db_name}"
+
+### Local testing helpers ###
+REMOTE_CHAT_INSTANCE = os.environ.get("REMOTE_CHAT_INSTANCE", "https://chat.stampy.ai:8443")

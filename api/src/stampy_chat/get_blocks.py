@@ -7,7 +7,7 @@ import regex as re
 import requests
 import time
 from typing import List, Tuple
-from stampy_chat.env import PINECONE_NAMESPACE
+from stampy_chat.env import PINECONE_NAMESPACE, REMOTE_CHAT_INSTANCE
 from stampy_chat import logging
 
 
@@ -66,7 +66,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
         logger.info('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
-            "https://chat.stampy.ai:8443/semantic",
+            REMOTE_CHAT_INSTANCE,
             json = {
                 "query": user_query,
                 "k": k
