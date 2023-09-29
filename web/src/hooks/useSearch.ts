@@ -11,6 +11,8 @@ import type {
 } from "../types";
 
 const MAX_FOLLOWUPS = 4;
+const DATA_HEADER = "data: "
+const EVENT_END_HEADER = "event: close\n"
 
 type HistoryEntry = {
   role: "error" | "stampy" | "assistant" | "user";
@@ -27,14 +29,14 @@ export async function* iterateData(res: Response) {
     if (done) return;
 
     const chunk = new TextDecoder("utf-8").decode(value);
-    if (chunk.startsWith("event: close\n")) return;
+    if (chunk.startsWith(EVENT_END_HEADER)) return;
 
     for (const line of chunk.split("\n")) {
       // Most times, it seems that a single read() call will be one SSE "message",
       // but I'll do the proper aggregation spec thing in case that's not always true.
 
-      if (line.startsWith("data: ")) {
-        message += line.slice(6);
+      if (line.startsWith(DATA_HEADER)) {
+        message += line.slice(DATA_HEADER.length);
         // Fixes #43
       } else if (line !== "") {
         message += line;
@@ -106,7 +108,6 @@ const fetchLLM = async (
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
-      "Allow-Control-Allow-Origin": "*",
     },
 
     body: JSON.stringify({ query, mode, history }),
@@ -141,14 +142,13 @@ const cleanStampyContent = (contents: string) => contents.replace(
 );
 
 export const getStampyContent = async (
-  question_id: string
+  questionId: string
 ): Promise<SearchResult> => {
-  const res = await fetch(`${STAMPY_CONTENT_URL}/${question_id}`, {
+  const res = await fetch(`${STAMPY_CONTENT_URL}/${questionId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      "Allow-Control-Allow-Origin": "*",
     },
   });
 
@@ -179,7 +179,7 @@ export const getStampyContent = async (
     const f_old_filtered = f_old.filter(
       (f) => f.pageid !== data.pageid && !fpids.has(f.pageid)
     );
-    return [...f_new, ...f_old_filtered].slice(0, MAX_FOLLOWUPS); // this is correct, it's N and not N-1 in javascript fsr
+    return [...f_new, ...f_old_filtered].slice(0, MAX_FOLLOWUPS);
   };
 
   return { followups, result };
@@ -210,9 +210,9 @@ export const runSearch = async (
     );
   } else {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
-    const [question_id] = query.split("\n", 2);
-    if (question_id) {
-      return await getStampyContent(question_id);
+    const [questionId] = query.split("\n", 2);
+    if (questionId) {
+      return await getStampyContent(questionId);
     }
     const result = {
       role: "error",
