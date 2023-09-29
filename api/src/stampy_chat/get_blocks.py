@@ -6,7 +6,8 @@ import openai
 import regex as re
 import requests
 import time
-from typing import List, Tuple
+from itertools import groupby
+from typing import Iterable, List, Tuple
 from stampy_chat.env import PINECONE_NAMESPACE, REMOTE_CHAT_INSTANCE, EMBEDDING_MODEL
 from stampy_chat import logging
 
@@ -48,6 +49,51 @@ def get_embedding(text: str) -> np.ndarray:
             time.sleep(min(max_wait_time, 2 ** attempt))
 
 
+def parse_block(match) -> Block:
+    metadata = match['metadata']
+
+    date = metadata.get('date_published') or metadata.get('date')
+
+    if isinstance(date, datetime.date):
+        date = date.isoformat()
+    elif isinstance(date, datetime.datetime):
+        date = date.date().isoformat()
+    elif isinstance(date, (int, float)):
+        date = datetime.datetime.fromtimestamp(date).isoformat()
+
+    authors = metadata.get('authors')
+    if not authors and metadata.get('author'):
+        authors = [metadata.get('author')]
+
+    return Block(
+        id = metadata.get('hash_id') or metadata.get('id'),
+        title = metadata['title'],
+        authors = authors,
+        date = date,
+        url = metadata['url'],
+        tags = metadata.get('tags'),
+        text = strip_block(metadata['text'])
+    )
+
+
+def join_blocks(blocks: Iterable[Block]) -> List[Block]:
+    # for all blocks that are "the same" (same title, author, date, url, tags),
+    # combine their text with "....." in between. Return them in order such
+    # that the combined block has the minimum index of the blocks combined.
+
+    def to_tuple(block):
+        return (block.id, block.title or "", block.authors or [], block.date or "", block.url or "", block.tags or "")
+
+    def merge_texts(blocks):
+        return "\n.....\n".join(sorted(block.text for block in blocks))
+
+    unified_blocks = [
+        Block(*key, merge_texts(group))
+        for key, group in groupby(blocks, key=to_tuple)
+    ]
+    return sorted(unified_blocks, key=to_tuple)
+
+
 # Get the k blocks most semantically similar to the query using Pinecone.
 def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
@@ -69,7 +115,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
             }
         )
 
-        return [Block(**block) for block in response.json()]
+        return [parse_block({'metadata': block}) for block in response.json()]
 
     # print time
     t = time.time()
@@ -87,63 +133,12 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
         include_metadata=True,
         vector=query_embedding
     )
-    blocks = []
-    for match in query_response['matches']:
-        metadata = match['metadata']
-
-        date = metadata.get('date_published') or metadata.get('date')
-
-        if isinstance(date, datetime.date):
-            date = date.isoformat()
-        elif isinstance(date, datetime.datetime):
-            date = date.date().isoformat()
-        elif isinstance(date, float):
-            date = datetime.datetime.fromtimestamp(date).date().isoformat()
-
-        authors = metadata.get('authors')
-        if not authors and metadata.get('author'):
-            authors = [metadata.get('author')]
-
-        blocks.append(Block(
-            id = metadata.get('hash_id'),
-            title = metadata['title'],
-            authors = authors,
-            date = date,
-            url = metadata['url'],
-            tags = metadata.get('tags'),
-            text = strip_block(metadata['text'])
-        ))
-
+    blocks = [parse_block(match) for match in query_response['matches']]
     t2 = time.time()
 
     logger.debug(f'Time to get top-k blocks: {t2-t1:.2f}s')
 
-    # for all blocks that are "the same" (same title, author, date, url, tags),
-    # combine their text with "....." in between. Return them in order such
-    # that the combined block has the minimum index of the blocks combined.
-
-    key = lambda bi: (bi[0].id, bi[0].title or "", bi[0].authors or [], bi[0].date or "", bi[0].url or "", bi[0].tags or "")
-
-    blocks_plus_old_index = [(block, i) for i, block in enumerate(blocks)]
-    blocks_plus_old_index.sort(key=key)
-
-    unified_blocks: List[Tuple[Block, int]] = []
-
-    for key, group in itertools.groupby(blocks_plus_old_index, key=key):
-        group = list(group)
-        if not group:
-            continue
-
-        # group = group[:3] # limit to a max of 3 blocks from any one source
-
-        text = "\n.....\n".join([block[0].text for block in group])
-
-        min_index = min([block[1] for block in group])
-
-        unified_blocks.append((Block(*key, text), min_index))
-
-    unified_blocks.sort(key=lambda bi: bi[1])
-    return [block for block, _ in unified_blocks]
+    return join_blocks(blocks)
 
 
 # we add the title and authors inside the contents of the block, so that
