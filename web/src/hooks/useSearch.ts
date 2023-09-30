@@ -12,7 +12,7 @@ import type {
 
 const MAX_FOLLOWUPS = 4;
 const DATA_HEADER = "data: "
-const EVENT_END_HEADER = "event: close\n"
+const EVENT_END_HEADER = "event: close"
 
 type HistoryEntry = {
   role: "error" | "stampy" | "assistant" | "user";
@@ -29,13 +29,13 @@ export async function* iterateData(res: Response) {
     if (done) return;
 
     const chunk = new TextDecoder("utf-8").decode(value);
-    if (chunk.startsWith(EVENT_END_HEADER)) return;
-
     for (const line of chunk.split("\n")) {
       // Most times, it seems that a single read() call will be one SSE "message",
       // but I'll do the proper aggregation spec thing in case that's not always true.
 
-      if (line.startsWith(DATA_HEADER)) {
+      if (line.startsWith(EVENT_END_HEADER)) {
+        return;
+      } else if (line.startsWith(DATA_HEADER)) {
         message += line.slice(DATA_HEADER.length);
         // Fixes #43
       } else if (line !== "") {
@@ -83,12 +83,12 @@ export const extractAnswer = async (
         setCurrent({ phase: "streaming", ...result });
         break;
 
+      case "followups":
+         // add any potential followup questions
+         followups = data.followups.map((value) => value as Followup);
+         break;
       case "done":
-        // add any potential followup questions
-        const followups = Object.entries(data)
-          .filter(([key]) => key.startsWith("followup_"))
-          .map(([k, value]) => value as Followup);
-        return { result, followups };
+        break;
       case "error":
         throw data.error;
     }

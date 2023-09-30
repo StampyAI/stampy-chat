@@ -226,11 +226,14 @@ def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, sessio
 
         logger.interaction(session_id, query, response, history, prompt, top_k_blocks)
 
-        # yield done state, possibly with followup questions
-        fin_json = {'state': 'done'}
+        yield {"state": "loading", "phase": "followups"}
+        # yield optional followups
         followups = multisearch_authored([query, response])
-        for i, followup in enumerate(followups):
-            fin_json[f'followup_{i}'] = asdict(followup)
+        if followups:
+            yield {'state': 'followups', 'followups': list(map(asdict, followups))}
+
+        # yield done state
+        fin_json = {'state': 'done'}
         yield fin_json
 
     except Exception as e:
