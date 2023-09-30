@@ -268,7 +268,7 @@ def test_talk_to_robot_internal(history, context):
     with patch('stampy_chat.chat.get_top_k_blocks', return_value=context):
         with patch('stampy_chat.chat.multisearch_authored', return_value=followups):
             with patch('openai.ChatCompletion.create', return_value=chunks):
-                assert list(talk_to_robot_internal("index", "what is this about?", "default", history)) == [
+                assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
                     {'phase': 'semantic', 'state': 'loading'},
                     {'citations': [], 'phase': 'semantic', 'state': 'loading'},
                     {'phase': 'prompt', 'state': 'loading'},
@@ -277,12 +277,13 @@ def test_talk_to_robot_internal(history, context):
                     {'content': 'response 2', 'state': 'streaming'},
                     {'content': 'response 3', 'state': 'streaming'},
                     {'content': 'response 4', 'state': 'streaming'},
-                    {
-                        'followup_0': {'pageid': '1', 'score': 0.231, 'text': 'followup 1'},
-                        'followup_1': {'pageid': '2', 'score': 0.231, 'text': 'followup 2'},
-                        'followup_2': {'pageid': '3', 'score': 0.231, 'text': 'followup 3'},
-                        'state': 'done'
-                    },
+                    {'state': 'loading', 'phase': 'followups'},
+                    {'state': 'followups', 'followups': [
+                        {'pageid': '1', 'score': 0.231, 'text': 'followup 1'},
+                        {'pageid': '2', 'score': 0.231, 'text': 'followup 2'},
+                        {'pageid': '3', 'score': 0.231, 'text': 'followup 3'},
+                    ]},
+                    {'state': 'done'},
                 ]
 
 
@@ -297,7 +298,7 @@ def test_talk_to_robot_internal_error(history, context):
     ]
     with patch('stampy_chat.chat.get_top_k_blocks', return_value=context):
         with patch('openai.ChatCompletion.create', return_value=chunks):
-            assert list(talk_to_robot_internal("index", "what is this about?", "default", history)) == [
+            assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
                 {'phase': 'semantic', 'state': 'loading'},
                 {'citations': [], 'phase': 'semantic', 'state': 'loading'},
                 {'phase': 'prompt', 'state': 'loading'},

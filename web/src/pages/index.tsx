@@ -118,6 +118,12 @@ const Home: NextPage = () => {
     case "streaming":
       last_entry = <ShowAssistantEntry entry={current} />;
       break;
+    case "followups":
+      last_entry = <>
+          <ShowAssistantEntry entry={current} />
+          <p>Checking for followups...</p>
+      </>;
+      break;
   }
 
   return (

@@ -9,14 +9,12 @@ import { ShowAssistantEntry } from "./assistant";
 import { GlossarySpan } from "./glossary";
 import Image from "next/image";
 import logo from "../logo.svg";
+import TextareaAutosize from 'react-textarea-autosize';
 
 export const User = ({ entry }: { entry: UserEntry }) => {
   return (
-    <li>
-      <p className="border border-gray-300 px-1 text-right">
-        {" "}
-        {entry.content}{" "}
-      </p>
+    <li className="flex mt-1 mb-2">
+      <TextareaAutosize className="border border-gray-300 px-1 flex-1 resize-none" value={entry.content} />
     </li>
   );
 };
