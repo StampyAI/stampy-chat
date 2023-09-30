@@ -26,7 +26,7 @@ const Semantic: NextPage = () => {
 
     if (!res.ok) {
       enable([]);
-      console.log("load failure: " + res.status);
+      console.error("load failure: " + res.status);
     }
 
     const data = await res.json();

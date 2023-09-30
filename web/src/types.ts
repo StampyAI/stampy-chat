@@ -3,6 +3,7 @@ export type Citation = {
     authors: string[];
     date: string;
     url: string;
+    index: number;
 }
 
 export type Followup = {

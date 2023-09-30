@@ -6,12 +6,19 @@ import Image from 'next/image';
 import Page from "../components/page"
 import { API_URL } from "../settings"
 import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
-import type { Citation, Entry, UserEntry, AssistantEntry, ErrorMessage, StampyMessage } from "../types";
+import type {
+    CurrentSearch,
+    Citation,
+    Entry,
+    UserEntry,
+    AssistantEntry as AssistantEntryType,
+    ErrorMessage,
+    StampyMessage
+} from "../types";
 import { SearchBox, Followup } from "../components/searchbox";
 import { GlossarySpan } from "../components/glossary";
 import { Controls, Mode } from "../components/controls";
-import { ShowAssistantEntry } from "../components/assistant";
-import { ProcessText } from "../components/citations";
+import { AssistantEntry } from "../components/assistant";
 import { Entry as EntryTag } from "../components/entry";
 
 const MAX_FOLLOWUPS = 4;
@@ -24,7 +31,7 @@ type State = {
   citations: Citation[];
 } | {
   state: "streaming";
-  response: AssistantEntry;
+  response: AssistantEntryType;
 };
 
 type Mode = "rookie" | "concise" | "default";
@@ -43,7 +50,6 @@ function scroll30() {
 
 const Home: NextPage = () => {
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [runningIndex, setRunningIndex] = useState(0);
   const [current, setCurrent] = useState<CurrentSearch>();
   const [sessionId, setSessionId] = useState()
 
@@ -70,6 +76,15 @@ const Home: NextPage = () => {
       }
   };
 
+  const updateCitations = (current: CurrentSearch) => {
+       const citations = Array.from(current.citationsMap.values());
+       if (citations.some(c => !c.index)) {
+           let index = 1;
+           citations.forEach((c) => {c.index = index++});
+           setCurrent(current)
+       }
+    }
+
   const search = async (
     query: string,
     query_source: "search" | "followups",
@@ -89,16 +104,12 @@ const Home: NextPage = () => {
           query,
           query_source,
           mode[0],
-          runningIndex,
           entries,
           updateCurrent,
           sessionId,
       );
       setCurrent(undefined);
 
-      if (query_source === "search") {
-          setRunningIndex(runningIndex + ProcessText(result.content, 0)[1].size);
-      }
       setEntries((prev) => [...prev, result]);
       enable(followups || []);
       scroll30();
@@ -116,12 +127,13 @@ const Home: NextPage = () => {
       last_entry = <p>Loading: Waiting for LLM...</p>;
       break;
     case "streaming":
-      last_entry = <ShowAssistantEntry entry={current} />;
+      updateCitations(current)
+      last_entry = <AssistantEntry entry={current} />;
       break;
     case "followups":
       last_entry = <>
-          <ShowAssistantEntry entry={current} />
-          <p>Checking for followups...</p>
+        <AssistantEntry entry={current} />
+        <p>Checking for followups...</p>
       </>;
       break;
   }
@@ -135,7 +147,7 @@ const Home: NextPage = () => {
 
       <ul>
         {entries.map((entry, i) => (
-           <EntryTag entry={entry} key={i} />
+          <EntryTag entry={entry} key={i} />
         ))}
         <SearchBox search={search} />
 

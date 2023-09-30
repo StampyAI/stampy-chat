@@ -1,11 +1,11 @@
 import type {
   Entry as EntryType,
-  AssistantEntry,
+  AssistantEntry as AssistantEntryType,
   ErrorMessage,
   StampyMessage,
   UserEntry,
 } from "../types";
-import { ShowAssistantEntry } from "./assistant";
+import { AssistantEntry } from "./assistant";
 import { GlossarySpan } from "./glossary";
 import Image from "next/image";
 import logo from "../logo.svg";
@@ -30,10 +30,10 @@ export const Error = ({ entry }: { entry: ErrorMessage }) => {
   );
 };
 
-export const Assistant = ({ entry }: { entry: AssistantEntry }) => {
+export const Assistant = ({ entry }: { entry: AssistantEntryType }) => {
   return (
     <li>
-      <ShowAssistantEntry entry={entry} />
+      <AssistantEntry entry={entry} />
     </li>
   );
 };

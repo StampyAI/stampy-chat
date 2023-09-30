@@ -2,9 +2,7 @@ import type { Citation } from "../types";
 import { Colours, A } from "./html";
 
 
-// todo: memoize this if too slow.
-export const ProcessText: (text: string, base_count: number) => [string, Map<string, number>] = (text, base_count) => {
-
+export const formatCitations: (text: string) => string = (text) => {
   // ---------------------- normalize citation form ----------------------
   // the general plan here is just to add parsing cases until we can respond
   // well to almost everything the LLM emits. We won't ever reach five nines,
@@ -41,33 +39,29 @@ export const ProcessText: (text: string, base_count: number) => [string, Map<str
     /\[\s*([a-z]+)\s*\]/g,
     (_match: string, x: string) => `[${x}]`
   )
+  return response;
+}
 
-  // -------------- map citations from strings into numbers --------------
-
+export const findCitations: (text: string, citations: Citations[]) => Map<string, Citation> = (text, citations) => {
   // figure out what citations are in the response, and map them appropriately
-  const cite_map = new Map<string, number>();
-  let cite_count = 0;
+  const cite_map = new Map<string, Citation>();
 
   // scan a regex for [x] over the response. If x isn't in the map, add it.
   // (note: we're actually doing this twice - once on parsing, once on render.
   // if that looks like a problem, we could swap from strings to custom ropes).
   const regex = /\[([a-z]+)\]/g;
   let match;
-  let response_copy = ""
-  while ((match = regex.exec(response)) !== null) {
-    if (!cite_map.has(match[1]!)) {
-      cite_map.set(match[1]!, base_count + cite_count++);
+  while ((match = regex.exec(text)) !== null) {
+    const letter = match[1];
+    const citation = citations[letter.charCodeAt(0) - 'a'.charCodeAt(0)]
+    if (!cite_map.has(letter!)) {
+      cite_map.set(letter!, citation);
     }
-    // replace [x] with [i]
-    response_copy += response.slice(response_copy.length, match.index) + `[${cite_map.get(match[1]!)! + 1}]`;
   }
-
-  response = response_copy + response.slice(response_copy.length);
-
-  return [response, cite_map]
+  return cite_map
 }
 
-export const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
+export const ShowCitation: React.FC<{citation: Citation}> = ({citation}) => {
 
   var c_str = citation.title;
 
@@ -79,25 +73,44 @@ export const ShowCitation: React.FC<{citation: Citation, i: number}> = ({citatio
   // if we don't have a url, link to a duckduckgo search for the title instead
   const url = citation.url && citation.url !== ""
         ? citation.url
-        : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
+        : `https://duckduckgo.com/?q=${encodeURIComponent(ndecitation.title)}`;
 
   return (
-    <A className={Colours[i % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
+    <A className={Colours[(citation.index - 1) % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
       href={url}>
-      <span className="mx-1"> [{i + 1}] </span>
+      <span className="mx-1"> [{citation.index}] </span>
       <p className="mx-1 my-0"> {c_str} </p>
     </A>
   );
 };
 
-export const ShowInTextCitation: React.FC<{citation: Citation, i: number}> = ({citation, i}) => {
-  const url = citation.url && citation.url !== ""
-        ? citation.url
-        : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
-  return (
-    <A className={Colours[i % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-1 mr-0.5"}
-      href={url}>
-      [{i + 1}]
-    </A>
-  );
+export const CitationRef: React.FC<{citation: Citation}> = ({citation}) => {
+    const url = citation.url && citation.url !== ""
+              ? citation.url
+              : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
+    return (
+        <A className={Colours[(citation.index - 1) % Colours.length] + " border-2 rounded text-sm no-underline w-min px-0.5 pb-0.5 ml-1 mr-0.5"}
+           href={url}>
+            [{citation.index}]
+        </A>
+    );
 };
+
+
+export const CitationsBlock: React.FC<{text: string, citations: Map<string, Citation>, textRenderer: (t: str) => any}> = ({text, citations, textRenderer}) => {
+    const regex = /\[([a-z]+)\]/g;
+    return (
+        <p> {
+            text.split(regex).map((part, i) => {
+                // When splitting, the even parts are basic text sections, while the odd ones are
+                // citations
+                if (i % 2 == 0) {
+                    return textRenderer(part)
+                } else {
+                    return (<CitationRef citation={citations.get(part)} />)
+                }
+            })
+        }
+        </p>
+    )
+}
