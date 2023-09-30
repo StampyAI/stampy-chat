@@ -41,7 +41,7 @@ class ChatLogger(Logger):
     def is_debug(self):
         return self.isEnabledFor(DEBUG)
 
-    def interaction(self, session_id, query, response, history, prompt, blocks):
+    def interaction(self, session_id: str, query: str, response: str, history, prompt, blocks):
         prompt = [i for i in prompt if i.get('role') == 'system']
         prompt = prompt[0].get('content') if prompt else None
 

@@ -19,25 +19,27 @@ class Followup:
 # https://nlp.stampy.ai/api/search?query=what%20is%20agi
 
 def search_authored(query: str):
-    multisearch_authored([query])
+    return multisearch_authored([query])
+
+
+def get_followups(query):
+    url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
+    response = requests.get(url).json()
+    return [Followup(entry['title'], entry['pageid'], entry['score']) for entry in response]
+
 
 # search with multiple queries, combine results
 def multisearch_authored(queries: List[str]):
+    # sort the followups from lowest to highest score
+    followups = [entry for query in queries for entry in get_followups(query)]
+    followups = sorted(followups, key=lambda entry: entry.score)
 
-    followups = {}
+    # Remove any duplicates by making a map from the pageids. This should result in highest scored entry being used
+    followups = {entry.pageid: entry for entry in followups if entry.score > SIMILARITY_THRESHOLD}
 
-    for query in queries:
-
-        url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
-        response = requests.get(url).json()
-        for entry in response:
-            followups[entry['pageid']] = Followup(entry['title'], entry['pageid'], entry['score'])
-
-    followups = list(followups.values())
-
-    followups.sort(key=lambda f: f.score, reverse=True)
-
-    followups = followups[:MAX_FOLLOWUPS]
+    # Get the first `MAX_FOLLOWUPS`
+    followups = sorted(followups.values(), reverse=True, key=lambda e: e.score)
+    followups = list(followups)[:MAX_FOLLOWUPS]
 
     if logger.is_debug():
         logger.debug(" ------------------------------ suggested followups: -----------------------------")
@@ -49,7 +51,5 @@ def multisearch_authored(queries: List[str]):
             logger.debug(followup.text)
             logger.debug(followup.pageid)
             logger.debug('')
-
-    followups = [ f for f in followups if f.score > SIMILARITY_THRESHOLD ]
 
     return followups
