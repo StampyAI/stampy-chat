@@ -8,22 +8,22 @@ from stampy_chat.get_blocks import Block, get_top_k_blocks, parse_block, join_bl
     ({}, {}),
 
     # Check dates
-    ({'date_published': '2023-01-02T03:04:05'}, {'date': '2023-01-02T03:04:05'}),
+    ({'date_published': '2023-01-01T03:04:05'}, {'date': '2023-01-01T03:04:05'}),
     (
         {'date_published': datetime.fromisoformat('2023-01-02T03:04:05')},
-        {'date': '2023-01-02T03:04:05'}
-    ),
-    (
-        {'date_published': datetime.fromisoformat('2023-01-02T03:04:05').date()},
         {'date': '2023-01-02'}
     ),
     (
-        {'date_published': datetime.fromisoformat('2023-01-02T03:04:05').timestamp()},
-        {'date': '2023-01-02T03:04:05'}
+        {'date_published': datetime.fromisoformat('2023-01-03T03:04:05').date()},
+        {'date': '2023-01-03'}
     ),
     (
-        {'date_published': int(datetime.fromisoformat('2023-01-02T03:04:05').timestamp())},
-        {'date': '2023-01-02T03:04:05'}
+        {'date_published': datetime.fromisoformat('2023-01-04T03:04:05').timestamp()},
+        {'date': '2023-01-04'}
+    ),
+    (
+        {'date_published': int(datetime.fromisoformat('2023-01-05T03:04:05').timestamp())},
+        {'date': '2023-01-05'}
     ),
 
     # Check authors
@@ -80,6 +80,20 @@ def test_parse_block(match_override, block_override):
         ],
         [
             Block('id1', 'title1', ['author1'], 'date1', 'url1', 'tags1', 'text1\n.....\ntext2'),
+            Block('id2', 'title2', ['author2'], 'date2', 'url2', 'tags2', 'text2'),
+            Block('id3', 'title3', ['author3'], 'date3', 'url3', 'tags3', 'text3'),
+        ]
+    ),
+    (
+        [
+            Block('id1', 'title1', ['author1'], 'date1', 'url1', 'tags1', 'text1-1'),
+            Block('id3', 'title3', ['author3'], 'date3', 'url3', 'tags3', 'text3'),
+            Block('id1', 'title1', ['author1'], 'date1', 'url1', 'tags1', 'text1-2'),
+            Block('id2', 'title2', ['author2'], 'date2', 'url2', 'tags2', 'text2'),
+            Block('id1', 'title1', ['author1'], 'date1', 'url1', 'tags1', 'text1-3'),
+        ],
+        [
+            Block('id1', 'title1', ['author1'], 'date1', 'url1', 'tags1', 'text1-1\n.....\ntext1-2\n.....\ntext1-3'),
             Block('id2', 'title2', ['author2'], 'date2', 'url2', 'tags2', 'text2'),
             Block('id3', 'title3', ['author3'], 'date3', 'url3', 'tags3', 'text3'),
         ]
