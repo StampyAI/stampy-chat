@@ -121,7 +121,7 @@ const Home: NextPage = () => {
     case "followups":
       last_entry = <>
           <ShowAssistantEntry entry={current} />
-          <p>Loading: Checking for followups...</p>
+          <p>Checking for followups...</p>
       </>;
       break;
   }
