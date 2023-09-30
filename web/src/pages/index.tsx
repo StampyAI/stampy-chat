@@ -52,6 +52,7 @@ const Home: NextPage = () => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [current, setCurrent] = useState<CurrentSearch>();
   const [sessionId, setSessionId] = useState()
+    const [citations, setCitations] = useState<Citation>([])
 
   // [state, ready to save to localstorage]
   const [mode, setMode] = useState<[Mode, boolean]>(["default", false]);
@@ -76,14 +77,31 @@ const Home: NextPage = () => {
       }
   };
 
-  const updateCitations = (current: CurrentSearch) => {
-       const citations = Array.from(current.citationsMap.values());
-       if (citations.some(c => !c.index)) {
-           let index = 1;
-           citations.forEach((c) => {c.index = index++});
-           setCurrent(current)
-       }
+
+  const updateCitations = (allCitations: Citation[], current: CurrentSearch) => {
+    const entryCitations = Array.from(current.citationsMap.values());
+    if (!entryCitations.some(c => !c.index)) {
+      // All of the entries citations have indexes, so there weren't any changes since the last check
+      return
     }
+
+    // Get a mapping of all known citations, so as to reuse them if they appear again
+    const citationsMapping = Object.fromEntries(allCitations.map(c => ([c.title + c.url, c.index])));
+
+    entryCitations.forEach(
+      (c) => {
+        const hash = c.title + c.url;
+        if (!citationsMapping[hash]) {
+          c.index = allCitations.length + 1;
+          allCitations.push(c);
+        } else {
+          c.index = citationsMapping[hash];
+        }
+      }
+    )
+    setCitations(allCitations)
+    setCurrent(current)
+  }
 
   const search = async (
     query: string,
@@ -127,7 +145,7 @@ const Home: NextPage = () => {
       last_entry = <p>Loading: Waiting for LLM...</p>;
       break;
     case "streaming":
-      updateCitations(current)
+      updateCitations(citations, current)
       last_entry = <AssistantEntry entry={current} />;
       break;
     case "followups":
