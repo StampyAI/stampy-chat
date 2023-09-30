@@ -63,8 +63,10 @@ export const extractAnswer = async (
   for await (var data of iterateData(res)) {
     switch (data.state) {
       case "loading":
-        // display loading phases, once citations are available toss them
-        // into the current item.
+        setCurrent({ phase: data.phase, ...result });
+        break;
+
+      case "citations":
         result = {
           ...result,
           citations: data?.citations || result?.citations || [],

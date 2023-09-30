@@ -177,7 +177,7 @@ def talk_to_robot_internal(index, query: str, mode: str, history: Prompt, sessio
         top_k_blocks = get_top_k_blocks(index, query, k)
 
         yield {
-            "state": "loading", "phase": "semantic",
+            "state": "citations",
             "citations": [
                 {'title': block.title, 'author': block.authors, 'date': block.date, 'url': block.url}
                 for block in top_k_blocks

@@ -270,7 +270,7 @@ def test_talk_to_robot_internal(history, context):
             with patch('openai.ChatCompletion.create', return_value=chunks):
                 assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
                     {'phase': 'semantic', 'state': 'loading'},
-                    {'citations': [], 'phase': 'semantic', 'state': 'loading'},
+                    {'citations': [], 'state': 'citations'},
                     {'phase': 'prompt', 'state': 'loading'},
                     {'phase': 'llm', 'state': 'loading'},
                     {'content': 'response 1', 'state': 'streaming'},
@@ -300,7 +300,7 @@ def test_talk_to_robot_internal_error(history, context):
         with patch('openai.ChatCompletion.create', return_value=chunks):
             assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
                 {'phase': 'semantic', 'state': 'loading'},
-                {'citations': [], 'phase': 'semantic', 'state': 'loading'},
+                {'citations': [], 'state': 'citations'},
                 {'phase': 'prompt', 'state': 'loading'},
                 {'phase': 'llm', 'state': 'loading'},
                 {'content': 'response 1', 'state': 'streaming'},
