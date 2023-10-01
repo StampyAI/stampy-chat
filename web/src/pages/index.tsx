@@ -38,7 +38,7 @@ const Home: NextPage = () => {
         welcomed.
       </h2>
 
-      <Chat sessionId={sessionId} mode={mode[0]} />
+      <Chat sessionId={sessionId} settings={{ mode: mode[0] }} />
     </Page>
   );
 };

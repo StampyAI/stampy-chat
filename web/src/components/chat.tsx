@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
+
 import type {
   CurrentSearch,
   Citation,
   Entry,
   AssistantEntry as AssistantEntryType,
-  Mode,
+  LLMSettings,
   Followup,
 } from "../types";
 import { SearchBox } from "../components/searchbox";
@@ -39,7 +40,14 @@ function scroll30() {
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
-const Chat = ({ sessionId, mode }: { sessionId: string; mode: Mode }) => {
+type ChatParams = {
+  sessionId: string;
+  settings: LLMSettings;
+  onQuery?: (q: string) => any;
+  onNewEntry?: (history: Entry[]) => any;
+};
+
+const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [current, setCurrent] = useState<CurrentSearch>();
   const [citations, setCitations] = useState<Citation[]>([]);
@@ -82,6 +90,16 @@ const Chat = ({ sessionId, mode }: { sessionId: string; mode: Mode }) => {
     setCurrent(current);
   };
 
+  const addEntry = (entry: Entry) => {
+    setEntries((prev) => {
+      const entries = [...prev, entry];
+      if (onNewEntry) {
+        onNewEntry(entries);
+      }
+      return entries;
+    });
+  };
+
   const search = async (
     query: string,
     query_source: "search" | "followups",
@@ -93,20 +111,20 @@ const Chat = ({ sessionId, mode }: { sessionId: string; mode: Mode }) => {
       role: "user",
       content: query_source === "search" ? query : query.split("\n", 2)[1]!,
     };
-    setEntries((prev) => [...prev, userEntry]);
+    addEntry(userEntry);
     disable();
 
     const { result, followups } = await runSearch(
       query,
       query_source,
-      mode,
+      settings.mode,
       entries,
       updateCurrent,
       sessionId
     );
     setCurrent(undefined);
 
-    setEntries((prev) => [...prev, result]);
+    addEntry(result);
     enable(followups || []);
     scroll30();
   };
@@ -137,11 +155,11 @@ const Chat = ({ sessionId, mode }: { sessionId: string; mode: Mode }) => {
   }
 
   return (
-    <ul>
+    <ul className="flex-auto">
       {entries.map((entry, i) => (
         <EntryTag entry={entry} key={i} />
       ))}
-      <SearchBox search={search} />
+      <SearchBox search={search} onQuery={onQuery} />
 
       {last_entry}
     </ul>

@@ -35,7 +35,8 @@ const SearchBoxInternal: React.FC<{
     disable: () => void,
     enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void
   ) => void;
-}> = ({ search }) => {
+  onQuery?: (q: string) => any;
+}> = ({ search, onQuery }) => {
   const initial_query =
     initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
 
@@ -107,7 +108,10 @@ const SearchBoxInternal: React.FC<{
           className="flex-1 resize-none border border-gray-300 px-1"
           ref={inputRef}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            onQuery && onQuery(e.target.value);
+          }}
           onKeyDown={(e) => {
             // if <esc>, blur the input box
             if (e.key === "Escape") e.currentTarget.blur();
