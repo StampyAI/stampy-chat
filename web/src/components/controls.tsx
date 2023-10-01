@@ -1,4 +1,4 @@
-export type Mode = "rookie" | "concise" | "default";
+import type { Mode } from "../types";
 
 export const Controls = ({
   mode,

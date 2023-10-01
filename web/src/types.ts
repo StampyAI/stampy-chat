@@ -42,3 +42,5 @@ export type SearchResult = {
   result: Entry;
 };
 export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
+
+export type Mode = "rookie" | "concise" | "default";
