@@ -55,6 +55,8 @@ export type LLMSettings = {
   topKBlocks?: number;
   numTokens?: number;
   tokensBuffer?: number;
+  maxHistory?: number;
   historyFraction?: number;
   contextFraction?: number;
+  [key: string]: any;
 };

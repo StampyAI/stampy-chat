@@ -44,7 +44,7 @@ const DEFAULT_PROMPTS = {
 };
 const DEFAULT_SETTINGS = {
   prompts: DEFAULT_PROMPTS,
-  mode: "default",
+  mode: "default" as Mode,
   completions: "gpt-3.5-turbo",
   encoder: "cl100k_base",
   topKBlocks: 10, //  the number of blocks to use as citations
@@ -57,7 +57,11 @@ const DEFAULT_SETTINGS = {
 const COMPLETION_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 const ENCODERS = ["cl100k_base"];
 
-const updateIn = (obj, [head, ...rest]: string[], val: any) => {
+const updateIn = (
+  obj: { [key: string]: any },
+  [head, ...rest]: string[],
+  val: any
+) => {
   if (!head) {
     // No path provided - do nothing
   } else if (!rest || rest.length == 0) {
@@ -72,6 +76,15 @@ type ChatSettingsParams = {
   settings: LLMSettings;
   updateSettings: (updater: (settings: LLMSettings) => LLMSettings) => void;
 };
+type NumberParser = (v: any) => number;
+type InputFields = {
+  field: string;
+  label: string;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  parser?: NumberParser;
+};
 
 const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
   const update = (setting: string) => (event: ChangeEvent) => {
@@ -81,7 +94,12 @@ const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
     }));
   };
   const between =
-    (setting: string, min?: number, max?: number, parser?) =>
+    (
+      setting: string,
+      min: number | undefined,
+      max: number | undefined,
+      parser: NumberParser
+    ) =>
     (event: ChangeEvent) => {
       let num = parser((event.target as HTMLInputElement).value);
       if (isNaN(num)) {
@@ -93,113 +111,130 @@ const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
       }
       updateSettings((prev) => ({ ...prev, [setting]: num }));
     };
-  const intBetween = (setting: string, min?: number, max?: number) =>
-    between(setting, min, max, (v: any) => parseInt(v, 10));
   const floatBetween = (setting: string, min?: number, max?: number) =>
     between(setting, min, max, parseFloat);
+
+  const SectionHeader = ({ text }: { text: string }) => (
+    <h4 className="col-span-4 text-lg font-semibold">{text}</h4>
+  );
+
+  const NumberInput = ({
+    field,
+    label,
+    min,
+    max,
+    parser = (v) => parseInt(v, 10),
+  }: InputFields) => (
+    <>
+      <label htmlFor={field} className="col-span-3 inline-block">
+        {label}:{" "}
+      </label>
+      <input
+        name={field}
+        value={settings[field]}
+        className="w-20"
+        onChange={between(
+          field,
+          min ? parser(min) : undefined,
+          max ? parser(max) : undefined,
+          parser
+        )}
+        type="number"
+      />
+    </>
+  );
+  const Slider = ({
+    field,
+    label,
+    min = 0,
+    max = 1,
+    step = 0.01,
+    parser = parseFloat,
+  }: InputFields) => (
+    <>
+      <label htmlFor={field} className="col-span-2">
+        {label}:
+      </label>
+      <input
+        name={field}
+        className="col-span-2"
+        value={settings[field]}
+        onChange={floatBetween(field, parser(min), parser(max))}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+      />
+    </>
+  );
+
   return (
-    <div className="chat-settings mx-5 w-[400px] flex-none border-2 outline-black">
-      <h4>Models</h4>
-      <div className="LLM-option">
-        <label htmlFor="completions-model">Completions model:</label>
-        <select
-          name="completions-model"
-          value={settings.completions}
-          onChange={update("completions")}
-        >
-          {COMPLETION_MODELS.map((name) => (
-            <option value={name}>{name}</option>
-          ))}
-        </select>
-      </div>
+    <div
+      className="chat-settings mx-5 grid w-[400px] flex-none grid-cols-4 gap-4 border-2 outline-black"
+      style={{ height: "fit-content" }}
+    >
+      <SectionHeader text="Models" />
+      <label htmlFor="completions-model" className="col-span-2">
+        Completions model:
+      </label>
+      <select
+        name="completions-model"
+        className="col-span-2"
+        value={settings.completions}
+        onChange={update("completions")}
+      >
+        {COMPLETION_MODELS.map((name) => (
+          <option value={name} key={name}>
+            {name}
+          </option>
+        ))}
+      </select>
 
-      <div className="LLM-option">
-        <label htmlFor="encoder">Encoder:</label>
-        <select
-          name="encoder"
-          value={settings.encoder}
-          onChange={update("encoder")}
-        >
-          {ENCODERS.map((name) => (
-            <option value={name}>{name}</option>
-          ))}
-        </select>
-      </div>
+      <label htmlFor="encoder" className="col-span-2">
+        Encoder:
+      </label>
+      <select
+        name="encoder"
+        className="col-span-2"
+        value={settings.encoder}
+        onChange={update("encoder")}
+      >
+        {ENCODERS.map((name) => (
+          <option value={name} key={name}>
+            {name}
+          </option>
+        ))}
+      </select>
 
-      <h4>Token options</h4>
-      <div className="LLM-option">
-        <label htmlFor="tokens">Tokens:</label>
-        <input
-          name="tokens"
-          value={settings.numTokens}
-          onChange={intBetween("numTokens", 1)}
-          type="number"
-        />
-      </div>
+      <SectionHeader text="Token options" />
+      <NumberInput field="numTokens" label="Tokens" min="1" />
+      <NumberInput
+        field="tokensBuffer"
+        label="Number of tokens to leave as a buffer when calculating remaining tokens"
+        min="0"
+        max={settings.tokensBuffer}
+      />
 
-      <div className="LLM-option">
-        <label htmlFor="tokens-buffer">
-          Number of tokens to leave as a buffer when calculating remaining
-          tokens:
-        </label>
-        <input
-          name="tokens-buffer"
-          value={settings.tokensBuffer}
-          onChange={intBetween("tokensBuffer", 0, settings.numTokens)}
-          type="number"
-        />
-      </div>
+      <SectionHeader text="Prompt options" />
+      <NumberInput
+        field="topKBlocks"
+        label="Number of blocks to use as citations"
+        min="1"
+      />
+      <NumberInput
+        field="maxHistory"
+        label="The max number of previous interactions to use"
+        min="0"
+      />
 
-      <h4>Prompt options</h4>
-      <div className="LLM-option">
-        <label htmlFor="top-k-blocks">
-          Number of blocks to use as citations:
-        </label>
-        <input
-          name="top-k-blocks"
-          value={settings.topKBlocks}
-          onChange={intBetween("topKBlocks", 0)}
-          type="number"
-        />
-      </div>
-
-      <div className="LLM-option">
-        <label htmlFor="max-history">
-          The max number of previous interactions to use:
-        </label>
-        <input
-          name="max-history"
-          value={settings.maxHistory}
-          onChange={intBetween("maxHistory", 0, null)}
-          type="number"
-        />
-      </div>
-
-      <div className="LLM-option">
-        <label htmlFor="context-fraction">
-          Approximate fraction of num_tokens to use for citations text before
-          truncating:
-        </label>
-        <input
-          name="context-fraction"
-          value={settings.contextFraction}
-          onChange={floatBetween("contextFraction", 0, 1)}
-          type="number"
-        />
-      </div>
-
-      <div className="LLM-option">
-        <label htmlFor="history-fraction">
-          Approximate fraction of num_tokens to use for history text before
-          truncating:
-        </label>
-        <input
-          name="history-fraction"
-          value={settings.historyFraction}
-          onChange={floatBetween("historyFraction", 0, 1)}
-          type="number"
-        />
-      </div>
+      <Slider
+        field="contextFraction"
+        label="Approximate fraction of num_tokens to use for citations text before truncating"
+      />
+      <Slider
+        field="historyFraction"
+        label="Approximate fraction of num_tokens to use for history text before truncating"
+      />
     </div>
   );
 };
@@ -222,27 +257,28 @@ const ChatPrompts = ({
     (event: ChangeEvent) => {
       const newPrompts = {
         ...updateIn(
-          settings.prompts,
+          settings.prompts || {},
           path,
           (event.target as HTMLInputElement).value
         ),
       };
       updateSettings((settings) => ({ ...settings, prompts: newPrompts }));
     };
+
   return (
     <div className="chat-prompts mx-5 w-[400px] flex-none border-2 p-5 outline-black">
       <details open>
         <summary>Source prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings.prompts.source.prefix}
+          value={settings?.prompts?.source?.prefix}
           onChange={updatePrompt("source", "prefix")}
         />
         <div>(This is where sources will be injected)</div>
         {history.length > 0 && (
           <TextareaAutosize
             className="border-gray w-full border px-1"
-            value={settings.prompts.source.suffix}
+            value={settings?.prompts?.source?.suffix}
             onChange={updatePrompt("source", "suffix")}
           />
         )}
@@ -250,25 +286,26 @@ const ChatPrompts = ({
       {history.length > 0 && (
         <details>
           <summary>History</summary>
-          {history.map((entry) => (
-            <div className="history-entry">{entry.content}</div>
-          ))}
+          {history
+            .slice(Math.max(0, history.length - (settings.maxHistory || 0)))
+            .map((entry, i) => (
+              <div className="history-entry" key={i}>
+                {entry.content}
+              </div>
+            ))}
         </details>
       )}
       <details open>
         <summary>Question prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings.prompts.question}
+          value={settings?.prompts?.question}
           onChange={updatePrompt("question")}
         />
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings.prompts.modes[settings.mode || "default"]}
-          onChange={updatePrompt(
-            "modes",
-            (settings.mode || "default") as string
-          )}
+          value={settings?.prompts?.modes[settings.mode || "default"]}
+          onChange={updatePrompt("modes", settings.mode || "default")}
         />
       </details>
       <div>Q: {query}</div>
@@ -304,7 +341,7 @@ const Playground: NextPage = () => {
       </Head>
       <main style={{ maxWidth: "none" }}>
         <Header page="playground" />
-        <Controls mode={[settings.mode, true]} setMode={setMode} />
+        <Controls mode={[settings.mode || "default", true]} setMode={setMode} />
         <div className="flex">
           <ChatPrompts
             settings={settings}

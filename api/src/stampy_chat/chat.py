@@ -194,7 +194,6 @@ def talk_to_robot_internal(index, query: str, history: Prompt, session_id: str, 
     except Exception as e:
         logger.error(e)
         yield {'state': 'error', 'error': str(e)}
-        raise
 
 
 # convert talk_to_robot_internal from dict generator into json generator
