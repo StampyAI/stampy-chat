@@ -117,7 +117,7 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     const { result, followups } = await runSearch(
       query,
       query_source,
-      settings.mode,
+      settings,
       entries,
       updateCurrent,
       sessionId
@@ -150,6 +150,11 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
           <AssistantEntry entry={current} />
           <p>Checking for followups...</p>
         </>
+      );
+      break;
+    default:
+      last_entry = (
+        <button onClick={() => setEntries([])}>Clear history</button>
       );
       break;
   }

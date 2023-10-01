@@ -8,6 +8,7 @@ import type {
   Followup,
   CurrentSearch,
   SearchResult,
+  LLMSettings,
 } from "../types";
 import { formatCitations, findCitations } from "../components/citations";
 
@@ -102,7 +103,7 @@ export const extractAnswer = async (
 const fetchLLM = async (
   sessionId: string,
   query: string,
-  mode: string,
+  settings: LLMSettings,
   history: HistoryEntry[]
 ): Promise<Response> =>
   fetch(API_URL + "/chat", {
@@ -114,18 +115,18 @@ const fetchLLM = async (
       Accept: "text/event-stream",
     },
 
-    body: JSON.stringify({ sessionId, query, mode, history }),
+    body: JSON.stringify({ sessionId, query, history, settings }),
   });
 
 export const queryLLM = async (
   query: string,
-  mode: string,
+  settings: LLMSettings,
   history: HistoryEntry[],
   setCurrent: (e?: CurrentSearch) => void,
   sessionId: string
 ): Promise<SearchResult> => {
   // do SSE on a POST request.
-  const res = await fetchLLM(sessionId, query, mode, history);
+  const res = await fetchLLM(sessionId, query, settings, history);
 
   if (!res.ok) {
     return { result: { role: "error", content: "POST Error: " + res.status } };
@@ -194,7 +195,7 @@ export const getStampyContent = async (
 export const runSearch = async (
   query: string,
   query_source: "search" | "followups",
-  mode: string,
+  settings: LLMSettings,
   entries: Entry[],
   setCurrent: (c: CurrentSearch) => void,
   sessionId: string
@@ -207,7 +208,7 @@ export const runSearch = async (
         content: entry.content.trim(),
       }));
 
-    return await queryLLM(query, mode, history, setCurrent, sessionId);
+    return await queryLLM(query, settings, history, setCurrent, sessionId);
   } else {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
     const [questionId] = query.split("\n", 2);

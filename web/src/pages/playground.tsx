@@ -44,12 +44,13 @@ const DEFAULT_PROMPTS = {
 };
 const DEFAULT_SETTINGS = {
   prompts: DEFAULT_PROMPTS,
-  mode: "default" as Mode,
+  mode: "default",
   completions: "gpt-3.5-turbo",
   encoder: "cl100k_base",
   topKBlocks: 10, //  the number of blocks to use as citations
   numTokens: 4095,
   tokensBuffer: 50, //  the number of tokens to leave as a buffer when calculating remaining tokens
+  maxHistory: 10, //  the max number of previous items to use as history
   historyFraction: 0.25, //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: 0.5, //  the (approximate) fraction of num_tokens to use for context text before truncating
 };
@@ -158,6 +159,18 @@ const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
           name="top-k-blocks"
           value={settings.topKBlocks}
           onChange={intBetween("topKBlocks", 0)}
+          type="number"
+        />
+      </div>
+
+      <div className="LLM-option">
+        <label htmlFor="max-history">
+          The max number of previous interactions to use:
+        </label>
+        <input
+          name="max-history"
+          value={settings.maxHistory}
+          onChange={intBetween("maxHistory", 0, null)}
           type="number"
         />
       </div>

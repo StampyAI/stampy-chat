@@ -1,12 +1,22 @@
 import pytest
+import tiktoken
 from unittest.mock import patch, MagicMock
 
 from stampy_chat.followups import Followup
+from stampy_chat.settings import Settings
 from stampy_chat.get_blocks import Block
 from stampy_chat.chat import (
     cap, construct_prompt, check_openai_moderation, remaining_tokens, talk_to_robot_internal,
-    talk_to_robot, talk_to_robot_simple, prompt_context, prompt_history, ENCODER, logger
+    talk_to_robot, talk_to_robot_simple, prompt_context, prompt_history, logger
 )
+
+
+ENCODER = tiktoken.get_encoding('cl100k_base')
+
+
+@pytest.fixture
+def settings():
+    return Settings()
 
 
 @pytest.fixture
@@ -48,7 +58,7 @@ def context():
     ],
 )
 def test_cap(text, max_tokens, expected):
-    assert cap(text, max_tokens) == expected
+    assert cap(text, max_tokens, ENCODER) == expected
 
 
 EXPECTED_CONTEXT = """bla bla: [a] Block0 - Author0 - 2021-01-01
@@ -68,18 +78,34 @@ Block text 4"""
 
 
 def test_prompt_context(context):
-    assert prompt_context("bla bla: ", context, 1000) == EXPECTED_CONTEXT
+    settings = Settings(
+        numTokens=1000, contextFraction=1,
+        prompts={
+            'source': {'prefix': "bla bla: "},
+            'modes': {'default': ''}
+        }
+    )
+    assert prompt_context(context, settings) == EXPECTED_CONTEXT
 
 
 def test_prompt_context_cutoff(context):
-    formatted = prompt_context("bla bla: ", context, 50)
+    settings = Settings(
+        numTokens=50, contextFraction=1,
+        prompts={
+            'source': {'prefix': "bla bla: "},
+            'modes': {'default': ''}
+        }
+    )
+
+    formatted = prompt_context(context, settings)
 
     assert len(ENCODER.encode(formatted)) == 50 + 1  # the "..." is a single token
-    assert prompt_context("bla bla: ", context, 50) == EXPECTED_CONTEXT[:116] + '...'
+    assert prompt_context(context, settings) == EXPECTED_CONTEXT[:116] + '...'
 
 
 def test_prompt_history(history):
-    assert prompt_history(history, 1000) == [
+    settings = Settings(numTokens=1000, historyFraction=1)
+    assert prompt_history(history, settings) == [
         {'content': 'Q: Die monster. You don’t belong in this world!', 'role': 'user'},
         {'content': 'It was not by my hand[x] I am once again given flesh. I was called here by humans who wished to pay me tribute.', 'role': 'assistant'},
         {'content': "Q: Tribute!?! You steal men's souls and make them your slaves!", 'role': 'user'},
@@ -90,7 +116,8 @@ def test_prompt_history(history):
 
 
 def test_prompt_history_cutoffs(history):
-    assert prompt_history(history, 50) == [
+    settings = Settings(numTokens=50, historyFraction=1)
+    assert prompt_history(history, settings) == [
         {'content': 'Perhaps the same could be said ...', 'role': 'assistant'},
         {'content': 'Q: Your words are as empty as your soul! Mankind ill needs a savior such as you!', 'role': 'user'},
         {'content': 'What is a man? A[x] miserable little pile of secrets. But enough talk... Have at you!', 'role': 'assistant'},
@@ -100,12 +127,13 @@ def test_prompt_history_cutoffs(history):
 def test_prompt_history_limit_items():
     history = [{'content': f'content {i}', 'role': 'assistant'} for i in range(30)]
 
-    assert len(prompt_history(history, 1000)) == 10
-    assert prompt_history(history, 1000) == history[-10:]
+    settings = Settings(numTokens=1000, historyFraction=1)
+    assert len(prompt_history(history, settings)) == 10
+    assert prompt_history(history, settings) == history[-10:]
 
 
-def test_construct_prompt(history, context):
-    assert construct_prompt("to be or not to be?", "default", history, context) == [
+def test_construct_prompt(history, context, settings):
+    assert construct_prompt("to be or not to be?", settings, history, context) == [
         {
             'content': (
                 'You are a helpful assistant knowledgeable about AI Alignment and '
@@ -163,8 +191,8 @@ def test_construct_prompt(history, context):
     ]
 
 
-def test_construct_prompt_no_history_or_context():
-    assert construct_prompt("to be or not to be?", "default", [], []) == [
+def test_construct_prompt_no_history_or_context(settings):
+    assert construct_prompt("to be or not to be?", settings, [], []) == [
         {
             'content': (
                 'You are a helpful assistant knowledgeable about AI Alignment and '
@@ -245,8 +273,8 @@ def test_check_openai_moderation_not_flagged():
         0
     ),
 ))
-def test_remaining_tokens(prompt, remaining):
-    assert remaining_tokens(prompt) == remaining
+def test_remaining_tokens(prompt, remaining, settings):
+    assert remaining_tokens(prompt, settings) == remaining
 
 
 @patch('stampy_chat.chat.check_openai_moderation')
@@ -268,7 +296,7 @@ def test_talk_to_robot_internal(history, context):
     with patch('stampy_chat.chat.get_top_k_blocks', return_value=context):
         with patch('stampy_chat.chat.multisearch_authored', return_value=followups):
             with patch('openai.ChatCompletion.create', return_value=chunks):
-                assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
+                assert list(talk_to_robot_internal("index", "what is this about?", history, 'session id')) == [
                     {'phase': 'semantic', 'state': 'loading'},
                     {'citations': [], 'state': 'citations'},
                     {'phase': 'prompt', 'state': 'loading'},
@@ -298,7 +326,7 @@ def test_talk_to_robot_internal_error(history, context):
     ]
     with patch('stampy_chat.chat.get_top_k_blocks', return_value=context):
         with patch('openai.ChatCompletion.create', return_value=chunks):
-            assert list(talk_to_robot_internal("index", "what is this about?", "default", history, 'session id')) == [
+            assert list(talk_to_robot_internal("index", "what is this about?", history, 'session id')) == [
                 {'phase': 'semantic', 'state': 'loading'},
                 {'citations': [], 'state': 'citations'},
                 {'phase': 'prompt', 'state': 'loading'},
