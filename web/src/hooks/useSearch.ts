@@ -9,6 +9,7 @@ import type {
   Followup,
   SearchResult,
 } from "../types";
+import { formatCitations, findCitations } from '../components/citations';
 
 const MAX_FOLLOWUPS = 4;
 const DATA_HEADER = "data: "
@@ -50,21 +51,22 @@ export async function* iterateData(res: Response) {
 
 export const extractAnswer = async (
   res: Response,
-  baseReferencesIndex: number,
   setCurrent: (e: CurrentSearch) => void
 ): Promise<SearchResult> => {
   var result: AssistantEntry = {
     role: "assistant",
     content: "",
     citations: [],
-    base_count: baseReferencesIndex,
+    citationsMap: Map<string, Citation>,
   };
   var followups: Followup[] = [];
   for await (var data of iterateData(res)) {
     switch (data.state) {
       case "loading":
-        // display loading phases, once citations are available toss them
-        // into the current item.
+        setCurrent({ phase: data.phase, ...result });
+        break;
+
+      case "citations":
         result = {
           ...result,
           citations: data?.citations || result?.citations || [],
@@ -74,11 +76,12 @@ export const extractAnswer = async (
 
       case "streaming":
         // incrementally build up the response
+        const content = formatCitations((result?.content || "") + data.content);
         result = {
+          content,
           role: "assistant",
-          content: (result?.content || "") + data.content,
           citations: result?.citations || [],
-          base_count: result?.base_count || baseReferencesIndex,
+          citationsMap: findCitations(content, result?.citations || []),
         };
         setCurrent({ phase: "streaming", ...result });
         break;
@@ -118,7 +121,6 @@ export const queryLLM = async (
   query: string,
   mode: string,
   history: HistoryEntry[],
-  baseReferencesIndex: number,
   setCurrent: (e?: CurrentSearch) => void,
   sessionId: string
 ): Promise<SearchResult> => {
@@ -130,7 +132,7 @@ export const queryLLM = async (
   }
 
   try {
-    return await extractAnswer(res, baseReferencesIndex, setCurrent);
+    return await extractAnswer(res, setCurrent);
   } catch (e) {
     return {
       result: { role: "error", content: e ? e.toString() : "unknown error" },
@@ -191,7 +193,6 @@ export const runSearch = async (
   query: string,
   query_source: "search" | "followups",
   mode: string,
-  baseReferencesIndex: number,
   entries: Entry[],
   setCurrent: (c: CurrentSearch) => void,
   sessionId: string
@@ -208,7 +209,6 @@ export const runSearch = async (
       query,
       mode,
       history,
-      baseReferencesIndex,
       setCurrent,
       sessionId
     );

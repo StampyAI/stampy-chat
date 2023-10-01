@@ -23,6 +23,9 @@ def search_authored(query: str):
 
 
 def get_followups(query):
+    if not query.strip():
+        return []
+
     url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
     response = requests.get(url).json()
     return [Followup(entry['title'], entry['pageid'], entry['score']) for entry in response]
