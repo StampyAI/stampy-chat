@@ -52,7 +52,7 @@ const Home: NextPage = () => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [current, setCurrent] = useState<CurrentSearch>();
   const [sessionId, setSessionId] = useState()
-    const [citations, setCitations] = useState<Citation>([])
+  const [citations, setCitations] = useState<Citation>([])
 
   // [state, ready to save to localstorage]
   const [mode, setMode] = useState<[Mode, boolean]>(["default", false]);
@@ -71,12 +71,11 @@ const Home: NextPage = () => {
   }, []);
 
   const updateCurrent = (current: CurrentSearch) => {
-      setCurrent(current);
-      if (current?.phase === "streaming") {
-          scroll30();
-      }
+    setCurrent(current);
+    if (current?.phase === "streaming") {
+      scroll30();
+    }
   };
-
 
   const updateCitations = (allCitations: Citation[], current: CurrentSearch) => {
     const entryCitations = Array.from(current.citationsMap.values());
@@ -111,26 +110,26 @@ const Home: NextPage = () => {
   ) => {
 
     // clear the query box, append to entries
-      const userEntry: Entry = {
-          role: "user",
-          content: query_source === "search" ? query : query.split("\n", 2)[1]!,
-      };
-      setEntries((prev) => [...prev, userEntry]);
-      disable();
+    const userEntry: Entry = {
+      role: "user",
+      content: query_source === "search" ? query : query.split("\n", 2)[1]!,
+    };
+    setEntries((prev) => [...prev, userEntry]);
+    disable();
 
-      const { result, followups } = await runSearch(
-          query,
-          query_source,
-          mode[0],
-          entries,
-          updateCurrent,
-          sessionId,
-      );
-      setCurrent(undefined);
+    const { result, followups } = await runSearch(
+      query,
+      query_source,
+      mode[0],
+      entries,
+      updateCurrent,
+      sessionId,
+    );
+    setCurrent(undefined);
 
-      setEntries((prev) => [...prev, result]);
-      enable(followups || []);
-      scroll30();
+    setEntries((prev) => [...prev, result]);
+    enable(followups || []);
+    scroll30();
   };
 
   var last_entry = <></>;

@@ -73,7 +73,7 @@ export const ShowCitation: React.FC<{citation: Citation}> = ({citation}) => {
   // if we don't have a url, link to a duckduckgo search for the title instead
   const url = citation.url && citation.url !== ""
         ? citation.url
-        : `https://duckduckgo.com/?q=${encodeURIComponent(ndecitation.title)}`;
+        : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
 
   return (
     <A className={Colours[(citation.index - 1) % Colours.length] + " border-2 flex items-center rounded my-2 text-sm no-underline w-fit"}
