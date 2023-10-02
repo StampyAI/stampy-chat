@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 h1 {
-  @apply text-4xl font-bold my-4;
+  @apply my-4 text-4xl font-bold;
 }
 
 h2 {
-  @apply text-xl font-semibold my-4;
+  @apply my-4 text-xl font-semibold;
 }
 
 main {
@@ -28,7 +28,7 @@ p {
 }
 
 button {
-  @apply bg-white hover:bg-gray-300 px-0.5 py-0 w-fit h-fit;
+  @apply h-fit w-fit bg-white px-0.5 py-0 hover:bg-gray-300;
   @apply border border-gray-300;
   @apply text-gray-700;
 }
@@ -37,14 +37,13 @@ ol {
   @apply list-decimal;
 }
 
-
 /* glossary terms with a definition that shows on hover */
 .glossary-hover {
   position: absolute;
   display: none;
   width: 300px;
   transform: translateY(1.7rem);
-  @apply bg-white hover:bg-gray-300 h-fit px-3;
+  @apply h-fit bg-white px-3 hover:bg-gray-300;
   @apply border border-gray-300;
   @apply text-black;
 }

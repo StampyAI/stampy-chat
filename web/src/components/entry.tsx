@@ -9,12 +9,15 @@ import { AssistantEntry } from "./assistant";
 import { GlossarySpan } from "./glossary";
 import Image from "next/image";
 import logo from "../logo.svg";
-import TextareaAutosize from 'react-textarea-autosize';
+import TextareaAutosize from "react-textarea-autosize";
 
 export const User = ({ entry }: { entry: UserEntry }) => {
   return (
-    <li className="flex mt-1 mb-2">
-      <TextareaAutosize className="border border-gray-300 px-1 flex-1 resize-none" value={entry.content} />
+    <li className="mt-1 mb-2 flex">
+      <TextareaAutosize
+        className="flex-1 resize-none border border-gray-300 px-1"
+        value={entry.content}
+      />
     </li>
   );
 };

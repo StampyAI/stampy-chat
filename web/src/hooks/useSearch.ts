@@ -5,15 +5,15 @@ import type {
   AssistantEntry,
   ErrorMessage,
   StampyMessage,
-  CurrentSearch,
   Followup,
+  CurrentSearch,
   SearchResult,
 } from "../types";
-import { formatCitations, findCitations } from '../components/citations';
+import { formatCitations, findCitations } from "../components/citations";
 
 const MAX_FOLLOWUPS = 4;
-const DATA_HEADER = "data: "
-const EVENT_END_HEADER = "event: close"
+const DATA_HEADER = "data: ";
+const EVENT_END_HEADER = "event: close";
 
 type HistoryEntry = {
   role: "error" | "stampy" | "assistant" | "user";
@@ -57,7 +57,7 @@ export const extractAnswer = async (
     role: "assistant",
     content: "",
     citations: [],
-    citationsMap: Map<string, Citation>,
+    citationsMap: new Map(),
   };
   var followups: Followup[] = [];
   for await (var data of iterateData(res)) {
@@ -87,9 +87,9 @@ export const extractAnswer = async (
         break;
 
       case "followups":
-         // add any potential followup questions
-         followups = data.followups.map((value) => value as Followup);
-         break;
+        // add any potential followup questions
+        followups = data.followups.map((value: any) => value as Followup);
+        break;
       case "done":
         break;
       case "error":
@@ -140,10 +140,12 @@ export const queryLLM = async (
   }
 };
 
-const cleanStampyContent = (contents: string) => contents.replace(
+const cleanStampyContent = (contents: string) =>
+  contents.replace(
     /<a(.*?)href="\/\?state=([a-zA-Z0-9]+.*?)"(.*?)<\/a>/g,
-    (_, pre, linkParts, post) => `<a${pre}href="${STAMPY_URL}/?state=${linkParts}"${post}</a>`
-);
+    (_, pre, linkParts, post) =>
+      `<a${pre}href="${STAMPY_URL}/?state=${linkParts}"${post}</a>`
+  );
 
 export const getStampyContent = async (
   questionId: string
@@ -196,7 +198,7 @@ export const runSearch = async (
   entries: Entry[],
   setCurrent: (c: CurrentSearch) => void,
   sessionId: string
-): SearchResult => {
+): Promise<SearchResult> => {
   if (query_source === "search") {
     const history = entries
       .filter((entry) => entry.role !== "error")
@@ -205,13 +207,7 @@ export const runSearch = async (
         content: entry.content.trim(),
       }));
 
-    return await queryLLM(
-      query,
-      mode,
-      history,
-      setCurrent,
-      sessionId
-    );
+    return await queryLLM(query, mode, history, setCurrent, sessionId);
   } else {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
     const [questionId] = query.split("\n", 2);
