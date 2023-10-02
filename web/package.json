@@ -5,8 +5,13 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "eslint": "eslint --ignore-pattern .gitignore \"**/*.ts*\"",
+    "eslint:fix": "eslint --fix --ignore-pattern .gitignore \"**/*.ts*\"",
+    "prettier": "prettier --check --ignore-path .gitignore \"**/*.{ts*,js,css,md,html}\"",
+    "prettier:fix": "prettier --write --ignore-path .gitignore \"**/*.{ts*,js,css,md,html}\"",
+    "lint": "tsc && npm run prettier && npm run eslint",
+    "lint:fix": "tsc && npm run prettier:fix && npm run eslint:fix"
   },
   "dependencies": {
     "autosize": "^6.0.1",

@@ -1,38 +1,44 @@
 export type Citation = {
-    title: string;
-    authors: string[];
-    date: string;
-    url: string;
-    index: number;
-}
+  title: string;
+  authors: string[];
+  date: string;
+  url: string;
+  index: number;
+};
 
 export type Followup = {
-    text: string;
-    pageid: string;
-    score: number;
-}
+  text: string;
+  pageid: string;
+  score: number;
+};
 
 export type Entry = UserEntry | AssistantEntry | ErrorMessage | StampyMessage;
 
 export type UserEntry = {
-    role: "user";
-    content: string;
-}
+  role: "user";
+  content: string;
+};
 
 export type AssistantEntry = {
-    role: "assistant";
-    content: string;
-    citations: Citation[];
-    base_count: number; // the number to start counting citations at
-}
+  role: "assistant";
+  content: string;
+  citations: Citation[];
+  citationsMap: Map<string, Citation>;
+};
 
 export type ErrorMessage = {
-    role: "error";
-    content: string;
-}
+  role: "error";
+  content: string;
+};
 
 export type StampyMessage = {
-    role: "stampy";
-    content: string;
-    url: string;
-}
+  role: "stampy";
+  content: string;
+  url: string;
+};
+
+export type SearchResult = {
+  followups?: Followup[] | ((f: Followup[]) => Followup[]);
+  result: Entry;
+};
+export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
