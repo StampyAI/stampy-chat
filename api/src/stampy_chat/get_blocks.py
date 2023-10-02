@@ -71,7 +71,7 @@ def parse_block(match) -> Block:
         date = date,
         url = metadata['url'],
         tags = metadata.get('tags'),
-        text = strip_block(metadata['text'])
+        text = metadata['text']
     )
 
 
@@ -144,13 +144,3 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
     logger.debug(f'Time to get top-k blocks: {t2-t1:.2f}s')
 
     return join_blocks(blocks)
-
-
-# we add the title and authors inside the contents of the block, so that
-# searches for the title or author will be more likely to pull it up. This
-# strips it back out.
-def strip_block(text: str) -> str:
-    r = re.match(r"^\"(.*)\"\s*-\s*Title:.*$", text, re.DOTALL)
-    if not r:
-        logger.warning("couldn't strip block:\n%s", text)
-    return r.group(1) if r else text

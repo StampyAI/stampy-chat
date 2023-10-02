@@ -10,6 +10,7 @@ from stampy_chat import logging
 from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
 from stampy_chat.get_blocks import get_top_k_blocks
 from stampy_chat.chat import talk_to_robot, talk_to_robot_simple
+from stampy_chat.settings import Settings
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -44,11 +45,11 @@ def semantic():
 def chat():
 
     query = request.json.get('query')
-    mode = request.json.get('mode', 'default')
     session_id = request.json.get('sessionId')
     history = request.json.get('history', [])
+    settings = Settings(**request.json.get('settings', {}))
 
-    return Response(stream(talk_to_robot(PINECONE_INDEX, query, mode, history, session_id)), mimetype='text/event-stream')
+    return Response(stream(talk_to_robot(PINECONE_INDEX, query, history, session_id, settings)), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------

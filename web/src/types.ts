@@ -42,3 +42,21 @@ export type SearchResult = {
   result: Entry;
 };
 export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
+
+export type Mode = "rookie" | "concise" | "default";
+
+export type LLMSettings = {
+  prompts?: {
+    [key: string]: any;
+  };
+  mode?: Mode;
+  completions?: string;
+  encoder?: string;
+  topKBlocks?: number;
+  numTokens?: number;
+  tokensBuffer?: number;
+  maxHistory?: number;
+  historyFraction?: number;
+  contextFraction?: number;
+  [key: string]: any;
+};
