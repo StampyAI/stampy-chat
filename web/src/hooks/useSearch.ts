@@ -21,6 +21,12 @@ type HistoryEntry = {
   content: string
 }
 
+const ignoreAbort = (error: Error) => {
+  if (error.name !== 'AbortError') {
+    throw error
+  }
+}
+
 export async function* iterateData(res: Response) {
   const reader = res.body!.getReader()
   var message = ''
@@ -104,9 +110,11 @@ const fetchLLM = async (
   sessionId: string,
   query: string,
   settings: LLMSettings,
-  history: HistoryEntry[]
-): Promise<Response> =>
+  history: HistoryEntry[],
+  controller: AbortController
+): Promise<Response | void> =>
   fetch(API_URL + '/chat', {
+    signal: controller.signal,
     method: 'POST',
     cache: 'no-cache',
     keepalive: true,
@@ -116,25 +124,31 @@ const fetchLLM = async (
     },
 
     body: JSON.stringify({sessionId, query, history, settings}),
-  })
+  }).catch(ignoreAbort)
 
 export const queryLLM = async (
   query: string,
   settings: LLMSettings,
   history: HistoryEntry[],
   setCurrent: (e?: CurrentSearch) => void,
-  sessionId: string
+  sessionId: string,
+  controller: AbortController
 ): Promise<SearchResult> => {
   // do SSE on a POST request.
-  const res = await fetchLLM(sessionId, query, settings, history)
+  const res = await fetchLLM(sessionId, query, settings, history, controller)
 
-  if (!res.ok) {
+  if (!res) {
+    return {result: {role: 'error', content: 'No response from server'}}
+  } else if (!res.ok) {
     return {result: {role: 'error', content: 'POST Error: ' + res.status}}
   }
 
   try {
     return await extractAnswer(res, setCurrent)
   } catch (e) {
+    if ((e as Error)?.name === 'AbortError') {
+      return {result: {role: 'error', content: 'aborted'}}
+    }
     return {
       result: {role: 'error', content: e ? e.toString() : 'unknown error'},
     }
@@ -147,16 +161,22 @@ const cleanStampyContent = (contents: string) =>
     (_, pre, linkParts, post) => `<a${pre}href="${STAMPY_URL}/?state=${linkParts}"${post}</a>`
   )
 
-export const getStampyContent = async (questionId: string): Promise<SearchResult> => {
+export const getStampyContent = async (
+  questionId: string,
+  controller: AbortController
+): Promise<SearchResult> => {
   const res = await fetch(`${STAMPY_CONTENT_URL}/${questionId}`, {
     method: 'GET',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-  })
+  }).catch(ignoreAbort)
 
-  if (!res.ok) {
+  if (!res) {
+    return {result: {role: 'error', content: 'No response from server'}}
+  } else if (!res.ok) {
     return {result: {role: 'error', content: 'POST Error: ' + res.status}}
   }
 
@@ -193,7 +213,8 @@ export const runSearch = async (
   settings: LLMSettings,
   entries: Entry[],
   setCurrent: (c: CurrentSearch) => void,
-  sessionId: string
+  sessionId: string,
+  controller: AbortController
 ): Promise<SearchResult> => {
   if (query_source === 'search') {
     const history = entries
@@ -203,12 +224,12 @@ export const runSearch = async (
         content: entry.content.trim(),
       }))
 
-    return await queryLLM(query, settings, history, setCurrent, sessionId)
+    return await queryLLM(query, settings, history, setCurrent, sessionId, controller)
   } else {
     // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
     const [questionId] = query.split('\n', 2)
     if (questionId) {
-      return await getStampyContent(questionId)
+      return await getStampyContent(questionId, controller)
     }
     const result = {
       role: 'error',

@@ -5,35 +5,42 @@ import type {Followup} from '../types'
 import Page from '../components/page'
 import {SearchBox} from '../components/searchbox'
 
+const ignoreAbort = (error: Error) => {
+  if (error.name !== 'AbortError') {
+    throw error
+  }
+}
+
 const Semantic: NextPage = () => {
   const [results, setResults] = useState<SemanticEntry[]>([])
 
   const semantic_search = async (
     query: string,
     _query_source: 'search' | 'followups',
-    disable: () => void,
-    enable: (f_set: Followup[]) => void
+    enable: (f_set: Followup[]) => void,
+    controller: AbortController
   ) => {
-    disable()
-
     const res = await fetch(API_URL + '/semantic', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({query: query}),
-    })
+    }).catch(ignoreAbort)
 
-    if (!res.ok) {
+    if (!res) {
       enable([])
+      return
+    } else if (!res.ok) {
       console.error('load failure: ' + res.status)
     }
+    enable([])
 
     const data = await res.json()
 
     setResults(data)
-    enable([])
   }
 
   return (

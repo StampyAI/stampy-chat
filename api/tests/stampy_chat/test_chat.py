@@ -255,14 +255,14 @@ def test_check_openai_moderation_not_flagged():
 
 
 @pytest.mark.parametrize('prompt, remaining', (
-    ([{'role': 'system', 'content': 'bla'}], 4043),
+    ([{'role': 'system', 'content': 'bla'}], 4045),
     (
         [
             {'role': 'system', 'content': 'bla'},
             {'role': 'user', 'content': 'message 1'},
             {'role': 'assistant', 'content': 'response 1'},
         ],
-        4035
+        4037
     ),
     (
         [
