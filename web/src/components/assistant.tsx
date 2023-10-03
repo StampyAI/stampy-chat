@@ -1,12 +1,14 @@
-import {useState} from 'react'
-import {ShowCitation, CitationsBlock} from './citations'
-import {GlossarySpan} from './glossary'
-import type {Citation, AssistantEntry as AssistantType} from '../types'
+import { useState } from "react";
+import { ShowCitation, CitationsBlock } from "./citations";
+import { GlossarySpan } from "./glossary";
+import type { Citation, AssistantEntry as AssistantType } from "../types";
 
-export const AssistantEntry: React.FC<{entry: AssistantType}> = ({entry}) => {
+export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
+  entry,
+}) => {
   return (
     <div className="mt-3 mb-8">
-      {entry.content.split('\n').map((paragraph, i) => (
+      {entry.content.split("\n").map((paragraph, i) => (
         <CitationsBlock
           key={i}
           text={paragraph}
@@ -25,5 +27,5 @@ export const AssistantEntry: React.FC<{entry: AssistantType}> = ({entry}) => {
         }
       </ul>
     </div>
-  )
-}
+  );
+};

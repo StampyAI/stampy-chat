@@ -1,8 +1,11 @@
-import React, {ReactNode} from 'react'
-import Head from 'next/head'
-import Header from './header'
+import React, { ReactNode } from "react";
+import Head from "next/head";
+import Header from "./header";
 
-const Page: React.FC<{children: ReactNode; page: 'index' | 'semantic'}> = ({page, children}) => {
+const Page: React.FC<{ children: ReactNode; page: "index" | "semantic" }> = ({
+  page,
+  children,
+}) => {
   return (
     <>
       <Head>
@@ -13,6 +16,6 @@ const Page: React.FC<{children: ReactNode; page: 'index' | 'semantic'}> = ({page
         {children}
       </main>
     </>
-  )
-}
-export default Page
+  );
+};
+export default Page;

@@ -1,100 +1,106 @@
-import React from 'react'
-import {useState, useEffect} from 'react'
-import type {Followup} from '../types'
-import TextareaAutosize from 'react-textarea-autosize'
-import dynamic from 'next/dynamic'
+import React from "react";
+import { useState, useEffect } from "react";
+import type { Followup } from "../types";
+import TextareaAutosize from "react-textarea-autosize";
+import dynamic from "next/dynamic";
 
 // initial questions to fill the search box with.
 export const initialQuestions: string[] = [
-  'Are there any regulatory efforts aimed at addressing AI safety and alignment concerns?',
-  'How can I help with AI safety and alignment?',
-  'How could a predictive model - like an LLM - act like an agent?',
+  "Are there any regulatory efforts aimed at addressing AI safety and alignment concerns?",
+  "How can I help with AI safety and alignment?",
+  "How could a predictive model - like an LLM - act like an agent?",
   "How could an AI possibly be an x-risk when some populations aren't even connected to the internet?",
   "I'm not convinced, why is this important?",
-  'Summarize the differences in opinion between Eliezer Yudkowsky and Paul Christiano.',
+  "Summarize the differences in opinion between Eliezer Yudkowsky and Paul Christiano.",
   'What are "RAAPs"?',
   'What are "scaling laws" and how are they relevant to safety?',
-  'What are some of the different research approaches?',
-  'What are the differences between Inner and Outer alignment?',
+  "What are some of the different research approaches?",
+  "What are the differences between Inner and Outer alignment?",
   'What does the term "x-risk" mean?',
   'What is "FOOM"?',
   'What is "instrumental convergence"?',
-  'What is a hard takeoff?',
-  'What is a mesa-optimizer?',
-  'What is AI safety and alignment?',
-  'What is an AI arms race?',
-  'What is an Intelligence Explosion?',
+  "What is a hard takeoff?",
+  "What is a mesa-optimizer?",
+  "What is AI safety and alignment?",
+  "What is an AI arms race?",
+  "What is an Intelligence Explosion?",
   'What is the "orthogonality thesis"?',
   'Why would we expect AI to be "misaligned by default"?',
-]
+];
 
 const SearchBoxInternal: React.FC<{
   search: (
     query: string,
-    query_source: 'search' | 'followups',
+    query_source: "search" | "followups",
     enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
     controller: AbortController
-  ) => void
-  onQuery?: (q: string) => any
-}> = ({search, onQuery}) => {
-  const initial_query = initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || ''
+  ) => void;
+  onQuery?: (q: string) => any;
+}> = ({ search, onQuery }) => {
+  const initial_query =
+    initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
 
-  const [query, setQuery] = useState(initial_query)
-  const [loading, setLoading] = useState(false)
-  const [followups, setFollowups] = useState<Followup[]>([])
-  const [controller, setController] = useState(new AbortController())
+  const [query, setQuery] = useState(initial_query);
+  const [loading, setLoading] = useState(false);
+  const [followups, setFollowups] = useState<Followup[]>([]);
+  const [controller, setController] = useState(new AbortController());
 
-  const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // because everything is async, I can't just manually set state at the
   // point we do a search. Instead it needs to be passed into the search
   // method, for some reason.
   const enable =
-    (controller: AbortController) => (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
-      if (!controller.signal.aborted) setQuery('')
+    (controller: AbortController) =>
+    (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
+      if (!controller.signal.aborted) setQuery("");
 
-      setLoading(false)
-      setFollowups(f_set)
-    }
+      setLoading(false);
+      setFollowups(f_set);
+    };
 
   useEffect(() => {
     // set focus on the input box
-    if (!loading) inputRef.current?.focus()
-  }, [loading])
+    if (!loading) inputRef.current?.focus();
+  }, [loading]);
 
   // on first mount focus and set cursor to end of input
   useEffect(() => {
-    if (!inputRef.current) return
-    inputRef.current.focus()
-    inputRef.current.selectionStart = inputRef.current.textLength
-    inputRef.current.selectionEnd = inputRef.current.textLength
-  }, [])
+    if (!inputRef.current) return;
+    inputRef.current.focus();
+    inputRef.current.selectionStart = inputRef.current.textLength;
+    inputRef.current.selectionEnd = inputRef.current.textLength;
+  }, []);
 
-  const runSearch = (query: string, searchtype: 'search' | 'followups') => () => {
-    if (loading || query.trim() === '') return
+  const runSearch =
+    (query: string, searchtype: "search" | "followups") => () => {
+      if (loading || query.trim() === "") return;
 
-    setLoading(true)
-    const controller = new AbortController()
-    setController(controller)
-    search(query, 'search', enable(controller), controller)
-  }
-  const cancelSearch = () => controller.abort()
+      setLoading(true);
+      const controller = new AbortController();
+      setController(controller);
+      search(query, "search", enable(controller), controller);
+    };
+  const cancelSearch = () => controller.abort();
 
   return (
     <>
       <div className="mt-1 flex flex-col items-end">
-        {' '}
+        {" "}
         {followups.map((followup, i) => {
           return (
             <li key={i}>
               <button
                 className="my-1 border border-gray-300 px-1"
-                onClick={runSearch(followup.pageid + '\n' + followup.text, 'followups')}
+                onClick={runSearch(
+                  followup.pageid + "\n" + followup.text,
+                  "followups"
+                )}
               >
                 <span> {followup.text} </span>
               </button>
             </li>
-          )
+          );
         })}
       </div>
 
@@ -104,31 +110,31 @@ const SearchBoxInternal: React.FC<{
           ref={inputRef}
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value)
-            onQuery && onQuery(e.target.value)
+            setQuery(e.target.value);
+            onQuery && onQuery(e.target.value);
           }}
           onKeyDown={(e) => {
             // if <esc>, blur the input box
-            if (e.key === 'Escape') e.currentTarget.blur()
+            if (e.key === "Escape") e.currentTarget.blur();
             // if <enter> without <shift>, submit the form (if it's not empty)
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              runSearch(query, 'search')
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              runSearch(query, "search");
             }
           }}
         />
         <button
           className="ml-2"
           type="button"
-          onClick={loading ? cancelSearch : runSearch(query, 'search')}
+          onClick={loading ? cancelSearch : runSearch(query, "search")}
         >
-          {loading ? 'Cancel' : 'Search'}
+          {loading ? "Cancel" : "Search"}
         </button>
       </div>
     </>
-  )
-}
+  );
+};
 
 export const SearchBox = dynamic(() => Promise.resolve(SearchBoxInternal), {
   ssr: false,
-})
+});
