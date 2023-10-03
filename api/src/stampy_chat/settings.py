@@ -1,6 +1,10 @@
+from collections import namedtuple
 import tiktoken
 
 from stampy_chat.env import COMPLETIONS_MODEL
+
+
+Model = namedtuple('Model', ['maxTokens', 'topKBlocks'])
 
 
 SOURCE_PROMPT = (
@@ -43,6 +47,12 @@ DEFAULT_PROMPTS = {
     },
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
+}
+MODELS = {
+    'gpt-3.5-turbo': Model(4097, 10),
+    'gpt-3.5-turbo-16k': Model(16385, 30),
+    'gpt-4': Model(8192, 20),
+    # 'gpt-4-32k': Model(32768, 30),
 }
 
 
@@ -99,23 +109,21 @@ class Settings:
             self.encoders[value] = tiktoken.get_encoding(value)
 
     def set_completions(self, completions, numTokens=None, topKBlocks=None):
+        if completions not in MODELS:
+            raise ValueError(f'Unknown model: {completions}')
         self.completions = completions
 
-        # Set the max number of tokens sent in the prompt
+        # Set the max number of tokens sent in the prompt - see https://platform.openai.com/docs/models/gpt-4
         if numTokens is not None:
             self.numTokens = numTokens
-        elif completions == 'gtp-4':
-            self.numTokens = 8191
         else:
-            self.numTokens = 4095
+            self.numTokens = MODELS[completions].maxTokens
 
         # Set the max number of blocks used as citations
         if topKBlocks is not None:
             self.topKBlocks = topKBlocks
-        elif completions == 'gtp-4':
-            self.topKBlocks = 20
         else:
-            self.topKBlocks = 10
+            self.topKBlocks = MODELS[completions].topKBlocks
 
     @property
     def prompt_modes(self):

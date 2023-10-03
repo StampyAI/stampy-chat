@@ -42,19 +42,24 @@ const DEFAULT_PROMPTS = {
       'rather than just giving a formal definition.\n\n',
   },
 }
+const MODELS = {
+  'gpt-3.5-turbo': {numTokens: 4095, topKBlocks: 10},
+  'gpt-3.5-turbo-16k': {numTokens: 16385, topKBlocks: 30},
+  'gpt-4': {numTokens: 8192, topKBlocks: 20},
+  /* 'gpt-4-32k': {numTokens: 32768, topKBlocks: 30}, */
+}
 const DEFAULT_SETTINGS = {
   prompts: DEFAULT_PROMPTS,
   mode: 'default' as Mode,
   completions: 'gpt-3.5-turbo',
   encoder: 'cl100k_base',
-  topKBlocks: 10, //  the number of blocks to use as citations
-  numTokens: 4095,
+  topKBlocks: MODELS['gpt-3.5-turbo'].topKBlocks, //  the number of blocks to use as citations
+  numTokens: MODELS['gpt-3.5-turbo'].numTokens,
   tokensBuffer: 50, //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: 10, //  the max number of previous items to use as history
   historyFraction: 0.25, //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: 0.5, //  the (approximate) fraction of num_tokens to use for context text before truncating
 }
-const COMPLETION_MODELS = ['gpt-3.5-turbo', 'gpt-4']
 const ENCODERS = ['cl100k_base']
 
 const updateIn = (obj: {[key: string]: any}, [head, ...rest]: string[], val: any) => {
@@ -157,14 +162,12 @@ type ChatSettingsParams = {
 }
 
 const ChatSettings = ({settings, updateSettings}: ChatSettingsParams) => {
+  const changeVal = (field: string, value: any) =>
+    updateSettings((prev) => ({...prev, [field]: value}))
   const update = (setting: string) => (event: ChangeEvent) => {
-    updateSettings((prev) => ({
-      ...prev,
-      [setting]: (event.target as HTMLInputElement).value,
-    }))
+    changeVal(setting, (event.target as HTMLInputElement).value)
   }
-  const updateNum = (field: string) => (num: Parseable) =>
-    updateSettings((prev) => ({...prev, [field]: num}))
+  const updateNum = (field: string) => (num: Parseable) => changeVal(field, num)
 
   return (
     <div
@@ -179,9 +182,24 @@ const ChatSettings = ({settings, updateSettings}: ChatSettingsParams) => {
         name="completions-model"
         className="col-span-2"
         value={settings.completions}
-        onChange={update('completions')}
+        onChange={(event: ChangeEvent) => {
+          const value = (event.target as HTMLInputElement).value
+          const {numTokens, topKBlocks} = MODELS[value as keyof typeof MODELS]
+          const prevNumTokens = MODELS[settings.completions as keyof typeof MODELS].numTokens
+          const prevTopKBlocks = MODELS[settings.completions as keyof typeof MODELS].topKBlocks
+
+          if (settings.numTokens === prevNumTokens) {
+            changeVal('numTokens', numTokens)
+          } else {
+            changeVal('numTokens', Math.min(settings.numTokens || 0, numTokens))
+          }
+          if (settings.topKBlocks === prevTopKBlocks) {
+            changeVal('topKBlocks', topKBlocks)
+          }
+          changeVal('completions', value)
+        }}
       >
-        {COMPLETION_MODELS.map((name) => (
+        {Object.keys(MODELS).map((name) => (
           <option value={name} key={name}>
             {name}
           </option>
@@ -210,6 +228,7 @@ const ChatSettings = ({settings, updateSettings}: ChatSettingsParams) => {
         field="numTokens"
         label="Tokens"
         min="1"
+        max={MODELS[settings.completions as keyof typeof MODELS].numTokens}
         updater={updateNum('numTokens')}
       />
       <NumberInput
