@@ -1,13 +1,11 @@
-import React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import logo from "../logo.svg";
+import React from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import logo from '../logo.svg'
 
-const Header: React.FC<{ page: "index" | "semantic" | "playground" }> = ({
-  page,
-}) => {
+const Header: React.FC<{page: 'index' | 'semantic' | 'playground'}> = ({page}) => {
   const sidebar =
-    page === "index" ? (
+    page === 'index' ? (
       <span className="flex flex-1 flex-col justify-start text-right font-semibold">
         <Link href="/semantic">Show Sources</Link>
       </span>
@@ -15,7 +13,7 @@ const Header: React.FC<{ page: "index" | "semantic" | "playground" }> = ({
       <span className="flex flex-1 flex-col justify-start text-right font-semibold">
         <Link href="/">Go Chat</Link>
       </span>
-    );
+    )
 
   return (
     <div className="my-4 flex">
@@ -23,7 +21,7 @@ const Header: React.FC<{ page: "index" | "semantic" | "playground" }> = ({
       <h1 className="my-0 flex-1">AI Safety Chatbot</h1>
       {sidebar}
     </div>
-  );
-};
+  )
+}
 
-export default Header;
+export default Header

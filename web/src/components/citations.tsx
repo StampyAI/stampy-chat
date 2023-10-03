@@ -1,5 +1,5 @@
-import type { Citation } from "../types";
-import { Colours, A } from "./html";
+import type {Citation} from '../types'
+import {Colours, A} from './html'
 
 export const formatCitations: (text: string) => string = (text) => {
   // ---------------------- normalize citation form ----------------------
@@ -13,10 +13,10 @@ export const formatCitations: (text: string) => string = (text) => {
 
     (block: string) =>
       block
-        .split(",")
+        .split(',')
         .map((x) => x.trim())
-        .join("][")
-  );
+        .join('][')
+  )
 
   // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
   response = response.replace(
@@ -24,118 +24,107 @@ export const formatCitations: (text: string) => string = (text) => {
 
     (block: string) =>
       block
-        .split(",")
+        .split(',')
         .map((x) => x.trim())
-        .join("][")
-  );
+        .join('][')
+  )
 
   // transform all things that look like [(a)] into [a]
-  response = response.replace(
-    /\[\(([a-z]+)\)\]/g,
-    (_match: string, x: string) => `[${x}]`
-  );
+  response = response.replace(/\[\(([a-z]+)\)\]/g, (_match: string, x: string) => `[${x}]`)
 
   // transform all things that look like [ a ] into [a]
-  response = response.replace(
-    /\[\s*([a-z]+)\s*\]/g,
-    (_match: string, x: string) => `[${x}]`
-  );
-  return response;
-};
+  response = response.replace(/\[\s*([a-z]+)\s*\]/g, (_match: string, x: string) => `[${x}]`)
+  return response
+}
 
-export const findCitations: (
-  text: string,
-  citations: Citation[]
-) => Map<string, Citation> = (text, citations) => {
+export const findCitations: (text: string, citations: Citation[]) => Map<string, Citation> = (
+  text,
+  citations
+) => {
   // figure out what citations are in the response, and map them appropriately
-  const cite_map = new Map<string, Citation>();
+  const cite_map = new Map<string, Citation>()
 
   // scan a regex for [x] over the response. If x isn't in the map, add it.
   // (note: we're actually doing this twice - once on parsing, once on render.
   // if that looks like a problem, we could swap from strings to custom ropes).
-  const regex = /\[([a-z]+)\]/g;
-  let match;
+  const regex = /\[([a-z]+)\]/g
+  let match
   while ((match = regex.exec(text)) !== null) {
-    const letter = match[1];
-    if (!letter || cite_map.has(letter!)) continue;
+    const letter = match[1]
+    if (!letter || cite_map.has(letter!)) continue
 
-    const citation = citations[letter.charCodeAt(0) - "a".charCodeAt(0)];
-    if (!citation) continue;
+    const citation = citations[letter.charCodeAt(0) - 'a'.charCodeAt(0)]
+    if (!citation) continue
 
-    cite_map.set(letter!, citation);
+    cite_map.set(letter!, citation)
   }
-  return cite_map;
-};
+  return cite_map
+}
 
-export const ShowCitation: React.FC<{ citation: Citation }> = ({
-  citation,
-}) => {
-  var c_str = citation.title;
+export const ShowCitation: React.FC<{citation: Citation}> = ({citation}) => {
+  var c_str = citation.title
 
-  if (citation.authors && citation.authors.length > 0)
-    c_str += " - " + citation.authors.join(", ");
-  if (citation.date && citation.date !== "") c_str += " - " + citation.date;
+  if (citation.authors && citation.authors.length > 0) c_str += ' - ' + citation.authors.join(', ')
+  if (citation.date && citation.date !== '') c_str += ' - ' + citation.date
 
   // if we don't have a url, link to a duckduckgo search for the title instead
   const url =
-    citation.url && citation.url !== ""
+    citation.url && citation.url !== ''
       ? citation.url
-      : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
+      : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`
 
   return (
     <A
       className={
         Colours[(citation.index - 1) % Colours.length] +
-        " my-2 flex w-fit items-center rounded border-2 text-sm no-underline"
+        ' my-2 flex w-fit items-center rounded border-2 text-sm no-underline'
       }
       href={url}
     >
       <span className="mx-1"> [{citation.index}] </span>
       <p className="mx-1 my-0"> {c_str} </p>
     </A>
-  );
-};
+  )
+}
 
-export const CitationRef: React.FC<{ citation?: Citation }> = ({
-  citation,
-}) => {
-  if (!citation) return null;
+export const CitationRef: React.FC<{citation?: Citation}> = ({citation}) => {
+  if (!citation) return null
 
   const url =
-    citation.url && citation.url !== ""
+    citation.url && citation.url !== ''
       ? citation.url
-      : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
+      : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`
   return (
     <A
       className={
         Colours[(citation.index - 1) % Colours.length] +
-        " ml-1 mr-0.5 w-min rounded border-2 px-0.5 pb-0.5 text-sm no-underline"
+        ' ml-1 mr-0.5 w-min rounded border-2 px-0.5 pb-0.5 text-sm no-underline'
       }
       href={url}
     >
       [{citation.index}]
     </A>
-  );
-};
+  )
+}
 
 export const CitationsBlock: React.FC<{
-  text: string;
-  citations: Map<string, Citation>;
-  textRenderer: (t: string) => any;
-}> = ({ text, citations, textRenderer }) => {
-  const regex = /\[([a-z]+)\]/g;
+  text: string
+  citations: Map<string, Citation>
+  textRenderer: (t: string) => any
+}> = ({text, citations, textRenderer}) => {
+  const regex = /\[([a-z]+)\]/g
   return (
     <p>
-      {" "}
+      {' '}
       {text.split(regex).map((part, i) => {
         // When splitting, the even parts are basic text sections, while the odd ones are
         // citations
         if (i % 2 == 0) {
-          return textRenderer(part);
+          return textRenderer(part)
         } else {
-          return <CitationRef citation={citations.get(part)} key={i} />;
+          return <CitationRef citation={citations.get(part)} key={i} />
         }
       })}
     </p>
-  );
-};
+  )
+}
