@@ -12,18 +12,16 @@ import { Controls } from "../components/controls";
 
 const MAX_FOLLOWUPS = 4;
 const DEFAULT_PROMPTS = {
-  source: {
-    prefix:
-      "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
-      'Please give a clear and coherent answer to the user\'s questions.(written after "Q:") ' +
-      "using the following sources. Each source is labeled with a letter. Feel free to " +
-      "use the sources in any order, and try to use multiple sources in your answers.\n\n",
-    suffix:
-      "\n\n" +
-      'Before the question ("Q: "), there will be a history of previous questions and answers. ' +
-      "These sources only apply to the last question. Any sources used in previous answers " +
-      "are invalid.",
-  },
+  context:
+    "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
+    'Please give a clear and coherent answer to the user\'s questions.(written after "Q:") ' +
+    "using the following sources. Each source is labeled with a letter. Feel free to " +
+    "use the sources in any order, and try to use multiple sources in your answers.\n\n",
+  history:
+    "\n\n" +
+    'Before the question ("Q: "), there will be a history of previous questions and answers. ' +
+    "These sources only apply to the last question. Any sources used in previous answers " +
+    "are invalid.",
   question:
     "In your answer, please cite any claims you make back to each source " +
     "using the format: [a], [b], etc. If you use multiple sources to make a claim " +
@@ -320,28 +318,29 @@ const ChatPrompts = ({
         <summary>Source prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings?.prompts?.source?.prefix}
-          onChange={updatePrompt("source", "prefix")}
+          value={settings?.prompts?.context}
+          onChange={updatePrompt("context")}
         />
         <div>(This is where sources will be injected)</div>
-        {history.length > 0 && (
-          <TextareaAutosize
-            className="border-gray w-full border px-1"
-            value={settings?.prompts?.source?.suffix}
-            onChange={updatePrompt("source", "suffix")}
-          />
-        )}
       </details>
       {history.length > 0 && (
-        <details>
-          <summary>History</summary>
-          {history
-            .slice(Math.max(0, history.length - (settings.maxHistory || 0)))
-            .map((entry, i) => (
-              <div className="history-entry" key={i}>
-                {entry.content}
-              </div>
-            ))}
+        <details open>
+          <summary>History prompt</summary>
+          <TextareaAutosize
+            className="border-gray w-full border px-1"
+            value={settings?.prompts?.history}
+            onChange={updatePrompt("history")}
+          />
+          <details>
+            <summary>History</summary>
+            {history
+              .slice(Math.max(0, history.length - (settings.maxHistory || 0)))
+              .map((entry, i) => (
+                <div className="history-entry" key={i}>
+                  {entry.content}
+                </div>
+              ))}
+          </details>
         </details>
       )}
       <details open>

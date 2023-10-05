@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import patch, Mock, call
-from stampy_chat.get_blocks import Block
 
 from stampy_chat.logging import *
 
@@ -109,37 +108,32 @@ def test_ChatLogger_interaction():
         {"role": "assistant", "content": "What is a man? A[4234] miserable little pile of secrets. But enough talk... Have at you!"},
     ]
     blocks = [
-        Block(
-            id=str(i),
-            url=f"http://bla.bla/{i}",
-            tags=[],
-            title=f"Block{i}",
-            authors=[f"Author{i}"],
-            date=f"2021-01-0{i + 1}",
-            text=f"Block text {i}"
-        ) for i in range(5)
+        {
+            'id': str(i),
+            'url': f"http://bla.bla/{i}",
+            'tags': [],
+            'title': f"Block{i}",
+            'authors': [f"Author{i}"],
+            'date': f"2021-01-0{i + 1}",
+            'text': f"Block text {i}"
+        } for i in range(5)
     ]
     response = "This is the response from the LLM to the user's query"
-    prompt = [
-        {'content': "This is where the system prompt would go", 'role': 'system'},
-        {'content': 'Q: Die monster. You don’t belong in this world!', 'role': 'user'},
-        {'content': 'It was not by my hand[x] I am once again given flesh. I was called', 'role': 'assistant'},
-        {'content': "Q: Tribute!?! You steal men's souls and make them your slaves!", 'role': 'user'},
-        {'content': 'Perhaps the same could be said[x] of all religions...', 'role': 'assistant'},
-        {'content': 'Q: Your words are as empty as your soul! Mankind ill needs a savior such as you!', 'role': 'user'},
-        {'content': 'What is a man? A[x] miserable little pile of secrets', 'role': 'assistant'},
-        {
-            'content': (
-                'In your answer, please cite any claims you make back to each '
-                'source using the format: [a], [b], etc. If you use multiple '
-                'sources to make a claim cite all of them. For example: "AGI is '
-                'concerning [c, d, e]."\n'
-                '\n'
-                'Q: to be or not to be?'
-            ),
-            'role': 'user'
-        },
-    ]
+    prompt = (
+        "System: This is where the system prompt would go\n"
+        'User: Q: Die monster. You don’t belong in this world!\n'
+        'Assistant: It was not by my hand[x] I am once again given flesh. I was called\n'
+        "User: Q: Tribute!?! You steal men's souls and make them your slaves!\n"
+        'Assistant: Perhaps the same could be said[x] of all religions...\n'
+        'User: Q: Your words are as empty as your soul! Mankind ill needs a savior such as you!\n',
+        'Assistant: What is a man? A[x] miserable little pile of secrets\n'
+        'User: In your answer, please cite any claims you make back to each '
+        'source using the format: [a], [b], etc. If you use multiple '
+        'sources to make a claim cite all of them. For example: "AGI is '
+        'concerning [c, d, e]."\n'
+        '\n'
+        'Q: to be or not to be?'
+    )
 
     logger = ChatLogger('tester')
     with patch.object(logger, 'item_adder') as adder:
@@ -149,5 +143,5 @@ def test_ChatLogger_interaction():
         assert interaction.interaction_no == 3
         assert interaction.query == 'what is this?'
         assert interaction.response == "This is the response from the LLM to the user's query"
-        assert interaction.prompt == "This is where the system prompt would go"
-        assert interaction.chunks == ','.join(b.id for b in blocks)
+        assert interaction.prompt == prompt
+        assert interaction.chunks == ','.join(b.get('id') for b in blocks)
