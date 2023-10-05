@@ -13,7 +13,7 @@ SOURCE_PROMPT = (
     "using the following sources. Each source is labeled with a letter. Feel free to "
     "use the sources in any order, and try to use multiple sources in your answers.\n\n"
 )
-SOURCE_PROMPT_SUFFIX = (
+HISTORY_PROMPT = (
     "\n\n"
     "Before the question (\"Q: \"), there will be a history of previous questions and answers. "
     "These sources only apply to the last question. Any sources used in previous answers "
@@ -41,10 +41,8 @@ PROMPT_MODES = {
     ),
 }
 DEFAULT_PROMPTS = {
-    'source': {
-        'prefix': SOURCE_PROMPT,
-        'suffix': SOURCE_PROMPT_SUFFIX,
-    },
+    'context': SOURCE_PROMPT,
+    'history': HISTORY_PROMPT,
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
 }
@@ -68,6 +66,7 @@ class Settings:
             encoder='cl100k_base',
             topKBlocks=None,
             numTokens=None,
+            min_response_tokens=10,
             tokensBuffer=50,
             maxHistory=10,
             historyFraction=0.25,
@@ -94,6 +93,16 @@ class Settings:
 
         self.contextFraction = contextFraction
         """the (approximate) fraction of num_tokens to use for context text before truncating"""
+
+        self.min_response_tokens = min_response_tokens
+        """the minimum of tokens that must be left for the response"""
+
+        if self.context_tokens + self.history_tokens > self.numTokens - self.min_response_tokens:
+            raise ValueError(
+                'The context and history fractions are too large, please lower them: '
+                f'max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, '
+                f'max total tokens: {self.numTokens}, minimum reponse tokens {self.min_response_tokens}'
+            )
 
     def __repr__(self) -> str:
         return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.numTokens}'
@@ -130,26 +139,31 @@ class Settings:
         return self.prompts['modes']
 
     @property
-    def source_prompt_prefix(self):
-        return self.prompts['source']['prefix']
+    def context_prompt(self):
+        return self.prompts['context']
 
     @property
-    def source_prompt_suffix(self):
-        return self.prompts['source']['suffix']
+    def history_prompt(self):
+        return self.prompts['history']
 
     @property
     def mode_prompt(self):
         return self.prompts['modes'].get(self.mode)
 
-    def question_prompt(self, query: str):
-        return self.prompts['question'] + self.mode_prompt + 'Q: ' + query
+    @property
+    def question_prompt(self):
+        return self.prompts['question'] + self.mode_prompt
 
     @property
     def context_tokens(self):
         """The max number of tokens to be used for the context"""
-        return int(self.numTokens * self.contextFraction)
+        return int(self.numTokens * self.contextFraction) - len(self.encoder.encode(self.context_prompt))
 
     @property
     def history_tokens(self):
         """The max number of tokens to be used for the history"""
-        return int(self.numTokens * self.historyFraction)
+        return int(self.numTokens * self.historyFraction) - len(self.encoder.encode(self.history_prompt))
+
+    @property
+    def max_response_tokens(self):
+        return self.numTokens - self.context_tokens - self.history_tokens
