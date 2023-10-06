@@ -9,7 +9,6 @@ from langchain.pydantic_v1 import Extra
 from langchain.vectorstores import Pinecone
 
 from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE
-from stampy_chat.callbacks import StampyCallbackHandler
 
 
 embeddings = OpenAIEmbeddings()
@@ -18,8 +17,6 @@ vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namesp
 
 class ReferencesSelector(SemanticSimilarityExampleSelector):
     """Get examples with enumerated indexes added."""
-
-    callbacks: List[StampyCallbackHandler] = []
 
     class Config:
         """This is needed for extra fields to be added... """
@@ -37,27 +34,19 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         :param Dict[str, str] input_variables: a dict of {<field>: <query>} pairs to look through the dataset
         :returns: a list of example objects
         """
-        for callback in self.callbacks:
-            callback.on_context_fetch_start(input_variables)
-
         ### Copied from parent - for some reason they ignore the ids of the returned items, so
         # it has to be added manually here...
         if self.input_keys:
             input_variables = {key: input_variables[key] for key in self.input_keys}
         query = " ".join(v for v in input_variables.values())
         example_docs = self.vectorstore.similarity_search(query, k=self.k)
-        examples = [
+        return [
             dict(
                 e.metadata,
                 id=e.page_content,
                 reference=self.make_reference(i)
             ) for i, e in enumerate(example_docs)
         ]
-
-        for callback in self.callbacks:
-            callback.on_context_fetch_end(examples)
-
-        return examples
 
 
 def make_example_selector(k: int, **params) -> ReferencesSelector:

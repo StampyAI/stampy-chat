@@ -1,74 +1,29 @@
-from typing import Any, Callable, Dict, List
+from dataclasses import asdict
+from typing import Any, Dict, Iterable, List
 
-from langchain.chains import LLMChain, OpenAIModerationChain
+from langchain.chains import OpenAIModerationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
     BaseChatPromptTemplate,
-    ChatMessagePromptTemplate, ChatPromptTemplate,
-    FewShotChatMessagePromptTemplate
+    ChatMessagePromptTemplate,
+    ChatPromptTemplate, MessagesPlaceholder
 )
-from langchain.pydantic_v1 import Extra
-from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
+from langchain.schema import BaseMessage, ChatMessage, SystemMessage
 from langchain.vectorstores import Pinecone
+from langchain.prompts import MessagesPlaceholder
 
+from stampy_chat.followups import multisearch_authored
+from stampy_chat import logging
 from stampy_chat.env import OPENAI_API_KEY, PINECONE_INDEX, PINECONE_NAMESPACE
 from stampy_chat.settings import Settings
-from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
-from stampy_chat.followups import StampyChain
-from stampy_chat.citations import make_example_selector
+from stampy_chat.citations import get_top_k_blocks
 
+
+logger = logging.getLogger(__name__)
 embeddings = OpenAIEmbeddings()
 vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
-
-
-class ModerationError(ValueError):
-    pass
-
-
-class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
-    """A prompt template that will return no more than `max_tokens` tokens.
-
-    This will format any provided messages according to the provided prompt, then
-    return the first n formatted messages such that `sum(tokens(messages)) < max_tokens`.
-    """
-
-    get_num_tokens: Callable[[str], int]  # the function used to calculate the number of tokens in a string
-    max_tokens: int
-
-    class Config:
-        """This is needed for extra fields to be added..."""
-        extra = Extra.forbid
-        arbitrary_types_allowed = True
-
-    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
-        """Format the provided messages and return as many as possible without going over the allowed number of tokens."""
-        all_messages = super().format_messages(**kwargs)
-
-        messages = []
-        remaining_tokens = self.max_tokens
-        for message in all_messages:
-            tokens = self.get_num_tokens(message.content)
-            if tokens > remaining_tokens:
-                break
-
-            remaining_tokens -= tokens
-            messages.append(message)
-        return messages
-
-
-class PrefixedPrompt(BaseChatPromptTemplate):
-    """A prompt that will prefix any messages with a system prompt, but only if messages provided."""
-
-    messages_field: str
-    prompt: str  # the system prompt to be used
-
-    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
-        history = kwargs[self.messages_field]
-        if history and self.prompt:
-            return [SystemMessage(content=self.prompt)] + history
-        return []
 
 
 class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
@@ -84,14 +39,10 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
     any memory replacements happen.
     """
 
-    callbacks: List[StampyCallbackHandler] = []
     max_history: int = 10
 
     def set_messages(self, history: List[dict]) -> None:
         """Replace the current list of messages with `history`, pruning as needed."""
-        for callback in self.callbacks:
-            callback.on_memory_set_start(history)
-
         messages = [ChatMessage(**m) for m in history]
         # If there are more than `max_history` messages, first summarize the older ones. If there
         # are n messages (where n > max_history), then the first `n - max_history + 1` should be
@@ -109,54 +60,47 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
         self.chat_memory = ChatMessageHistory(messages=messages)
         self.prune()
 
-        for callback in self.callbacks:
-            callback.on_memory_set_end(self.chat_memory)
+
+class PrefixedPrompt(BaseChatPromptTemplate):
+    """A prompt that will prefix any messages with a system prompt, but only if messages provided."""
+
+    messages_field: str
+    prompt: str  # the system prompt to be used
+
+    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
+        history = kwargs[self.messages_field]
+        if history and self.prompt:
+            return [SystemMessage(content=self.prompt)] + history
+        return []
 
 
-class ModeratedChatPrompt(ChatPromptTemplate):
-    """Wraps a prompt with an OpenAI moderation check which will raise an exception if fails."""
+class ChatMultiItemPrompt(MessagesPlaceholder):
 
-    moderation_chain: OpenAIModerationChain = OpenAIModerationChain(error=True)
+    template: ChatPromptTemplate
 
-    def format_prompt(self, **kwargs: Any) -> PromptValue:
-        """Raise an exception if the prompt is flagged as offensive by OpenAI."""
-        prompt = super().format_prompt(**kwargs)
-        try:
-            self.moderation_chain.run(prompt.to_string())
-        except ValueError as e:
-            raise ModerationError(e)
-        return prompt
+    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
+        items = kwargs[self.variable_name]
+        return [message for item in items for message in self.template.format_messages(**item)]
 
 
 def get_model(**kwargs):
     return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
 
 
-def make_prompt(settings, chat_model, callbacks):
-    """Create a proper prompt object will all the nessesery steps."""
-    # 1. Create the context prompt from items fetched from pinecone
-    context_template = "[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}"
-    context_prompt = MessageBufferPromptTemplate(
-        example_selector=make_example_selector(k=settings.topKBlocks, callbacks=callbacks),
-        example_prompt=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
-        get_num_tokens=chat_model.get_num_tokens,
-        max_tokens=settings.context_tokens,
-        input_variables=['query'],
+def make_prompt(settings: Settings) -> ChatPromptTemplate:
+    context_template = "[{{reference}}] {{title}} {{authors | join(', ')}} - {{date}} {{text}}"
+    context_prompt = ChatMultiItemPrompt(
+        template=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
+        variable_name='context'
     )
-
-    # 2. The history items will be passed in from the memory
     history_prompt = PrefixedPrompt(input_variables=['history'], messages_field='history', prompt=settings.history_prompt)
 
-    # 3. Construct the main query
-    query_prompt = ChatPromptTemplate.from_messages(
-        [
-            SystemMessage(content=settings.question_prompt),
-            ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
-        ]
-    )
+    query_prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=settings.question_prompt),
+        ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
+    ])
 
-    # 4. ModeratedChatPrompt will cause the whole chain to fail if untoward values are provided
-    return ModeratedChatPrompt.from_messages([
+    return ChatPromptTemplate.from_messages([
         SystemMessage(content=settings.context_prompt),
         context_prompt,
         history_prompt,
@@ -164,53 +108,74 @@ def make_prompt(settings, chat_model, callbacks):
     ])
 
 
-def make_memory(settings, history, callbacks):
-    """Create a memory object to store the chat history."""
+def prune_history(history: List[Dict], settings: Settings) -> List[BaseMessage]:
     memory = LimitedConversationSummaryBufferMemory(
         llm=get_model(),
         max_token_limit=settings.history_tokens,
         max_history=settings.maxHistory,
         chat_memory=ChatMessageHistory(),
         return_messages=True,
-        callbacks=callbacks
     )
     memory.set_messages(history)
-    return memory
+    return memory.chat_memory.messages
 
 
-def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None) -> Dict[str, str]:
-    """Execute the query.
+def get_citations(query: str, settings: Settings):
+    model = get_model()
+    blocks = get_top_k_blocks(query, settings.topKBlocks)
+    context = [dict(vals, index=i, reference=chr(i + 97)) for i, vals in enumerate(blocks)]
 
-    :param str query: the phrase that was input by the user
-    :param List[Dict] history: any previous interactions with the user
-    :param Settings settings: the system settings
-    :param Callable[[Any], None] callback: an optional callback that will be called at various key parts of the chain
-    :returns: the result of the chain
-    """
-    callbacks = [LoggerCallbackHandler(session_id=session_id, query=query, history=history)]
-    if callback:
-        callbacks += [BroadcastCallbackHandler(callback)]
-    chat_model = get_model(streaming=True, callbacks=callbacks, max_tokens=settings.max_response_tokens)
+    tokensLeft = settings.context_tokens
+    citations = []
+    for c in context:
+        tokens = model.get_num_tokens(c.get('text'))
+        if tokens > tokensLeft:
+            break
+        tokensLeft -= tokens
+        citations.append(c)
+    return citations
 
-    memory = LimitedConversationSummaryBufferMemory(
-        llm=get_model(),
-        max_token_limit=settings.history_tokens,
-        max_history=settings.maxHistory,
-        chat_memory=ChatMessageHistory(),
-        return_messages=True,
-        callbacks=callbacks
-    )
-    memory.set_messages(history)
 
-    chain = LLMChain(
-        llm=chat_model,
-        verbose=False,
-        prompt=make_prompt(settings, chat_model, callbacks),
-        memory=make_memory(settings, history, callbacks)
-    ) | StampyChain(callbacks=callbacks)
-    result = chain.invoke({"query": query, 'history': history}, {'callbacks': []})
+def run_query(session_id: str, query: str, history: List[Dict], settings: Settings) -> Iterable[Dict[str, Any]]:
+    try:
+        yield {"state": "loading", "phase": "semantic"}
+        context = get_citations(query, settings)
+        yield {
+            "state": "citations",
+            "citations": [
+                {'title': c.get('title'), 'author': c.get('authors'), 'date': c.get('date'), 'url': c.get('url')}
+                for c in context
+            ]
+        }
 
-    if callback:
-        callback({'state': 'done'})
-        callback(None)  # make sure the callback handler know that things have ended
-    return result
+        yield {"state": "loading", "phase": "checking history"}
+        args = {'query': query, 'history': prune_history(history, settings), 'context': context}
+        yield {"state": "loading", "phase": "prompt"}
+        prompt = make_prompt(settings)
+        prompt_text = prompt.format(**args)
+
+        yield {"state": "loading", "phase": "moderation"}
+        moderation_chain = OpenAIModerationChain(error=True)
+        try:
+            moderation_chain.run(prompt_text)
+        except ValueError as e:
+            raise ModerationError(e)
+
+        chat_model = get_model(streaming=True, max_tokens=settings.max_response_tokens)
+        response = ''
+        for chunk in chat_model.stream(input=prompt_text):
+            response += chunk.content
+            print(chunk.content)
+            yield {"state": "streaming", "content": chunk.content}
+
+        yield {"state": "loading", "phase": "logging query"}
+        logger.interaction(session_id, query, response, history, prompt_text, context)
+
+        yield {"state": "loading", "phase": "followups"}
+        followups = multisearch_authored([query, response])
+        followups = list(map(asdict, followups))
+        yield {"state": "followups", "followups": followups}
+
+        yield {"state": "done"}
+    except Exception as e:
+        yield {"state": "error", "error": str(e)}

@@ -143,6 +143,9 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     case "llm":
       last_entry = <p>Loading: Waiting for LLM...</p>;
       break;
+    case "moderation":
+      last_entry = <p>Loading: Checking moderation...</p>;
+      break;
     case "streaming":
       updateCitations(citations, current);
       last_entry = <AssistantEntry entry={current} />;

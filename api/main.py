@@ -1,15 +1,13 @@
-import dataclasses
 import json
 import re
 
-from flask import Flask, jsonify, request, Response, stream_with_context
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
-from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
+from stampy_chat.env import FLASK_PORT
 from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
-from stampy_chat.callbacks import stream_callback
 from stampy_chat.citations import get_top_k_blocks
 
 
@@ -50,15 +48,7 @@ def chat():
     history = request.json.get('history', [])
     settings = Settings(**request.json.get('settings', {}))
 
-    def run(callback):
-        return run_query(session_id, query, history, settings, callback)
-
-    def formatter(item):
-        if isinstance(item, Exception):
-            item = {'state': 'error', 'error': str(item)}
-        return json.dumps(item)
-
-    return Response(stream_with_context(stream(stream_callback(run, formatter))), mimetype='text/event-stream')
+    return Response(stream(map(json.dumps, run_query(session_id, query, history, settings))), mimetype='text/event-stream')
 
 
 # ------------- simplified non-streaming chat for internal testing -------------
@@ -66,9 +56,16 @@ def chat():
 @app.route('/chat/<path:param>', methods=['GET'])
 @cross_origin()
 def chat_simplified(param=''):
-    res = run_query(None, param, [], Settings())
-    res = jsonify({k: v for k, v in res.items() if k in ['text', 'followups']})
-    return Response(res, mimetype='application/json')
+    res = {}
+    for event in run_query(None, param, [], Settings()):
+        if event['state'] == 'citations':
+            res['citations'] = event['citations']
+        elif event['state'] == 'followups':
+            res['followups'] = event['followups']
+        elif event['state'] == 'streaming':
+            res['text'] = res.get('text', '') + event.get('content')
+
+    return jsonify(res)
 
 # ---------------------- human authored content retrieval ----------------------
 
