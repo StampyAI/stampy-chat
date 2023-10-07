@@ -113,7 +113,7 @@ def get_top_k_blocks(index, user_query: str, k: int) -> List[Block]:
 
         logger.info('Pinecone index not found, performing semantic search on chat.stampy.ai endpoint.')
         response = requests.post(
-            REMOTE_CHAT_INSTANCE,
+            REMOTE_CHAT_INSTANCE + "/semantic",
             json = {
                 "query": user_query,
                 "k": k

@@ -26,6 +26,7 @@ Install `npm`, `python 3.11`, and [`pipenv`](https://pipenv.pypa.io/en/latest/).
 
 Some things (e.g. logging) require a database connection to work correctly. To make this easier, there is a script to set one up locally via Docker. To get this working:
 
+* Install mysql on your local machine
 * [Install Docker](https://docs.docker.com/get-docker/)
 * Run the script: `./local_db.sh`
 
