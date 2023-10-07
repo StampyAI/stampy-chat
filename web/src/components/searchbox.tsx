@@ -79,7 +79,7 @@ const SearchBoxInternal: React.FC<{
       setLoading(true);
       const controller = new AbortController();
       setController(controller);
-      search(query, "search", enable(controller), controller);
+      search(query, searchtype, enable(controller), controller);
     };
   const cancelSearch = () => controller.abort();
 
@@ -119,7 +119,7 @@ const SearchBoxInternal: React.FC<{
             // if <enter> without <shift>, submit the form (if it's not empty)
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              runSearch(query, "search");
+              runSearch(query, "search")();
             }
           }}
         />
