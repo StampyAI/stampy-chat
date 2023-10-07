@@ -32,8 +32,8 @@ const SearchBoxInternal: React.FC<{
   search: (
     query: string,
     query_source: "search" | "followups",
-    disable: () => void,
-    enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void
+    enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
+    controller: AbortController
   ) => void;
   onQuery?: (q: string) => any;
 }> = ({ search, onQuery }) => {
@@ -43,20 +43,21 @@ const SearchBoxInternal: React.FC<{
   const [query, setQuery] = useState(initial_query);
   const [loading, setLoading] = useState(false);
   const [followups, setFollowups] = useState<Followup[]>([]);
+  const [controller, setController] = useState(new AbortController());
 
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // because everything is async, I can't just manually set state at the
   // point we do a search. Instead it needs to be passed into the search
   // method, for some reason.
-  const enable = (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
-    setLoading(false);
-    setFollowups(f_set);
-  };
-  const disable = () => {
-    setLoading(true);
-    setQuery("");
-  };
+  const enable =
+    (controller: AbortController) =>
+    (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => {
+      if (!controller.signal.aborted) setQuery("");
+
+      setLoading(false);
+      setFollowups(f_set);
+    };
 
   useEffect(() => {
     // set focus on the input box
@@ -71,7 +72,17 @@ const SearchBoxInternal: React.FC<{
     inputRef.current.selectionEnd = inputRef.current.textLength;
   }, []);
 
-  if (loading) return <></>;
+  const runSearch =
+    (query: string, searchtype: "search" | "followups") => () => {
+      if (loading || query.trim() === "") return;
+
+      setLoading(true);
+      const controller = new AbortController();
+      setController(controller);
+      search(query, searchtype, enable(controller), controller);
+    };
+  const cancelSearch = () => controller.abort();
+
   return (
     <>
       <div className="mt-1 flex flex-col items-end">
@@ -81,14 +92,10 @@ const SearchBoxInternal: React.FC<{
             <li key={i}>
               <button
                 className="my-1 border border-gray-300 px-1"
-                onClick={() => {
-                  search(
-                    followup.pageid + "\n" + followup.text,
-                    "followups",
-                    disable,
-                    enable
-                  );
-                }}
+                onClick={runSearch(
+                  followup.pageid + "\n" + followup.text,
+                  "followups"
+                )}
               >
                 <span> {followup.text} </span>
               </button>
@@ -97,13 +104,7 @@ const SearchBoxInternal: React.FC<{
         })}
       </div>
 
-      <form
-        className="mt-1 mb-2 flex"
-        onSubmit={(e) => {
-          e.preventDefault();
-          search(query, "search", disable, enable);
-        }}
-      >
+      <div className="mt-1 mb-2 flex">
         <TextareaAutosize
           className="flex-1 resize-none border border-gray-300 px-1"
           ref={inputRef}
@@ -118,14 +119,18 @@ const SearchBoxInternal: React.FC<{
             // if <enter> without <shift>, submit the form (if it's not empty)
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              if (query.trim() !== "") search(query, "search", disable, enable);
+              runSearch(query, "search")();
             }
           }}
         />
-        <button className="ml-2" type="submit" disabled={loading}>
-          {loading ? "Loading..." : "Search"}
+        <button
+          className="ml-2"
+          type="button"
+          onClick={loading ? cancelSearch : runSearch(query, "search")}
+        >
+          {loading ? "Cancel" : "Search"}
         </button>
-      </form>
+      </div>
     </>
   );
 };

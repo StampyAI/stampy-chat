@@ -103,16 +103,14 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
   const search = async (
     query: string,
     query_source: "search" | "followups",
-    disable: () => void,
-    enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void
+    enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
+    controller: AbortController
   ) => {
     // clear the query box, append to entries
     const userEntry: Entry = {
       role: "user",
       content: query_source === "search" ? query : query.split("\n", 2)[1]!,
     };
-    addEntry(userEntry);
-    disable();
 
     const { result, followups } = await runSearch(
       query,
@@ -120,13 +118,18 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
       settings,
       entries,
       updateCurrent,
-      sessionId
+      sessionId,
+      controller
     );
+    if (result.content !== "aborted") {
+      addEntry(userEntry);
+      addEntry(result);
+      enable(followups || []);
+      scroll30();
+    } else {
+      enable([]);
+    }
     setCurrent(undefined);
-
-    addEntry(result);
-    enable(followups || []);
-    scroll30();
   };
 
   var last_entry = <></>;

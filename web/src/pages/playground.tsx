@@ -42,19 +42,24 @@ const DEFAULT_PROMPTS = {
       "rather than just giving a formal definition.\n\n",
   },
 };
+const MODELS = {
+  "gpt-3.5-turbo": { numTokens: 4095, topKBlocks: 10 },
+  "gpt-3.5-turbo-16k": { numTokens: 16385, topKBlocks: 30 },
+  "gpt-4": { numTokens: 8192, topKBlocks: 20 },
+  /* 'gpt-4-32k': {numTokens: 32768, topKBlocks: 30}, */
+};
 const DEFAULT_SETTINGS = {
   prompts: DEFAULT_PROMPTS,
   mode: "default" as Mode,
   completions: "gpt-3.5-turbo",
   encoder: "cl100k_base",
-  topKBlocks: 10, //  the number of blocks to use as citations
-  numTokens: 4095,
+  topKBlocks: MODELS["gpt-3.5-turbo"].topKBlocks, //  the number of blocks to use as citations
+  numTokens: MODELS["gpt-3.5-turbo"].numTokens,
   tokensBuffer: 50, //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: 10, //  the max number of previous items to use as history
   historyFraction: 0.25, //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: 0.5, //  the (approximate) fraction of num_tokens to use for context text before truncating
 };
-const COMPLETION_MODELS = ["gpt-3.5-turbo", "gpt-4"];
 const ENCODERS = ["cl100k_base"];
 
 const updateIn = (
@@ -72,101 +77,107 @@ const updateIn = (
   return obj;
 };
 
-type ChatSettingsParams = {
-  settings: LLMSettings;
-  updateSettings: (updater: (settings: LLMSettings) => LLMSettings) => void;
-};
-type NumberParser = (v: any) => number;
+type Parseable = string | number | undefined;
+type NumberParser = (v: Parseable) => number;
 type InputFields = {
   field: string;
   label: string;
+  value?: Parseable;
   min?: string | number;
   max?: string | number;
   step?: string | number;
   parser?: NumberParser;
+  updater: (v: any) => any;
+};
+
+const between =
+  (
+    min: Parseable,
+    max: Parseable,
+    parser: NumberParser,
+    updater: (v: any) => any
+  ) =>
+  (event: ChangeEvent) => {
+    let num = parser((event.target as HTMLInputElement).value);
+    if (isNaN(num)) {
+      return;
+    } else if (min !== undefined && num < parser(min)) {
+      num = parser(min);
+    } else if (max !== undefined && num > parser(max)) {
+      num = parser(max);
+    }
+    updater(num);
+  };
+
+const SectionHeader = ({ text }: { text: string }) => (
+  <h4 className="col-span-4 text-lg font-semibold">{text}</h4>
+);
+
+const NumberInput = ({
+  field,
+  value,
+  label,
+  min,
+  max,
+  updater,
+  // this cast is just to satisfy typescript - it can handle numbers, strings and undefined just fine
+  parser = (v) => parseInt(v as string, 10),
+}: InputFields) => (
+  <>
+    <label htmlFor={field} className="col-span-3 inline-block">
+      {label}:{" "}
+    </label>
+    <input
+      name={field}
+      value={value}
+      className="w-20"
+      onChange={between(min, max, parser, updater)}
+      type="number"
+    />
+  </>
+);
+
+const Slider = ({
+  field,
+  value,
+  label,
+  min = 0,
+  max = 1,
+  step = 0.01,
+  // this cast is just to satisfy typescript - it can handle numbers, strings and undefined just fine
+  parser = (v) => parseFloat(v as string),
+  updater,
+}: InputFields) => (
+  <>
+    <label htmlFor={field} className="col-span-2">
+      {label}:
+    </label>
+    <input
+      name={field}
+      className="col-span-2"
+      value={value}
+      onChange={between(min, max, parser, updater)}
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+    />
+  </>
+);
+
+type ChatSettingsParams = {
+  settings: LLMSettings;
+  updateSettings: (updater: (settings: LLMSettings) => LLMSettings) => void;
 };
 
 const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
+  const changeVal = (field: string, value: any) =>
+    updateSettings((prev) => ({ ...prev, [field]: value }));
   const update = (setting: string) => (event: ChangeEvent) => {
-    updateSettings((prev) => ({
-      ...prev,
-      [setting]: (event.target as HTMLInputElement).value,
-    }));
+    changeVal(setting, (event.target as HTMLInputElement).value);
   };
-  const between =
-    (
-      setting: string,
-      min: number | undefined,
-      max: number | undefined,
-      parser: NumberParser
-    ) =>
-    (event: ChangeEvent) => {
-      let num = parser((event.target as HTMLInputElement).value);
-      if (isNaN(num)) {
-        return;
-      } else if (min !== undefined && num < min) {
-        num = min;
-      } else if (max !== undefined && num > max) {
-        num = max;
-      }
-      updateSettings((prev) => ({ ...prev, [setting]: num }));
-    };
-  const floatBetween = (setting: string, min?: number, max?: number) =>
-    between(setting, min, max, parseFloat);
-
-  const SectionHeader = ({ text }: { text: string }) => (
-    <h4 className="col-span-4 text-lg font-semibold">{text}</h4>
-  );
-
-  const NumberInput = ({
-    field,
-    label,
-    min,
-    max,
-    parser = (v) => parseInt(v, 10),
-  }: InputFields) => (
-    <>
-      <label htmlFor={field} className="col-span-3 inline-block">
-        {label}:{" "}
-      </label>
-      <input
-        name={field}
-        value={settings[field]}
-        className="w-20"
-        onChange={between(
-          field,
-          min ? parser(min) : undefined,
-          max ? parser(max) : undefined,
-          parser
-        )}
-        type="number"
-      />
-    </>
-  );
-  const Slider = ({
-    field,
-    label,
-    min = 0,
-    max = 1,
-    step = 0.01,
-    parser = parseFloat,
-  }: InputFields) => (
-    <>
-      <label htmlFor={field} className="col-span-2">
-        {label}:
-      </label>
-      <input
-        name={field}
-        className="col-span-2"
-        value={settings[field]}
-        onChange={floatBetween(field, parser(min), parser(max))}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-      />
-    </>
-  );
+  const updateNum = (field: string) => (num: Parseable) =>
+    changeVal(field, num);
 
   return (
     <div
@@ -181,9 +192,30 @@ const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
         name="completions-model"
         className="col-span-2"
         value={settings.completions}
-        onChange={update("completions")}
+        onChange={(event: ChangeEvent) => {
+          const value = (event.target as HTMLInputElement).value;
+          const { numTokens, topKBlocks } =
+            MODELS[value as keyof typeof MODELS];
+          const prevNumTokens =
+            MODELS[settings.completions as keyof typeof MODELS].numTokens;
+          const prevTopKBlocks =
+            MODELS[settings.completions as keyof typeof MODELS].topKBlocks;
+
+          if (settings.numTokens === prevNumTokens) {
+            changeVal("numTokens", numTokens);
+          } else {
+            changeVal(
+              "numTokens",
+              Math.min(settings.numTokens || 0, numTokens)
+            );
+          }
+          if (settings.topKBlocks === prevTopKBlocks) {
+            changeVal("topKBlocks", topKBlocks);
+          }
+          changeVal("completions", value);
+        }}
       >
-        {COMPLETION_MODELS.map((name) => (
+        {Object.keys(MODELS).map((name) => (
           <option value={name} key={name}>
             {name}
           </option>
@@ -207,33 +239,50 @@ const ChatSettings = ({ settings, updateSettings }: ChatSettingsParams) => {
       </select>
 
       <SectionHeader text="Token options" />
-      <NumberInput field="numTokens" label="Tokens" min="1" />
+      <NumberInput
+        value={settings.numTokens}
+        field="numTokens"
+        label="Tokens"
+        min="1"
+        max={MODELS[settings.completions as keyof typeof MODELS].numTokens}
+        updater={updateNum("numTokens")}
+      />
       <NumberInput
         field="tokensBuffer"
+        value={settings.tokensBuffer}
         label="Number of tokens to leave as a buffer when calculating remaining tokens"
         min="0"
-        max={settings.tokensBuffer}
+        max={settings.numTokens}
+        updater={updateNum("tokensBuffer")}
       />
 
       <SectionHeader text="Prompt options" />
       <NumberInput
+        value={settings.topKBlocks}
         field="topKBlocks"
         label="Number of blocks to use as citations"
         min="1"
+        updater={updateNum("topKBlocks")}
       />
       <NumberInput
+        value={settings.maxHistory}
         field="maxHistory"
         label="The max number of previous interactions to use"
         min="0"
+        updater={updateNum("maxHistory")}
       />
 
       <Slider
+        value={settings.contextFraction}
         field="contextFraction"
         label="Approximate fraction of num_tokens to use for citations text before truncating"
+        updater={updateNum("contextFraction")}
       />
       <Slider
+        value={settings.historyFraction}
         field="historyFraction"
         label="Approximate fraction of num_tokens to use for history text before truncating"
+        updater={updateNum("historyFraction")}
       />
     </div>
   );
