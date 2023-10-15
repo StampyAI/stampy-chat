@@ -65,7 +65,7 @@ class Settings:
             completions=COMPLETIONS_MODEL,
             encoder='cl100k_base',
             topKBlocks=None,
-            numTokens=None,
+            maxNumTokens=None,
             min_response_tokens=10,
             tokensBuffer=50,
             maxHistory=10,
@@ -80,7 +80,7 @@ class Settings:
 
         self.encoder = encoder
 
-        self.set_completions(completions, numTokens, topKBlocks)
+        self.set_completions(completions, maxNumTokens, topKBlocks)
 
         self.tokensBuffer = tokensBuffer
         """the number of tokens to leave as a buffer when calculating remaining tokens"""
@@ -97,15 +97,15 @@ class Settings:
         self.min_response_tokens = min_response_tokens
         """the minimum of tokens that must be left for the response"""
 
-        if self.context_tokens + self.history_tokens > self.numTokens - self.min_response_tokens:
+        if self.context_tokens + self.history_tokens > self.maxNumTokens - self.min_response_tokens:
             raise ValueError(
                 'The context and history fractions are too large, please lower them: '
                 f'max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, '
-                f'max total tokens: {self.numTokens}, minimum reponse tokens {self.min_response_tokens}'
+                f'max total tokens: {self.maxNumTokens}, minimum reponse tokens {self.min_response_tokens}'
             )
 
     def __repr__(self) -> str:
-        return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.numTokens}'
+        return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.maxNumTokens}'
 
     @property
     def encoder(self):
@@ -117,16 +117,16 @@ class Settings:
         if value not in self.encoders:
             self.encoders[value] = tiktoken.get_encoding(value)
 
-    def set_completions(self, completions, numTokens=None, topKBlocks=None):
+    def set_completions(self, completions, maxNumTokens=None, topKBlocks=None):
         if completions not in MODELS:
             raise ValueError(f'Unknown model: {completions}')
         self.completions = completions
 
         # Set the max number of tokens sent in the prompt - see https://platform.openai.com/docs/models/gpt-4
-        if numTokens is not None:
-            self.numTokens = numTokens
+        if maxNumTokens is not None:
+            self.maxNumTokens = maxNumTokens
         else:
-            self.numTokens = MODELS[completions].maxTokens
+            self.maxNumTokens = MODELS[completions].maxTokens
 
         # Set the max number of blocks used as citations
         if topKBlocks is not None:
@@ -157,13 +157,13 @@ class Settings:
     @property
     def context_tokens(self):
         """The max number of tokens to be used for the context"""
-        return int(self.numTokens * self.contextFraction) - len(self.encoder.encode(self.context_prompt))
+        return int(self.maxNumTokens * self.contextFraction) - len(self.encoder.encode(self.context_prompt))
 
     @property
     def history_tokens(self):
         """The max number of tokens to be used for the history"""
-        return int(self.numTokens * self.historyFraction) - len(self.encoder.encode(self.history_prompt))
+        return int(self.maxNumTokens * self.historyFraction) - len(self.encoder.encode(self.history_prompt))
 
     @property
     def max_response_tokens(self):
-        return self.numTokens - self.context_tokens - self.history_tokens
+        return self.maxNumTokens - self.context_tokens - self.history_tokens
