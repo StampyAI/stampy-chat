@@ -46,6 +46,10 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
             input_variables = {key: input_variables[key] for key in self.input_keys}
         query = " ".join(v for v in input_variables.values())
         example_docs = self.vectorstore.similarity_search(query, k=self.k)
+
+        # Remove any duplicates - sometimes the same document is returned multiple times
+        example_docs = {e.page_content: e for e in example_docs}.values()
+
         examples = [
             dict(
                 e.metadata,

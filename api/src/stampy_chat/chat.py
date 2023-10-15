@@ -6,7 +6,8 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
     BaseChatPromptTemplate,
-    ChatMessagePromptTemplate, ChatPromptTemplate,
+    ChatMessagePromptTemplate,
+    ChatPromptTemplate,
     FewShotChatMessagePromptTemplate
 )
 from langchain.pydantic_v1 import Extra
