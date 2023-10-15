@@ -8,12 +8,8 @@ from langchain.prompts import (
 from langchain.pydantic_v1 import Extra
 from langchain.vectorstores import Pinecone
 
-from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE
+from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE, OPENAI_API_KEY
 from stampy_chat.callbacks import StampyCallbackHandler
-
-
-embeddings = OpenAIEmbeddings()
-vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
 
 
 class ReferencesSelector(SemanticSimilarityExampleSelector):
@@ -65,6 +61,8 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
 
 
 def make_example_selector(k: int, **params) -> ReferencesSelector:
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
     return ReferencesSelector(vectorstore=vectorstore, **params)
 
 

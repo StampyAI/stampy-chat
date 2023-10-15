@@ -1,8 +1,7 @@
 from typing import Any, Callable, Dict, List
 
-from langchain.chains import LLMChain, OpenAIModerationChain
+from langchain.chains import LLMChain, OpenAIModerationChain, moderation
 from langchain.chat_models import ChatOpenAI
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
     BaseChatPromptTemplate,
@@ -12,16 +11,12 @@ from langchain.prompts import (
 )
 from langchain.pydantic_v1 import Extra
 from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
-from langchain.vectorstores import Pinecone
 
-from stampy_chat.env import OPENAI_API_KEY, PINECONE_INDEX, PINECONE_NAMESPACE
+from stampy_chat.env import OPENAI_API_KEY
 from stampy_chat.settings import Settings
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
 from stampy_chat.citations import make_example_selector
-
-embeddings = OpenAIEmbeddings()
-vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
 
 
 class ModerationError(ValueError):
@@ -117,7 +112,12 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
 class ModeratedChatPrompt(ChatPromptTemplate):
     """Wraps a prompt with an OpenAI moderation check which will raise an exception if fails."""
 
-    moderation_chain: OpenAIModerationChain = OpenAIModerationChain(error=True)
+    moderation_chain: OpenAIModerationChain = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.moderation_chain:
+            self.moderation_chain = OpenAIModerationChain(error=True, openai_api_key=OPENAI_API_KEY)
 
     def format_prompt(self, **kwargs: Any) -> PromptValue:
         """Raise an exception if the prompt is flagged as offensive by OpenAI."""
