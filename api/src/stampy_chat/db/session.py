@@ -42,38 +42,30 @@ class ItemAdder:
         self.engine = engine or create_engine(DB_CONNECTION_URI, echo=False)
         self.batch_size = batch_size
         self.save_every = save_every
+        self.batch = []
 
         self.session = Session(self.engine)
-        self._counter = 0
         self._last_save = time.time()
 
     def commit(self):
-        try:
-            self.session.commit()
-        except SQLAlchemyError as e:
-            logger.warn('Got error when trying to commit to database: %s', e)
-            self.session.rollback()
-            raise e
-        self._last_save = time.time()
-
-    @contextmanager
-    def get_session(self):
-        if not self.session:
-            logger.info('No session - creating new one')
-            self.session = Session(self.engine)
-
-        yield self.session
-
-        if (self._counter % self.batch_size) == 0 or time.time() - self._last_save > self.save_every:
-            logger.info('Commiting batch to database')
-            self.commit()
+        with Session(self.engine) as session:
+            try:
+                session.add_all(self.batch)
+                session.commit()
+                logger.debug('added %s items', len(self.batch))
+                self.batch = []
+            except SQLAlchemyError as e:
+                logger.warn('Got error when trying to commit to database: %s', e)
+                session.rollback()
+                raise e
+            self._last_save = time.time()
 
     def add(self, *items):
         """Add the provided items to the database, commiting them if needed."""
-        with self.get_session() as session:
-            session.add_all(items)
-            self._counter += len(items)
-        logger.debug('added %s items', len(items))
+        self.batch += items
+
+        if (len(self.batch) > self.batch_size) or time.time() - self._last_save > self.save_every:
+            self.commit()
 
     def __del__(self):
         logger.debug('cleaning up session')
