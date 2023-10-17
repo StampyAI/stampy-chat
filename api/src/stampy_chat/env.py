@@ -1,5 +1,5 @@
 import os
-import openai
+# import openai
 import pinecone
 
 if os.path.exists('.env'):
@@ -16,7 +16,6 @@ DISCORD_LOGGING_URL = os.environ.get('LOGGING_URL')
 
 ### OpenAI ###
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY # non-optional
 
 ### Models ###
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-ada-002")

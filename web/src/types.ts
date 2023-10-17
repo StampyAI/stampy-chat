@@ -53,7 +53,7 @@ export type LLMSettings = {
   completions?: string;
   encoder?: string;
   topKBlocks?: number;
-  numTokens?: number;
+  maxNumTokens?: number;
   tokensBuffer?: number;
   maxHistory?: number;
   historyFraction?: number;

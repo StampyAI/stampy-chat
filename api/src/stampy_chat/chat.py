@@ -1,221 +1,217 @@
-import time
-import json
-import re
-import time
-from dataclasses import asdict
-from typing import List, Dict
+from typing import Any, Callable, Dict, List
 
-import openai
+from langchain.chains import LLMChain, OpenAIModerationChain, moderation
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
+from langchain.prompts import (
+    BaseChatPromptTemplate,
+    ChatMessagePromptTemplate,
+    ChatPromptTemplate,
+    FewShotChatMessagePromptTemplate
+)
+from langchain.pydantic_v1 import Extra
+from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
 
-from stampy_chat import logging
-from stampy_chat.followups import multisearch_authored
-from stampy_chat.get_blocks import get_top_k_blocks, Block
+from stampy_chat.env import OPENAI_API_KEY
 from stampy_chat.settings import Settings
+from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
+from stampy_chat.followups import StampyChain
+from stampy_chat.citations import make_example_selector
 
 
-logger = logging.getLogger(__name__)
+class ModerationError(ValueError):
+    pass
 
 
-# limit a string to a certain number of tokens
-def cap(text: str, max_tokens: int, encoder) -> str:
-    if max_tokens <= 0:
-        return "..."
+class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
+    """A prompt template that will return no more than `max_tokens` tokens.
 
-    encoded_text = encoder.encode(text)
+    This will format any provided messages according to the provided prompt, then
+    return the first n formatted messages such that `sum(tokens(messages)) < max_tokens`.
+    """
 
-    if len(encoded_text) <= max_tokens:
-        return text
-    return encoder.decode(encoded_text[:max_tokens]) + " ..."
+    get_num_tokens: Callable[[str], int]  # the function used to calculate the number of tokens in a string
+    max_tokens: int
 
+    class Config:
+        """This is needed for extra fields to be added..."""
+        extra = Extra.forbid
+        arbitrary_types_allowed = True
 
-Prompt = List[Dict[str, str]]
+    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
+        """Format the provided messages and return as many as possible without going over the allowed number of tokens."""
+        all_messages = super().format_messages(**kwargs)
 
+        messages = []
+        remaining_tokens = self.max_tokens
+        for message in all_messages:
+            tokens = self.get_num_tokens(message.content)
+            if tokens > remaining_tokens:
+                break
 
-def prompt_context(context: List[Block], settings: Settings) -> str:
-    source_prompt = settings.source_prompt_prefix
-    max_tokens = settings.context_tokens
-    encoder = settings.encoder
-
-    token_count = len(encoder.encode(source_prompt))
-
-    # Context from top-k blocks
-    for i, block in enumerate(context):
-        block_str = f"[{chr(ord('a') + i)}] {block.title} - {','.join(block.authors)} - {block.date}\n{block.text}\n\n"
-        block_tc = len(encoder.encode(block_str))
-
-        if token_count + block_tc > max_tokens:
-            source_prompt += cap(block_str, max_tokens - token_count, encoder)
-            break
-        else:
-            source_prompt += block_str
-            token_count += block_tc
-    return source_prompt.strip()
+            remaining_tokens -= tokens
+            messages.append(message)
+        return messages
 
 
-def prompt_history(history: Prompt, settings: Settings) -> Prompt:
-    max_tokens = settings.history_tokens
-    encoder = settings.encoder
-    token_count = 0
-    prompt = []
+class PrefixedPrompt(BaseChatPromptTemplate):
+    """A prompt that will prefix any messages with a system prompt, but only if messages provided."""
 
-    # Get the n_items last messages, starting from the last one. This is because it's assumed
-    # that more recent messages are more important. The `-1` is because of how slicing works
-    messages = history[:-settings.maxHistory - 1:-1]
-    for message in messages:
-        if message["role"] == "user":
-            prompt.append({"role": "user", "content": "Q: " + message["content"]})
-            token_count += len(encoder.encode("Q: " + message["content"]))
-        else:
-            content = message["content"]
-            # censor all source letters into [x]
-            content = re.sub(r"\[[0-9]+\]", "[x]", content)
-            content = cap(content, max_tokens - token_count, encoder)
+    messages_field: str
+    prompt: str  # the system prompt to be used
 
-            prompt.append({"role": "assistant", "content": content})
-            token_count += len(encoder.encode(content))
-
-        if token_count > max_tokens:
-            break
-    return prompt[::-1]
+    def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
+        history = kwargs[self.messages_field]
+        if history and self.prompt:
+            return [SystemMessage(content=self.prompt)] + history
+        return []
 
 
-def construct_prompt(query: str, settings: Settings, history: Prompt, context: List[Block]) -> Prompt:
-    # History takes the format: history=[
-    #     {"role": "user", "content": "Die monster. You don’t belong in this world!"},
-    #     {"role": "assistant", "content": "It was not by my hand I am once again given flesh. I was called here by humans who wished to pay me tribute."},
-    #     {"role": "user", "content": "Tribute!?! You steal men's souls and make them your slaves!"},
-    #     {"role": "assistant", "content": "Perhaps the same could be said of all religions..."},
-    #     {"role": "user", "content": "Your words are as empty as your soul! Mankind ill needs a savior such as you!"},
-    #     {"role": "assistant", "content": "What is a man? A miserable little pile of secrets. But enough talk... Have at you!"},
-    # ]
+class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
+    """A Summary Buffer with both a limit on the number of messages in history, and a summary if limits are exeeded.
 
-    # Context from top-k blocks
-    source_prompt = prompt_context(context, settings)
-    if history:
-        source_prompt += settings.source_prompt_suffix
-    source_prompt = [{"role": "system", "content": source_prompt.strip()}]
+    The basic ConversationSummaryBufferMemory will make a LLM summary of the history if the current
+    list of messages is too large (in tokens, not messages). This class expands that with an additional
+    limit on the number of messages. So if the history has more than `max_history` entries, the first
+    `n - max_history + 1` items will be summarized and used as the first history entry. Of course, if
+    that's still too large (in tokens), the whole history may be summarized.
 
-    # Write a version of the last 10 messages into history, cutting things off when we hit the token limit.
-    history_prompt = prompt_history(history, settings)
-    question_prompt = [{"role": "user", "content": settings.question_prompt(query)}]
+    This class can also be provided with optional callbacks, which will be notified before and after
+    any memory replacements happen.
+    """
 
-    return source_prompt + history_prompt + question_prompt
+    callbacks: List[StampyCallbackHandler] = []
+    max_history: int = 10
 
-# ------------------------------- completion code -------------------------------
+    def set_messages(self, history: List[dict]) -> None:
+        """Replace the current list of messages with `history`, pruning as needed."""
+        for callback in self.callbacks:
+            callback.on_memory_set_start(history)
 
-def check_openai_moderation(prompt: Prompt, query: str):
-    prompt_string = '\n\n'.join([message["content"] for message in prompt])
-    mod_res = openai.Moderation.create(input=[query, prompt_string])
+        messages = [ChatMessage(**m) for m in history]
+        # If there are more than `max_history` messages, first summarize the older ones. If there
+        # are n messages (where n > max_history), then the first `n - max_history + 1` should be
+        # summarized and inserted as the first item in the history, so as to ensure there are
+        # `max_history` items.
+        if len(messages) > self.max_history :
+            offset = -self.max_history + 1
 
-    if any(map(lambda x: x["flagged"], mod_res["results"])):
-        logger.moderation_issue(query, prompt_string, mod_res)
+            pruned = messages[:offset]
+            summary = ChatMessage(role='assistant', content=self.predict_new_summary(pruned, ''))
 
-        raise ValueError("This conversation was rejected by OpenAI's moderation filter. Sorry.")
+            messages = [summary] + messages[offset:]
+
+        self.clear()
+        self.chat_memory = ChatMessageHistory(messages=messages)
+        self.prune()
+
+        for callback in self.callbacks:
+            callback.on_memory_set_end(self.chat_memory)
 
 
-def remaining_tokens(prompt: Prompt, settings: Settings):
-    # Count number of tokens left for completion (-50 for a buffer)
-    encoder = settings.encoder
-    used_tokens = sum([
-        len(encoder.encode(message["content"]) + encoder.encode(message["role"]))
-        for message in prompt
+class ModeratedChatPrompt(ChatPromptTemplate):
+    """Wraps a prompt with an OpenAI moderation check which will raise an exception if fails."""
+
+    moderation_chain: OpenAIModerationChain = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.moderation_chain:
+            self.moderation_chain = OpenAIModerationChain(error=True, openai_api_key=OPENAI_API_KEY)
+
+    def format_prompt(self, **kwargs: Any) -> PromptValue:
+        """Raise an exception if the prompt is flagged as offensive by OpenAI."""
+        prompt = super().format_prompt(**kwargs)
+        try:
+            self.moderation_chain.run(prompt.to_string())
+        except ValueError as e:
+            raise ModerationError(e)
+        return prompt
+
+
+def get_model(**kwargs):
+    return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
+
+
+def make_prompt(settings, chat_model, callbacks):
+    """Create a proper prompt object will all the nessesery steps."""
+    # 1. Create the context prompt from items fetched from pinecone
+    context_template = "[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}"
+    context_prompt = MessageBufferPromptTemplate(
+        example_selector=make_example_selector(k=settings.topKBlocks, callbacks=callbacks),
+        example_prompt=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
+        get_num_tokens=chat_model.get_num_tokens,
+        max_tokens=settings.context_tokens,
+        input_variables=['query'],
+    )
+
+    # 2. The history items will be passed in from the memory
+    history_prompt = PrefixedPrompt(input_variables=['history'], messages_field='history', prompt=settings.history_prompt)
+
+    # 3. Construct the main query
+    query_prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessage(content=settings.question_prompt),
+            ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
+        ]
+    )
+
+    # 4. ModeratedChatPrompt will cause the whole chain to fail if untoward values are provided
+    return ModeratedChatPrompt.from_messages([
+        SystemMessage(content=settings.context_prompt),
+        context_prompt,
+        history_prompt,
+        query_prompt,
     ])
-    return max(0, settings.numTokens - used_tokens - settings.tokensBuffer)
 
 
-def talk_to_robot_internal(index, query: str, history: Prompt, session_id: str, settings: Settings=Settings()):
-    try:
-        # 1. Find the most relevant blocks from the Alignment Research Dataset
-        yield {"state": "loading", "phase": "semantic"}
-        top_k_blocks = get_top_k_blocks(index, query, settings.topKBlocks)
-
-        yield {
-            "state": "citations",
-            "citations": [
-                {'title': block.title, 'author': block.authors, 'date': block.date, 'url': block.url}
-                for block in top_k_blocks
-            ]
-        }
-
-        # 2. Generate a prompt
-        yield {"state": "loading", "phase": "prompt"}
-        prompt = construct_prompt(query, settings, history, top_k_blocks)
-
-        # 3. Run both the standalone query and the full prompt through
-        # moderation to see if it will be accepted by OpenAI's api
-        check_openai_moderation(prompt, query)
-
-        # 4. Count number of tokens left for completion (-50 for a buffer)
-        max_tokens_completion = remaining_tokens(prompt, settings)
-        if max_tokens_completion < 40:
-            raise ValueError(f"{max_tokens_completion} tokens left for the actual query after constructing the context - aborting, as that's not going to be enough")
-
-        # 5. Answer the user query
-        yield {"state": "loading", "phase": "llm"}
-        t1 = time.time()
-        response = ''
-
-        for chunk in openai.ChatCompletion.create(
-            model=settings.completions,
-            messages=prompt,
-            max_tokens=max_tokens_completion,
-            stream=True,
-            temperature=0, # may or may not be a good idea
-        ):
-            res = chunk["choices"][0]["delta"]
-            if res and res.get("content"):
-                response += res["content"]
-                yield {"state": "streaming", "content": res["content"]}
-
-        t2 = time.time()
-        logger.debug(f'Time to get response: {time.time() - t1:.2f}s')
-        if logger.is_debug():
-            logger.debug('\n' * 10)
-            logger.debug(" ------------------------------ prompt: -----------------------------")
-            for message in prompt:
-                logger.debug("----------- %s: ------------------", message['role'])
-                logger.debug(message['content'])
-            logger.debug('\n' * 10)
-            logger.debug(' ------------------------------ response: -----------------------------')
-            logger.debug(response)
-
-        logger.interaction(session_id, query, response, history, prompt, top_k_blocks)
-
-        yield {"state": "loading", "phase": "followups"}
-        # yield optional followups
-        followups = multisearch_authored([query, response])
-        if followups:
-            yield {'state': 'followups', 'followups': list(map(asdict, followups))}
-
-        # yield done state
-        fin_json = {'state': 'done'}
-        yield fin_json
-
-    except Exception as e:
-        logger.error(e)
-        yield {'state': 'error', 'error': str(e)}
+def make_memory(settings, history, callbacks):
+    """Create a memory object to store the chat history."""
+    memory = LimitedConversationSummaryBufferMemory(
+        llm=get_model(),
+        max_token_limit=settings.history_tokens,
+        max_history=settings.maxHistory,
+        chat_memory=ChatMessageHistory(),
+        return_messages=True,
+        callbacks=callbacks
+    )
+    memory.set_messages(history)
+    return memory
 
 
-# convert talk_to_robot_internal from dict generator into json generator
-def talk_to_robot(index, query: str, history: List[Dict[str, str]], session_id: str, settings: Settings):
-    yield from (json.dumps(block) for block in talk_to_robot_internal(index, query, history, session_id, settings))
+def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None) -> Dict[str, str]:
+    """Execute the query.
 
+    :param str query: the phrase that was input by the user
+    :param List[Dict] history: any previous interactions with the user
+    :param Settings settings: the system settings
+    :param Callable[[Any], None] callback: an optional callback that will be called at various key parts of the chain
+    :returns: the result of the chain
+    """
+    callbacks = [LoggerCallbackHandler(session_id=session_id, query=query, history=history)]
+    if callback:
+        callbacks += [BroadcastCallbackHandler(callback)]
+    chat_model = get_model(streaming=True, callbacks=callbacks, max_tokens=settings.max_response_tokens)
 
-# wayyy simplified api
-def talk_to_robot_simple(index, query: str):
-    res = {'response': ''}
+    memory = LimitedConversationSummaryBufferMemory(
+        llm=get_model(),
+        max_token_limit=settings.history_tokens,
+        max_history=settings.maxHistory,
+        chat_memory=ChatMessageHistory(),
+        return_messages=True,
+        callbacks=callbacks
+    )
+    memory.set_messages(history)
 
-    for block in talk_to_robot_internal(index, query, []):
-        if block['state'] == 'loading' and block['phase'] == 'semantic' and 'citations' in block:
-            citations = {}
-            for i, c in enumerate(block['citations']):
-                citations[chr(ord('a') + i)] = c
-            res['citations'] = citations
+    chain = LLMChain(
+        llm=chat_model,
+        verbose=False,
+        prompt=make_prompt(settings, chat_model, callbacks),
+        memory=make_memory(settings, history, callbacks)
+    ) | StampyChain(callbacks=callbacks)
+    result = chain.invoke({"query": query, 'history': history}, {'callbacks': []})
 
-        elif block['state'] == 'streaming':
-            res['response'] += block['content']
-
-        elif block['state'] == 'error':
-            res['response'] = block['error']
-
-    return json.dumps(res)
+    if callback:
+        callback({'state': 'done'})
+        callback(None)  # make sure the callback handler know that things have ended
+    return result

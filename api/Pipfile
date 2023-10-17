@@ -25,6 +25,8 @@ requests = "*"
 alembic = "*"
 sqlalchemy = "*"
 mysql-connector-python = "*"
+langchain = "*"
+transformers = "*"
 
 [dev-packages]
 pytest = "*"

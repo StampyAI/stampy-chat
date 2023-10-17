@@ -13,7 +13,7 @@ SOURCE_PROMPT = (
     "using the following sources. Each source is labeled with a letter. Feel free to "
     "use the sources in any order, and try to use multiple sources in your answers.\n\n"
 )
-SOURCE_PROMPT_SUFFIX = (
+HISTORY_PROMPT = (
     "\n\n"
     "Before the question (\"Q: \"), there will be a history of previous questions and answers. "
     "These sources only apply to the last question. Any sources used in previous answers "
@@ -41,10 +41,8 @@ PROMPT_MODES = {
     ),
 }
 DEFAULT_PROMPTS = {
-    'source': {
-        'prefix': SOURCE_PROMPT,
-        'suffix': SOURCE_PROMPT_SUFFIX,
-    },
+    'context': SOURCE_PROMPT,
+    'history': HISTORY_PROMPT,
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
 }
@@ -67,7 +65,8 @@ class Settings:
             completions=COMPLETIONS_MODEL,
             encoder='cl100k_base',
             topKBlocks=None,
-            numTokens=None,
+            maxNumTokens=None,
+            min_response_tokens=10,
             tokensBuffer=50,
             maxHistory=10,
             historyFraction=0.25,
@@ -81,7 +80,7 @@ class Settings:
 
         self.encoder = encoder
 
-        self.set_completions(completions, numTokens, topKBlocks)
+        self.set_completions(completions, maxNumTokens, topKBlocks)
 
         self.tokensBuffer = tokensBuffer
         """the number of tokens to leave as a buffer when calculating remaining tokens"""
@@ -95,8 +94,18 @@ class Settings:
         self.contextFraction = contextFraction
         """the (approximate) fraction of num_tokens to use for context text before truncating"""
 
+        self.min_response_tokens = min_response_tokens
+        """the minimum of tokens that must be left for the response"""
+
+        if self.context_tokens + self.history_tokens > self.maxNumTokens - self.min_response_tokens:
+            raise ValueError(
+                'The context and history fractions are too large, please lower them: '
+                f'max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, '
+                f'max total tokens: {self.maxNumTokens}, minimum reponse tokens {self.min_response_tokens}'
+            )
+
     def __repr__(self) -> str:
-        return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.numTokens}'
+        return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.maxNumTokens}'
 
     @property
     def encoder(self):
@@ -108,16 +117,16 @@ class Settings:
         if value not in self.encoders:
             self.encoders[value] = tiktoken.get_encoding(value)
 
-    def set_completions(self, completions, numTokens=None, topKBlocks=None):
+    def set_completions(self, completions, maxNumTokens=None, topKBlocks=None):
         if completions not in MODELS:
             raise ValueError(f'Unknown model: {completions}')
         self.completions = completions
 
         # Set the max number of tokens sent in the prompt - see https://platform.openai.com/docs/models/gpt-4
-        if numTokens is not None:
-            self.numTokens = numTokens
+        if maxNumTokens is not None:
+            self.maxNumTokens = maxNumTokens
         else:
-            self.numTokens = MODELS[completions].maxTokens
+            self.maxNumTokens = MODELS[completions].maxTokens
 
         # Set the max number of blocks used as citations
         if topKBlocks is not None:
@@ -130,26 +139,31 @@ class Settings:
         return self.prompts['modes']
 
     @property
-    def source_prompt_prefix(self):
-        return self.prompts['source']['prefix']
+    def context_prompt(self):
+        return self.prompts['context']
 
     @property
-    def source_prompt_suffix(self):
-        return self.prompts['source']['suffix']
+    def history_prompt(self):
+        return self.prompts['history']
 
     @property
     def mode_prompt(self):
         return self.prompts['modes'].get(self.mode)
 
-    def question_prompt(self, query: str):
-        return self.prompts['question'] + self.mode_prompt + 'Q: ' + query
+    @property
+    def question_prompt(self):
+        return self.prompts['question'] + self.mode_prompt
 
     @property
     def context_tokens(self):
         """The max number of tokens to be used for the context"""
-        return int(self.numTokens * self.contextFraction)
+        return int(self.maxNumTokens * self.contextFraction) - len(self.encoder.encode(self.context_prompt))
 
     @property
     def history_tokens(self):
         """The max number of tokens to be used for the history"""
-        return int(self.numTokens * self.historyFraction)
+        return int(self.maxNumTokens * self.historyFraction) - len(self.encoder.encode(self.history_prompt))
+
+    @property
+    def max_response_tokens(self):
+        return self.maxNumTokens - self.context_tokens - self.history_tokens
