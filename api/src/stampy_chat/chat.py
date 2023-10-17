@@ -175,7 +175,7 @@ def make_memory(settings, history, callbacks):
         return_messages=True,
         callbacks=callbacks
     )
-    memory.set_messages(history)
+    memory.set_messages([i for i in history if i.get('role') != 'deleted'])
     return memory
 
 
@@ -192,16 +192,6 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
     chat_model = get_model(streaming=True, callbacks=callbacks, max_tokens=settings.max_response_tokens)
-
-    memory = LimitedConversationSummaryBufferMemory(
-        llm=get_model(),
-        max_token_limit=settings.history_tokens,
-        max_history=settings.maxHistory,
-        chat_memory=ChatMessageHistory(),
-        return_messages=True,
-        callbacks=callbacks
-    )
-    memory.set_messages(history)
 
     chain = LLMChain(
         llm=chat_model,

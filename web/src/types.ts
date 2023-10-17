@@ -17,6 +17,7 @@ export type Entry = UserEntry | AssistantEntry | ErrorMessage | StampyMessage;
 export type UserEntry = {
   role: "user";
   content: string;
+  deleted?: boolean;
 };
 
 export type AssistantEntry = {
@@ -24,17 +25,20 @@ export type AssistantEntry = {
   content: string;
   citations: Citation[];
   citationsMap: Map<string, Citation>;
+  deleted?: boolean;
 };
 
 export type ErrorMessage = {
   role: "error";
   content: string;
+  deleted?: boolean;
 };
 
 export type StampyMessage = {
   role: "stampy";
   content: string;
   url: string;
+  deleted?: boolean;
 };
 
 export type SearchResult = {

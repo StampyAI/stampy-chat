@@ -48,17 +48,15 @@ class ItemAdder:
         self._last_save = time.time()
 
     def commit(self):
-        with Session(self.engine) as session:
-            try:
+        try:
+            with Session(self.engine) as session:
                 session.add_all(self.batch)
                 session.commit()
                 logger.debug('added %s items', len(self.batch))
-                self.batch = []
-            except SQLAlchemyError as e:
-                logger.warn('Got error when trying to commit to database: %s', e)
-                session.rollback()
-                raise e
+            self.batch = []
             self._last_save = time.time()
+        except SQLAlchemyError as e:
+            logger.warn('Got error when trying to commit to database: %s', e)
 
     def add(self, *items):
         """Add the provided items to the database, commiting them if needed."""
@@ -69,6 +67,4 @@ class ItemAdder:
 
     def __del__(self):
         logger.debug('cleaning up session')
-        if self.session:
-            self.commit()
-            self.session.close()
+        self.commit()

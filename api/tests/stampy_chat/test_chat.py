@@ -1,13 +1,16 @@
+from unittest.mock import patch
 from langchain.llms.fake import FakeListLLM
 from langchain.memory import ChatMessageHistory
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import ChatMessage, HumanMessage, SystemMessage
 
+from stampy_chat.settings import Settings
 from stampy_chat.callbacks import StampyCallbackHandler
 from stampy_chat.chat import (
     LimitedConversationSummaryBufferMemory,
     MessageBufferPromptTemplate,
-    PrefixedPrompt
+    PrefixedPrompt,
+    make_memory,
 )
 
 
@@ -140,3 +143,20 @@ def test_LimitedConversationSummaryBufferMemory_set_with_callbacks():
         'start': history,
         'end': memory.chat_memory,
     }
+
+
+def test_make_memory_skips_deleted():
+    history = [
+        {'content': 'this should be kept', 'role': 'system'},
+        {'content': 'as should this', 'role': 'human'},
+        {'content': 'this will be ignored', 'role': 'deleted'},
+        {'content': 'bla bla bla', 'role': 'assistant'},
+        {'content': 'remove me!!', 'role': 'deleted'},
+    ]
+    with patch('stampy_chat.chat.get_model', return_value=FakeListLLM(responses=[])):
+        mem = make_memory(Settings(), history, [])
+    assert mem.chat_memory == ChatMessageHistory(messages=[
+        ChatMessage(content='this should be kept', role='system'),
+        ChatMessage(content='as should this', role='human'),
+        ChatMessage(content='bla bla bla', role='assistant'),
+    ])
