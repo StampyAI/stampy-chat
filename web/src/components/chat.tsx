@@ -179,7 +179,7 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
                   }
                 }}
               >
-                X
+                ✕
               </span>
             </li>
           )
