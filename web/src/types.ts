@@ -64,3 +64,5 @@ export type LLMSettings = {
   contextFraction?: number;
   [key: string]: any;
 };
+
+export type Parseable = string | number | undefined;
