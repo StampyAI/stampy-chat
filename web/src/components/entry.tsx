@@ -13,60 +13,50 @@ import TextareaAutosize from "react-textarea-autosize";
 
 export const User = ({ entry }: { entry: UserEntry }) => {
   return (
-    <li className="mt-1 mb-2 flex">
-      <TextareaAutosize
-        className="flex-1 resize-none border border-gray-300 px-1"
-        value={entry.content}
-      />
-    </li>
+    <TextareaAutosize
+      className="flex-1 resize-none border border-gray-300 px-1"
+      value={entry.content}
+    />
   );
 };
 
 export const Error = ({ entry }: { entry: ErrorMessage }) => {
   return (
-    <li>
-      <p className="border border-red-500 bg-red-100 px-1 text-red-800">
-        {" "}
-        {entry.content}{" "}
-      </p>
-    </li>
+    <p className="border border-red-500 bg-red-100 px-1 text-red-800">
+      {" "}
+      {entry.content}{" "}
+    </p>
   );
 };
 
 export const Assistant = ({ entry }: { entry: AssistantEntryType }) => {
-  return (
-    <li>
-      <AssistantEntry entry={entry} />
-    </li>
-  );
+  return <AssistantEntry entry={entry} />;
 };
 
 export const Stampy = ({ entry }: { entry: StampyMessage }) => {
   return (
-    <li>
-      <div
-        className="my-7 rounded bg-slate-500 px-4 py-0.5 text-slate-50"
-        style={{
-          marginLeft: "auto",
-          marginRight: "auto",
-          maxWidth: "99.8%",
-        }}
-      >
-        <div>
-          <GlossarySpan content={entry.content} />
-        </div>
-        <div className="mb-3 flex justify-end">
-          <a
-            href={entry.url}
-            target="_blank"
-            className="flex items-center space-x-1"
-          >
-            <span>aisafety.info</span>
-            <Image src={logo} alt="aisafety.info logo" width={19} />
-          </a>
-        </div>
+    <div
+      className="my-7 rounded bg-slate-500 px-4 py-0.5 text-slate-50"
+      style={{
+        marginLeft: "auto",
+        marginRight: "auto",
+        maxWidth: "99.8%",
+      }}
+    >
+      <div>
+        <GlossarySpan content={entry.content} />
       </div>
-    </li>
+      <div className="mb-3 flex justify-end">
+        <a
+          href={entry.url}
+          target="_blank"
+          className="flex items-center space-x-1"
+        >
+          <span>aisafety.info</span>
+          <Image src={logo} alt="aisafety.info logo" width={19} />
+        </a>
+      </div>
+    </div>
   );
 };
 

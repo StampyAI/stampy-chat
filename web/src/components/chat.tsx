@@ -164,9 +164,26 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
 
   return (
     <ul className="flex-auto">
-      {entries.map((entry, i) => (
-        <EntryTag entry={entry} key={i} />
-      ))}
+      {entries.map(
+        (entry, i) =>
+          !entry.deleted && (
+            <li className="group relative flex" key={i}>
+              <EntryTag entry={entry} />
+              <span
+                className="delete-item absolute right-5 hidden cursor-pointer group-hover:block"
+                onClick={() => {
+                  const entry = entries[i];
+                  if (entry !== undefined) {
+                    entry.deleted = true;
+                    setEntries([...entries]);
+                  }
+                }}
+              >
+                ✕
+              </span>
+            </li>
+          )
+      )}
       <SearchBox search={search} onQuery={onQuery} />
 
       {last_entry}

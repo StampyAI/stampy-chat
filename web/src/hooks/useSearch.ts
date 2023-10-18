@@ -16,8 +16,9 @@ const MAX_FOLLOWUPS = 4;
 const DATA_HEADER = "data: ";
 const EVENT_END_HEADER = "event: close";
 
+type EntryRole = "error" | "stampy" | "assistant" | "user" | "deleted";
 type HistoryEntry = {
-  role: "error" | "stampy" | "assistant" | "user";
+  role: EntryRole;
   content: string;
 };
 
@@ -223,7 +224,7 @@ export const runSearch = async (
     const history = entries
       .filter((entry) => entry.role !== "error")
       .map((entry) => ({
-        role: entry.role,
+        role: (entry.deleted ? "deleted" : entry.role) as EntryRole,
         content: entry.content.trim(),
       }));
 
