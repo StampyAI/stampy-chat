@@ -49,12 +49,9 @@ const Playground: NextPage = () => {
   // initial load
   useEffect(() => {
     const mode = (localStorage.getItem("chat_mode") as Mode) || "default";
+    updateSettings(makeSettings(router.query));
     setMode([mode, true]);
     setSessionId(crypto.randomUUID());
-  }, []);
-
-  useEffect(() => {
-    updateSettings(makeSettings(router.query));
   }, [updateSettings, router]);
 
   return (

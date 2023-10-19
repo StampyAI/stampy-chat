@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List
 
-from langchain.chains import LLMChain, OpenAIModerationChain, moderation
+from langchain.chains import LLMChain, OpenAIModerationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
