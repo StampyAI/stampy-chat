@@ -1,84 +1,44 @@
 import type { NextPage } from "next";
-import { useRouter } from "next/router";
 import { useState, useEffect } from "react";
-import Head from "next/head";
+import Page from "../components/page";
 
-import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
-import type { Mode, Entry, LLMSettings } from "../types";
-import Header from "../components/header";
+import useSettings from "../hooks/useSettings";
+import type { Entry } from "../types";
 import Chat from "../components/chat";
 import { Controls } from "../components/controls";
-import {
-  ChatSettings,
-  ChatPrompts,
-  updateIn,
-  makeSettings,
-} from "../components/settings";
+import { ChatSettings, ChatPrompts } from "../components/settings";
 
 const Playground: NextPage = () => {
   const [sessionId, setSessionId] = useState("");
-  const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
 
   const [query, setQuery] = useState<string>("");
   const [history, setHistory] = useState<Entry[]>([]);
-
-  const router = useRouter();
-
-  const setMode = (mode: [Mode, boolean]) => {
-    if (mode[1]) {
-      localStorage.setItem("chat_mode", mode[0]);
-      updateSettings((settings) => ({ ...settings, mode: mode[0] }));
-    }
-  };
-
-  const changeSetting = (path: string[], value: any) => {
-    router.replace(
-      {
-        pathname: router.pathname,
-        query: {
-          ...router.query,
-          [path.join(".")]: value.toString(),
-        },
-      },
-      undefined,
-      { scroll: false, shallow: true }
-    );
-    updateSettings((settings) => ({ ...updateIn(settings, path, value) }));
-  };
+  const { settings, changeSetting, setMode } = useSettings();
 
   // initial load
   useEffect(() => {
-    const mode = (localStorage.getItem("chat_mode") as Mode) || "default";
-    updateSettings(makeSettings(router.query));
-    setMode([mode, true]);
     setSessionId(crypto.randomUUID());
-  }, [updateSettings, router]);
+  }, []);
 
   return (
-    <>
-      <Head>
-        <title>AI Safety Info</title>
-      </Head>
-      <main style={{ maxWidth: "none" }}>
-        <Header page="playground" />
-        <Controls mode={[settings.mode || "default", true]} setMode={setMode} />
-        <div className="flex">
-          <ChatPrompts
-            settings={settings}
-            query={query}
-            history={history}
-            changeSetting={changeSetting}
-          />
-          <Chat
-            sessionId={sessionId}
-            settings={settings}
-            onQuery={setQuery}
-            onNewEntry={setHistory}
-          />
-          <ChatSettings settings={settings} changeSetting={changeSetting} />
-        </div>
-      </main>
-    </>
+    <Page page="playground" widescreen={true}>
+      <Controls mode={settings.mode || "default"} setMode={setMode} />
+      <div className="flex">
+        <ChatPrompts
+          settings={settings}
+          query={query}
+          history={history}
+          changeSetting={changeSetting}
+        />
+        <Chat
+          sessionId={sessionId}
+          settings={settings}
+          onQuery={setQuery}
+          onNewEntry={setHistory}
+        />
+        <ChatSettings settings={settings} changeSetting={changeSetting} />
+      </div>
+    </Page>
   );
 };
 

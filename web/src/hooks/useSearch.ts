@@ -57,16 +57,19 @@ export async function* iterateData(res: Response) {
   }
 }
 
-export const extractAnswer = async (
-  res: Response,
-  setCurrent: (e: CurrentSearch) => void
-): Promise<SearchResult> => {
-  var result: AssistantEntry = {
+const makeEntry = () =>
+  ({
     role: "assistant",
     content: "",
     citations: [],
     citationsMap: new Map(),
-  };
+  } as AssistantEntry);
+
+export const extractAnswer = async (
+  res: Response,
+  setCurrent: (e: CurrentSearch) => void
+): Promise<SearchResult> => {
+  var result: AssistantEntry = makeEntry();
   var followups: Followup[] = [];
   for await (var data of iterateData(res)) {
     switch (data.state) {
@@ -135,6 +138,7 @@ export const queryLLM = async (
   sessionId: string,
   controller: AbortController
 ): Promise<SearchResult> => {
+  setCurrent({ ...makeEntry(), phase: "started" });
   // do SSE on a POST request.
   const res = await fetchLLM(sessionId, query, settings, history, controller);
 

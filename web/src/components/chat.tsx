@@ -9,6 +9,7 @@ import type {
   LLMSettings,
   Followup,
 } from "../types";
+import useCitations from "../hooks/useCitations";
 import { SearchBox } from "../components/searchbox";
 import { AssistantEntry } from "../components/assistant";
 import { Entry as EntryTag } from "../components/entry";
@@ -40,6 +41,38 @@ function scroll30() {
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
+export const ChatResponse = ({
+  current,
+  defaultElem,
+}: {
+  current: CurrentSearch;
+  defaultElem?: any;
+}) => {
+  switch (current?.phase) {
+    case "started":
+      return <p>Loading: Sending query...</p>;
+    case "semantic":
+      return <p>Loading: Performing semantic search...</p>;
+    case "context":
+      return <p>Loading: Creating context...</p>;
+    case "prompt":
+      return <p>Loading: Creating prompt...</p>;
+    case "llm":
+      return <p>Loading: Waiting for LLM...</p>;
+    case "streaming":
+      return <AssistantEntry entry={current} />;
+    case "followups":
+      return (
+        <>
+          <AssistantEntry entry={current} />
+          <p>Checking for followups...</p>
+        </>
+      );
+    default:
+      return defaultElem;
+  }
+};
+
 type ChatParams = {
   sessionId: string;
   settings: LLMSettings;
@@ -50,44 +83,15 @@ type ChatParams = {
 const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [current, setCurrent] = useState<CurrentSearch>();
-  const [citations, setCitations] = useState<Citation[]>([]);
+  const { citations, setEntryCitations } = useCitations();
 
   const updateCurrent = (current: CurrentSearch) => {
-    setCurrent(current);
     if (current?.phase === "streaming") {
+      setCurrent(setEntryCitations(current));
       scroll30();
+    } else {
+      setCurrent(current);
     }
-  };
-
-  const updateCitations = (
-    allCitations: Citation[],
-    current?: CurrentSearch
-  ) => {
-    if (!current) return;
-
-    const entryCitations = Array.from(current.citationsMap.values());
-    if (!entryCitations.some((c) => !c.index)) {
-      // All of the entries citations have indexes, so there weren't any changes since the last check
-      return;
-    }
-
-    // Get a mapping of all known citations, so as to reuse them if they appear again
-    const citationsMapping = Object.fromEntries(
-      allCitations.map((c) => [c.title + c.url, c.index])
-    );
-
-    entryCitations.forEach((c) => {
-      const hash = c.title + c.url;
-      const index = citationsMapping[hash];
-      if (!index) {
-        c.index = allCitations.length + 1;
-        allCitations.push(c);
-      } else {
-        c.index = index;
-      }
-    });
-    setCitations(allCitations);
-    setCurrent(current);
   };
 
   const addEntry = (entry: Entry) => {
@@ -132,36 +136,6 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     setCurrent(undefined);
   };
 
-  var last_entry = <></>;
-  switch (current?.phase) {
-    case "semantic":
-      last_entry = <p>Loading: Performing semantic search...</p>;
-      break;
-    case "prompt":
-      last_entry = <p>Loading: Creating prompt...</p>;
-      break;
-    case "llm":
-      last_entry = <p>Loading: Waiting for LLM...</p>;
-      break;
-    case "streaming":
-      updateCitations(citations, current);
-      last_entry = <AssistantEntry entry={current} />;
-      break;
-    case "followups":
-      last_entry = (
-        <>
-          <AssistantEntry entry={current} />
-          <p>Checking for followups...</p>
-        </>
-      );
-      break;
-    default:
-      last_entry = (
-        <button onClick={() => setEntries([])}>Clear history</button>
-      );
-      break;
-  }
-
   return (
     <ul className="flex-auto">
       {entries.map(
@@ -185,8 +159,12 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
           )
       )}
       <SearchBox search={search} onQuery={onQuery} />
-
-      {last_entry}
+      <ChatResponse
+        current={current}
+        defaultElem={
+          <button onClick={() => setEntries([])}>Clear history</button>
+        }
+      />
     </ul>
   );
 };

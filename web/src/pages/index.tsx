@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
+import useSettings from "../hooks/useSettings";
 import type { Mode } from "../types";
 import Page from "../components/page";
 import Chat from "../components/chat";
@@ -12,23 +13,16 @@ const MAX_FOLLOWUPS = 4;
 
 const Home: NextPage = () => {
   const [sessionId, setSessionId] = useState("");
-  const [mode, setMode] = useState<[Mode, boolean]>(["default", false]);
-
-  // store mode in localstorage
-  useEffect(() => {
-    if (mode[1]) localStorage.setItem("chat_mode", mode[0]);
-  }, [mode]);
+  const { settings, setMode } = useSettings();
 
   // initial load
   useEffect(() => {
-    const mode = (localStorage.getItem("chat_mode") as Mode) || "default";
-    setMode([mode, true]);
     setSessionId(crypto.randomUUID());
   }, []);
 
   return (
     <Page page="index">
-      <Controls mode={mode} setMode={setMode} />
+      <Controls mode={settings.mode || "default"} setMode={setMode} />
 
       <h2 className="bg-red-100 text-red-800">
         <b>WARNING</b>: This is a very <b>early prototype</b>.{" "}
@@ -38,7 +32,7 @@ const Home: NextPage = () => {
         welcomed.
       </h2>
 
-      <Chat sessionId={sessionId} settings={{ mode: mode[0] }} />
+      <Chat sessionId={sessionId} settings={{ mode: settings.mode }} />
     </Page>
   );
 };

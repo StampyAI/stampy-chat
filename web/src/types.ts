@@ -23,7 +23,7 @@ export type UserEntry = {
 export type AssistantEntry = {
   role: "assistant";
   content: string;
-  citations: Citation[];
+  citations?: Citation[];
   citationsMap: Map<string, Citation>;
   deleted?: boolean;
 };
