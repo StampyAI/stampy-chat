@@ -7,7 +7,7 @@ const updateCitations = (
   setCitations: (citations: Citation[]) => any,
   entry?: CurrentSearch
 ) => {
-  if (!entry) return entry;
+  if (!entry || !entry.citationsMap) return entry;
 
   const entryCitations = Array.from(entry.citationsMap.values());
   if (!entryCitations.some((c) => !c.index)) {

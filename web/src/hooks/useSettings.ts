@@ -135,6 +135,7 @@ type ChatSettingsParams = {
 };
 
 export default function useSettings() {
+  const [settingsLoaded, setLoaded] = useState(false);
   const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
   const router = useRouter();
 
@@ -162,11 +163,13 @@ export default function useSettings() {
   useEffect(() => {
     const mode = (localStorage.getItem("chat_mode") as Mode) || "default";
     updateSettings(makeSettings({ ...router.query, mode: mode }));
-  }, [updateSettings, router]);
+    setLoaded(router.isReady);
+  }, [router]);
 
   return {
     settings,
     changeSetting,
     setMode,
+    settingsLoaded,
   };
 }
