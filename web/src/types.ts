@@ -23,7 +23,7 @@ export type UserEntry = {
 export type AssistantEntry = {
   role: "assistant";
   content: string;
-  citations: Citation[];
+  citations?: Citation[];
   citationsMap: Map<string, Citation>;
   deleted?: boolean;
 };
@@ -64,3 +64,5 @@ export type LLMSettings = {
   contextFraction?: number;
   [key: string]: any;
 };
+
+export type Parseable = string | number | undefined;

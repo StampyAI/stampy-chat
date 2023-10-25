@@ -44,19 +44,18 @@ def semantic():
 @app.route('/chat', methods=['POST'])
 @cross_origin()
 def chat():
-
     query = request.json.get('query')
     session_id = request.json.get('sessionId')
     history = request.json.get('history', [])
-    settings = Settings(**request.json.get('settings', {}))
-
-    def run(callback):
-        return run_query(session_id, query, history, settings, callback)
+    settings = request.json.get('settings', {})
 
     def formatter(item):
         if isinstance(item, Exception):
             item = {'state': 'error', 'error': str(item)}
         return json.dumps(item)
+
+    def run(callback):
+        return run_query(session_id, query, history, Settings(**settings), callback)
 
     return Response(stream_with_context(stream(stream_callback(run, formatter))), mimetype='text/event-stream')
 

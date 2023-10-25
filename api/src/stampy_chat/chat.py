@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List
 
-from langchain.chains import LLMChain, OpenAIModerationChain, moderation
+from langchain.chains import LLMChain, OpenAIModerationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
@@ -191,7 +191,12 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
     callbacks = [LoggerCallbackHandler(session_id=session_id, query=query, history=history)]
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
-    chat_model = get_model(streaming=True, callbacks=callbacks, max_tokens=settings.max_response_tokens)
+    chat_model = get_model(
+        streaming=True,
+        callbacks=callbacks,
+        max_tokens=settings.max_response_tokens,
+        model=settings.completions
+    )
 
     chain = LLMChain(
         llm=chat_model,

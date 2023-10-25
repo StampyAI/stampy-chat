@@ -1,32 +1,9 @@
 import React from "react";
 import { useState, useEffect } from "react";
+import { initialQuestions } from "../settings";
 import type { Followup } from "../types";
 import TextareaAutosize from "react-textarea-autosize";
 import dynamic from "next/dynamic";
-
-// initial questions to fill the search box with.
-export const initialQuestions: string[] = [
-  "Are there any regulatory efforts aimed at addressing AI safety and alignment concerns?",
-  "How can I help with AI safety and alignment?",
-  "How could a predictive model - like an LLM - act like an agent?",
-  "How could an AI possibly be an x-risk when some populations aren't even connected to the internet?",
-  "I'm not convinced, why is this important?",
-  "Summarize the differences in opinion between Eliezer Yudkowsky and Paul Christiano.",
-  'What are "RAAPs"?',
-  'What are "scaling laws" and how are they relevant to safety?',
-  "What are some of the different research approaches?",
-  "What are the differences between Inner and Outer alignment?",
-  'What does the term "x-risk" mean?',
-  'What is "FOOM"?',
-  'What is "instrumental convergence"?',
-  "What is a hard takeoff?",
-  "What is a mesa-optimizer?",
-  "What is AI safety and alignment?",
-  "What is an AI arms race?",
-  "What is an Intelligence Explosion?",
-  'What is the "orthogonality thesis"?',
-  'Why would we expect AI to be "misaligned by default"?',
-];
 
 const SearchBoxInternal: React.FC<{
   search: (

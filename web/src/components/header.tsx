@@ -3,9 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 import logo from "../logo.svg";
 
-const Header: React.FC<{ page: "index" | "semantic" | "playground" }> = ({
-  page,
-}) => {
+export type Page = "index" | "semantic" | "playground" | "tester";
+
+const Header: React.FC<{ page: Page }> = ({ page }) => {
   const sidebar =
     page === "index" ? (
       <span className="flex flex-1 flex-col justify-start text-right font-semibold">
