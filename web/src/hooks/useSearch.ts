@@ -111,7 +111,7 @@ export const extractAnswer = async (
 };
 
 const fetchLLM = async (
-  sessionId: string,
+  sessionId: string | undefined,
   query: string,
   settings: LLMSettings,
   history: HistoryEntry[],
@@ -135,7 +135,7 @@ export const queryLLM = async (
   settings: LLMSettings,
   history: HistoryEntry[],
   setCurrent: (e?: CurrentSearch) => void,
-  sessionId: string,
+  sessionId: string | undefined,
   controller: AbortController
 ): Promise<SearchResult> => {
   setCurrent({ ...makeEntry(), phase: "started" });
