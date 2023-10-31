@@ -20,6 +20,9 @@ class DummyVectorStore(VectorStore):
         pass
 
     def similarity_search(self, *args, **kwargs):
+        assert False, 'this should not have been called'
+
+    def similarity_search_with_score(self, *args, **kwargs):
         if self.similarity_search_return_value:
             return self.similarity_search_return_value
         elif self.similarity_search_func:
@@ -30,9 +33,9 @@ class DummyVectorStore(VectorStore):
 @pytest.fixture
 def selector():
     examples = [
-        Mock(page_content=f'{i}', metadata={
+        (Mock(page_content=f'{i}', metadata={
             'bla': f'bla {i}'
-        }) for i in range(5)
+        }), 0.81 + i / 10) for i in range(5)
     ]
     return ReferencesSelector(vectorstore=DummyVectorStore(similarity_search_return=examples))
 
@@ -75,9 +78,9 @@ def test_ReferencesSelector_select_examples_callbacks(selector):
 
 def test_ReferencesSelector_select_examples_removes_duplicates(selector):
     selector.vectorstore.similarity_search_return_value = [
-        Mock(page_content=f'{i}', metadata={
+        (Mock(page_content=f'{i}', metadata={
             'bla': f'bla {i}'
-        }) for i in range(5)
+        }), selector.min_score + 0.1 + i / 10) for i in range(5)
     ] * 5
 
     assert selector.select_examples(input_variables={}) == [
@@ -86,6 +89,73 @@ def test_ReferencesSelector_select_examples_removes_duplicates(selector):
         {'bla': 'bla 2', 'id': '2', 'reference': 'c'},
         {'bla': 'bla 3', 'id': '3', 'reference': 'd'},
         {'bla': 'bla 4', 'id': '4', 'reference': 'e'},
+    ]
+
+
+def test_ReferencesSelector_select_examples_removes_low_scores(selector):
+    def calc_score(i):
+        # odd numbers should have scores small enough to be removed
+        if i % 2 == 0:
+            return 0.81 + i / 10
+        else:
+            return 0.8 - i / 10
+
+    selector.vectorstore.similarity_search_return_value = [
+        (Mock(page_content=f'{i}', metadata={
+            'bla': f'bla {i}'
+        }), calc_score(i)) for i in range(5)
+    ]
+
+    assert selector.select_examples(input_variables={}) == [
+        {'bla': 'bla 0', 'id': '0', 'reference': 'a'},
+        {'bla': 'bla 2', 'id': '2', 'reference': 'b'},
+        {'bla': 'bla 4', 'id': '4', 'reference': 'c'},
+    ]
+
+
+def test_ReferencesSelector_select_examples_check_history(selector):
+
+    def searcher(query, *args, **kwargs):
+        return [(Mock(page_content=query, metadata={'bla': query}), 0.9)]
+
+    selector.vectorstore.similarity_search_return_value = None
+    selector.vectorstore.similarity_search_func = searcher
+
+    history = [
+        Mock(content='first history item'),
+        Mock(content='second history item'),
+        Mock(content='last history item'),
+    ]
+    assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
+        {'bla': 'queried value', 'id': 'queried value', 'reference': 'a'},
+        {'bla': 'last history item', 'id': 'last history item', 'reference': 'b'},
+        {'bla': 'second history item', 'id': 'second history item', 'reference': 'c'},
+        {'bla': 'first history item', 'id': 'first history item', 'reference': 'd'}
+    ]
+
+
+def test_ReferencesSelector_select_examples_check_history_n_items(selector):
+    def searcher(query, *args, **kwargs):
+        return [
+            (Mock(page_content=f'{query} - {i}', metadata={'bla': query}), 0.9)
+            for i in range(3)
+        ]
+
+    selector.vectorstore.similarity_search_return_value = None
+    selector.vectorstore.similarity_search_func = searcher
+
+    history = [
+        Mock(content='first history item'),
+        Mock(content='second history item'),
+        Mock(content='last history item'),
+    ]
+    assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
+        {'bla': 'queried value', 'id': 'queried value - 0', 'reference': 'a'},
+        {'bla': 'queried value', 'id': 'queried value - 1', 'reference': 'b'},
+        {'bla': 'queried value', 'id': 'queried value - 2', 'reference': 'c'},
+        {'bla': 'last history item', 'id': 'last history item - 0', 'reference': 'd'},
+        {'bla': 'last history item', 'id': 'last history item - 1', 'reference': 'e'},
+        {'bla': 'last history item', 'id': 'last history item - 2', 'reference': 'f'},
     ]
 
 

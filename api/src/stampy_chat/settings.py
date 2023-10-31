@@ -39,6 +39,10 @@ PROMPT_MODES = {
         "Put extra effort into explaining the intuition behind concepts "
         "rather than just giving a formal definition.\n\n"
     ),
+    "discord": (
+        "Your answer will be used in a Discord channel, so please Answer concisely, getting to "
+        "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
+    ),
 }
 DEFAULT_PROMPTS = {
     'context': SOURCE_PROMPT,
@@ -148,7 +152,7 @@ class Settings:
 
     @property
     def mode_prompt(self):
-        return self.prompts['modes'].get(self.mode)
+        return self.prompts['modes'].get(self.mode, '')
 
     @property
     def question_prompt(self):

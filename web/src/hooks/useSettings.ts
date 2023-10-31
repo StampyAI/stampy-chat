@@ -27,6 +27,9 @@ const DEFAULT_PROMPTS = {
     'cite all of them. For example: "AGI is concerning [c, d, e]."\n\n',
   modes: {
     default: "",
+    discord:
+      "Your answer will be used in a Discord channel, so please Answer concisely, getting to " +
+      "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n",
     concise:
       "Answer very concisely, getting to the crux of the matter in as " +
       "few words as possible. Limit your answer to 1-2 sentences.\n\n",
@@ -161,8 +164,12 @@ export default function useSettings() {
   };
 
   useEffect(() => {
-    const mode = (localStorage.getItem("chat_mode") as Mode) || "default";
-    updateSettings(makeSettings({ ...router.query, mode: mode }));
+    if (!router.isReady) return;
+
+    const mode = (router?.query?.mode ||
+      localStorage.getItem("chat_mode") ||
+      "default") as Mode;
+    updateSettings(makeSettings({ ...router.query, mode }));
     setLoaded(router.isReady);
   }, [router]);
 
