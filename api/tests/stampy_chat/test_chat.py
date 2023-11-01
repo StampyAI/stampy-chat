@@ -11,6 +11,7 @@ from stampy_chat.chat import (
     MessageBufferPromptTemplate,
     PrefixedPrompt,
     make_memory,
+    merge_history,
 )
 
 
@@ -160,3 +161,43 @@ def test_make_memory_skips_deleted():
         ChatMessage(content='as should this', role='human'),
         ChatMessage(content='bla bla bla', role='assistant'),
     ])
+
+
+def test_merge_history_empty():
+    assert merge_history([]) == []
+
+
+def test_merge_history_no_merges():
+    history = [
+        {'content': 'this should be kept', 'role': 'system'},
+        {'content': 'as should this', 'role': 'human'},
+        {'content': 'this will be ignored', 'role': 'deleted'},
+        {'content': 'bla bla bla', 'role': 'assistant'},
+        {'content': 'remove me!!', 'role': 'deleted'},
+    ]
+    assert merge_history(history) == history
+
+
+def test_merge_history_merges():
+    history = [
+        {'role': 'user', 'content': 'question 1'},
+        {'role': 'assistant', 'content': 'answer 1 part 1'},
+        {'role': 'assistant', 'content': 'answer 1 part 2'},
+        {'role': 'user', 'content': 'question 2 part 1'},
+        {'role': 'user', 'content': 'question 2 part 2'},
+        {'role': 'user', 'content': 'question 2 part 3'},
+        {'role': 'assistant', 'content': 'answer 2'},
+        {'role': 'user', 'content': 'question 3'},
+        {'role': 'assistant', 'content': 'answer 3'},
+        {'role': 'user', 'content': 'question 4 part 1'},
+        {'role': 'user', 'content': 'question 4 part 2'},
+    ]
+    assert merge_history(history) == [
+        {'role': 'user', 'content': 'question 1'},
+        {'role': 'assistant', 'content': 'answer 1 part 1\nanswer 1 part 2'},
+        {'role': 'user', 'content': 'question 2 part 1\nquestion 2 part 2\nquestion 2 part 3'},
+        {'role': 'assistant', 'content': 'answer 2'},
+        {'role': 'user', 'content': 'question 3'},
+        {'role': 'assistant', 'content': 'answer 3'},
+        {'role': 'user', 'content': 'question 4 part 1\nquestion 4 part 2'},
+    ]

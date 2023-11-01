@@ -12,7 +12,7 @@ from langchain.prompts import (
 from langchain.pydantic_v1 import Extra
 from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
 
-from stampy_chat.env import OPENAI_API_KEY
+from stampy_chat.env import OPENAI_API_KEY, COMPLETIONS_MODEL
 from stampy_chat.settings import Settings
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
@@ -142,7 +142,7 @@ def make_prompt(settings, chat_model, callbacks):
         example_prompt=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
         get_num_tokens=chat_model.get_num_tokens,
         max_tokens=settings.context_tokens,
-        input_variables=['query'],
+        input_variables=['query', 'history'],
     )
 
     # 2. The history items will be passed in from the memory
@@ -168,7 +168,7 @@ def make_prompt(settings, chat_model, callbacks):
 def make_memory(settings, history, callbacks):
     """Create a memory object to store the chat history."""
     memory = LimitedConversationSummaryBufferMemory(
-        llm=get_model(),
+        llm=get_model(model=COMPLETIONS_MODEL),  # used for summarization
         max_token_limit=settings.history_tokens,
         max_history=settings.maxHistory,
         chat_memory=ChatMessageHistory(),
@@ -177,6 +177,29 @@ def make_memory(settings, history, callbacks):
     )
     memory.set_messages([i for i in history if i.get('role') != 'deleted'])
     return memory
+
+
+def merge_history(history):
+    """Merge subsequent messages into a single one.
+
+    ChatGPT works pretty much by alternating assistant and user queries. On the other
+    hand, systems like Slack or Discord will often have multiple messages as responses,
+    as people tend to write a few shorter messages rather than one big one. This function
+    will transform the later type of history into the former, so the LLM has an easier job.
+    """
+    if not history:
+        return history
+
+    messages = []
+    current_message = history[0]
+    for message in history[1:]:
+        if message.get('role') != current_message.get('role'):
+            messages.append(current_message)
+            current_message = message
+        else:
+            current_message['content'] += '\n' + message.get('content', '')
+    messages.append(current_message)
+    return messages
 
 
 def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None) -> Dict[str, str]:
@@ -191,6 +214,8 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
     callbacks = [LoggerCallbackHandler(session_id=session_id, query=query, history=history)]
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
+
+    history = merge_history(history)
     chat_model = get_model(
         streaming=True,
         callbacks=callbacks,
@@ -205,7 +230,6 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         memory=make_memory(settings, history, callbacks)
     ) | StampyChain(callbacks=callbacks)
     result = chain.invoke({"query": query, 'history': history}, {'callbacks': []})
-
     if callback:
         callback({'state': 'done'})
         callback(None)  # make sure the callback handler know that things have ended

@@ -47,7 +47,7 @@ export type SearchResult = {
 };
 export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
 
-export type Mode = "rookie" | "concise" | "default";
+export type Mode = "rookie" | "concise" | "default" | "discord";
 
 export type LLMSettings = {
   prompts?: {

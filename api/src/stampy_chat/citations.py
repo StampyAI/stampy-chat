@@ -16,6 +16,8 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
     """Get examples with enumerated indexes added."""
 
     callbacks: List[StampyCallbackHandler] = []
+    history_field: str = 'history'
+    min_score: float = 0.8  # docs with lower scores will be excluded from the context
 
     class Config:
         """This is needed for extra fields to be added... """
@@ -27,6 +29,20 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         """Make the reference used in citations - basically translate i -> 'a + i'"""
         return chr(i + 97)
 
+    def fetch_docs(self, input_variables) -> List:
+        ### Copied from parent - for some reason they ignore the ids of the returned items, so
+        # it has to be added manually here...
+        if self.input_keys:
+            input_variables = {key: input_variables[key] for key in self.input_keys}
+        query = " ".join(v for v in input_variables.values())
+        example_docs = [
+            doc for doc, score in self.vectorstore.similarity_search_with_score(query, k=self.k)
+            if score > self.min_score
+        ]
+
+        # Remove any duplicates - sometimes the same document is returned multiple times
+        return list({e.page_content: e for e in example_docs}.values())
+
     def select_examples(self, input_variables: Dict[str, str]) -> List[dict]:
         """Fetch the top matching items from the underlying storage and add indexes.
 
@@ -36,22 +52,22 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         for callback in self.callbacks:
             callback.on_context_fetch_start(input_variables)
 
-        ### Copied from parent - for some reason they ignore the ids of the returned items, so
-        # it has to be added manually here...
-        if self.input_keys:
-            input_variables = {key: input_variables[key] for key in self.input_keys}
-        query = " ".join(v for v in input_variables.values())
-        example_docs = self.vectorstore.similarity_search(query, k=self.k)
+        input_variables = dict(**input_variables)
+        history = input_variables.pop(self.history_field, [])
 
-        # Remove any duplicates - sometimes the same document is returned multiple times
-        example_docs = {e.page_content: e for e in example_docs}.values()
+        examples = self.fetch_docs(input_variables)
+
+        for item in history[::-1]:
+            if len(examples) >= self.k:
+                break
+            examples += self.fetch_docs({'answer': item.content})
 
         examples = [
             dict(
                 e.metadata,
                 id=e.page_content,
                 reference=self.make_reference(i)
-            ) for i, e in enumerate(example_docs)
+            ) for i, e in enumerate(examples)
         ]
 
         for callback in self.callbacks:
@@ -60,7 +76,7 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         return examples
 
 
-def make_example_selector(k: int, **params) -> ReferencesSelector:
+def make_example_selector(**params) -> ReferencesSelector:
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
     return ReferencesSelector(vectorstore=vectorstore, **params)
