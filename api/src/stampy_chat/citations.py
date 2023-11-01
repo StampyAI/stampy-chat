@@ -76,10 +76,10 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         return examples
 
 
-def make_example_selector(k: int, **params) -> ReferencesSelector:
+def make_example_selector(**params) -> ReferencesSelector:
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
-    return ReferencesSelector(vectorstore=vectorstore, k=k, **params)
+    return ReferencesSelector(vectorstore=vectorstore, **params)
 
 
 def format_block(block) -> Dict[str, Any]:
