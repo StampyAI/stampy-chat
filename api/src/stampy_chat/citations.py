@@ -1,6 +1,9 @@
 import datetime
+import requests
 from typing import Dict, List, Any
 
+from langchain.schema.document import Document
+from langchain.schema.vectorstore import VectorStore
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.prompts import (
     SemanticSimilarityExampleSelector
@@ -8,8 +11,34 @@ from langchain.prompts import (
 from langchain.pydantic_v1 import Extra
 from langchain.vectorstores import Pinecone
 
-from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE, OPENAI_API_KEY
+from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE, OPENAI_API_KEY, REMOTE_CHAT_INSTANCE
 from stampy_chat.callbacks import StampyCallbackHandler
+
+
+
+class RemoteVectorStore(VectorStore):
+    """Make a wrapper around the deployed semantic search.
+
+    One of the prerequisites for the chat bot to work properly is for Pinecone to be set up. This can
+    be a bother, so to make things easier, this will just call the semantic search of the deployed chatbot.
+    """
+
+    def add_texts(self, *args, **kwargs):
+        "This is an abstract method, so must be instanciated..."
+
+    def from_texts(self, *args, **kwargs):
+        "This is an abstract method, so must be instanciated..."
+
+    def similarity_search(self, *args, **kwargs):
+        "This is an abstract method, so must be instanciated..."
+
+    def similarity_search_with_score(self, query, k=2, **kwargs):
+        results = requests.post(REMOTE_CHAT_INSTANCE + "/semantic", json={'query': query, 'k': k}).json()
+        SCORE = 1 # set the score to 1, as it's already been filtered once
+        return [
+            (Document(page_content=res.get('id'), metadata=dict(res, date_published=res.get('date'))), SCORE)
+            for res in results
+        ]
 
 
 class ReferencesSelector(SemanticSimilarityExampleSelector):
@@ -77,8 +106,11 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
 
 
 def make_example_selector(**params) -> ReferencesSelector:
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
+    if PINECONE_INDEX:
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        vectorstore = Pinecone(PINECONE_INDEX, embeddings.embed_query, "hash_id", namespace=PINECONE_NAMESPACE)
+    else:
+        vectorstore = RemoteVectorStore()
     return ReferencesSelector(vectorstore=vectorstore, **params)
 
 
