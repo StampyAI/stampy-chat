@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from unittest.mock import patch, Mock, call
+from unittest.mock import Mock
 
 from langchain.schema.vectorstore import VectorStore
 
