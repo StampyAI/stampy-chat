@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Page from "../components/page";
 
 import useCitations from "../hooks/useCitations";
-import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
+import { queryLLM, getStampyContent } from "../hooks/useSearch";
 import useSettings from "../hooks/useSettings";
 import { initialQuestions } from "../settings";
 import type {
@@ -63,9 +63,8 @@ const Tester: NextPage = () => {
       selected,
       index,
       query: queryLLM(
-        question,
         settings,
-        [],
+        [{ role: "user", content: question }],
         updater(index),
         sessionId,
         controller

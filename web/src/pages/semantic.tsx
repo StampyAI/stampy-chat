@@ -1,9 +1,12 @@
 import { type NextPage } from "next";
 import React, { useState } from "react";
-import { API_URL } from "../settings";
+import { API_URL, initialQuestions } from "../settings";
 import type { Followup } from "../types";
 import Page from "../components/page";
 import { SearchBox } from "../components/searchbox";
+
+const randomQuestion = () =>
+  initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
 
 const ignoreAbort = (error: Error) => {
   if (error.name !== "AbortError") {
@@ -12,14 +15,13 @@ const ignoreAbort = (error: Error) => {
 };
 
 const Semantic: NextPage = () => {
+  const [query, setQuery] = useState(randomQuestion());
+  const [controller, setController] = useState(new AbortController());
   const [results, setResults] = useState<SemanticEntry[]>([]);
 
-  const semantic_search = async (
-    query: string,
-    _query_source: "search" | "followups",
-    enable: (f_set: Followup[]) => void,
-    controller: AbortController
-  ) => {
+  const semantic_search = async (query: string) => {
+    const controller = new AbortController();
+    setController(controller);
     const res = await fetch(API_URL + "/semantic", {
       method: "POST",
       signal: controller.signal,
@@ -31,12 +33,10 @@ const Semantic: NextPage = () => {
     }).catch(ignoreAbort);
 
     if (!res) {
-      enable([]);
       return;
     } else if (!res.ok) {
       console.error("load failure: " + res.status);
     }
-    enable([]);
 
     const data = await res.json();
 
@@ -46,7 +46,12 @@ const Semantic: NextPage = () => {
   return (
     <Page page="semantic">
       <h2>Retrieve relevant data sources from alignment research</h2>
-      <SearchBox search={semantic_search} />
+      <SearchBox
+        search={semantic_search}
+        query={query}
+        onQuery={setQuery}
+        abortSearch={() => controller.abort()}
+      />
       <ul>
         {results.map((entry, i) => (
           <li key={"entry" + i}>

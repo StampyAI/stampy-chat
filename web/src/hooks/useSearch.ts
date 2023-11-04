@@ -16,8 +16,8 @@ const MAX_FOLLOWUPS = 4;
 const DATA_HEADER = "data: ";
 const EVENT_END_HEADER = "event: close";
 
-type EntryRole = "error" | "stampy" | "assistant" | "user" | "deleted";
-type HistoryEntry = {
+export type EntryRole = "error" | "stampy" | "assistant" | "user" | "deleted";
+export type HistoryEntry = {
   role: EntryRole;
   content: string;
 };
@@ -112,7 +112,6 @@ export const extractAnswer = async (
 
 const fetchLLM = async (
   sessionId: string | undefined,
-  query: string,
   settings: LLMSettings,
   history: HistoryEntry[],
   controller: AbortController
@@ -127,11 +126,10 @@ const fetchLLM = async (
       Accept: "text/event-stream",
     },
 
-    body: JSON.stringify({ sessionId, query, history, settings }),
+    body: JSON.stringify({ sessionId, history, settings }),
   }).catch(ignoreAbort);
 
 export const queryLLM = async (
-  query: string,
   settings: LLMSettings,
   history: HistoryEntry[],
   setCurrent: (e?: CurrentSearch) => void,
@@ -140,7 +138,7 @@ export const queryLLM = async (
 ): Promise<SearchResult> => {
   setCurrent({ ...makeEntry(), phase: "started" });
   // do SSE on a POST request.
-  const res = await fetchLLM(sessionId, query, settings, history, controller);
+  const res = await fetchLLM(sessionId, settings, history, controller);
 
   if (!res) {
     return { result: { role: "error", content: "No response from server" } };
@@ -213,43 +211,4 @@ export const getStampyContent = async (
   };
 
   return { followups, result };
-};
-
-export const runSearch = async (
-  query: string,
-  query_source: "search" | "followups",
-  settings: LLMSettings,
-  entries: Entry[],
-  setCurrent: (c: CurrentSearch) => void,
-  sessionId: string,
-  controller: AbortController
-): Promise<SearchResult> => {
-  if (query_source === "search") {
-    const history = entries
-      .filter((entry) => entry.role !== "error")
-      .map((entry) => ({
-        role: (entry.deleted ? "deleted" : entry.role) as EntryRole,
-        content: entry.content.trim(),
-      }));
-
-    return await queryLLM(
-      query,
-      settings,
-      history,
-      setCurrent,
-      sessionId,
-      controller
-    );
-  } else {
-    // ----------------- HUMAN AUTHORED CONTENT RETRIEVAL ------------------
-    const [questionId] = query.split("\n", 2);
-    if (questionId) {
-      return await getStampyContent(questionId, controller);
-    }
-    const result = {
-      role: "error",
-      content: "Could not extract Stampy id from " + query,
-    };
-    return { result } as SearchResult;
-  }
 };

@@ -44,10 +44,14 @@ def semantic():
 @app.route('/chat', methods=['POST'])
 @cross_origin()
 def chat():
-    query = request.json.get('query')
+    query = request.json.get('query', None)
     session_id = request.json.get('sessionId')
     history = request.json.get('history', [])
     settings = request.json.get('settings', {})
+
+    if query is None:
+        query = history[-1].get('content')
+        history = history[:-1]
 
     def formatter(item):
         if isinstance(item, Exception):

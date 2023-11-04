@@ -2,9 +2,7 @@ import { type NextPage } from "next";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
 import useSettings from "../hooks/useSettings";
-import type { Mode } from "../types";
 import Page from "../components/page";
 import Chat from "../components/chat";
 import { Controls } from "../components/controls";
