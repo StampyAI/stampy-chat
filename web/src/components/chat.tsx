@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { queryLLM, getStampyContent, runSearch } from "../hooks/useSearch";
+import {
+  queryLLM,
+  getStampyContent,
+  EntryRole,
+  HistoryEntry,
+} from "../hooks/useSearch";
+import { initialQuestions } from "../settings";
 
 import type {
   CurrentSearch,
@@ -8,6 +14,7 @@ import type {
   AssistantEntry as AssistantEntryType,
   LLMSettings,
   Followup,
+  SearchResult,
 } from "../types";
 import useCitations from "../hooks/useCitations";
 import { SearchBox } from "../components/searchbox";
@@ -41,6 +48,9 @@ function scroll30() {
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
+const randomQuestion = () =>
+  initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
+
 export const ChatResponse = ({
   current,
   defaultElem,
@@ -73,6 +83,22 @@ export const ChatResponse = ({
   }
 };
 
+const makeHistory = (query: string, entries: Entry[]): HistoryEntry[] => {
+  const getRole = (entry: Entry): EntryRole => {
+    if (entry.deleted) return "deleted";
+    if (entry.role === "stampy") return "assistant";
+    return entry.role;
+  };
+
+  const history = entries
+    .filter((entry) => entry.role !== "error")
+    .map((entry) => ({
+      role: getRole(entry),
+      content: entry.content.trim(),
+    }));
+  return [...history, { role: "user", content: query }];
+};
+
 type ChatParams = {
   sessionId: string;
   settings: LLMSettings;
@@ -82,7 +108,11 @@ type ChatParams = {
 
 const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
   const [entries, setEntries] = useState<Entry[]>([]);
+
+  const [query, setQuery] = useState(() => randomQuestion());
   const [current, setCurrent] = useState<CurrentSearch>();
+  const [followups, setFollowups] = useState<Followup[]>([]);
+  const [controller, setController] = useState(() => new AbortController());
   const { citations, setEntryCitations } = useCitations();
 
   const updateCurrent = (current: CurrentSearch) => {
@@ -94,46 +124,77 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     }
   };
 
-  const addEntry = (entry: Entry) => {
+  const addResult = (query: string, { result, followups }: SearchResult) => {
+    const userEntry = { role: "user", content: query };
     setEntries((prev) => {
-      const entries = [...prev, entry];
+      const entries = [...prev, userEntry, result] as Entry[];
       if (onNewEntry) {
         onNewEntry(entries);
       }
       return entries;
     });
+    setFollowups(followups || []);
+    setQuery("");
+    scroll30();
   };
 
-  const search = async (
-    query: string,
-    query_source: "search" | "followups",
-    enable: (f_set: Followup[] | ((fs: Followup[]) => Followup[])) => void,
-    controller: AbortController
-  ) => {
-    // clear the query box, append to entries
-    const userEntry: Entry = {
-      role: "user",
-      content: query_source === "search" ? query : query.split("\n", 2)[1]!,
+  const abortable =
+    (f: any) =>
+    (...args: any) => {
+      controller.abort();
+      const newController = new AbortController();
+      setController(newController);
+      return f(newController, ...args);
     };
 
-    const { result, followups } = await runSearch(
-      query,
-      query_source,
+  const search = async (controller: AbortController, query: string) => {
+    // clear the query box, append to entries
+    setFollowups([]);
+
+    const history = makeHistory(query, entries);
+
+    const result = await queryLLM(
       settings,
-      entries,
+      history,
       updateCurrent,
       sessionId,
       controller
     );
-    if (result.content !== "aborted") {
-      addEntry(userEntry);
-      addEntry(result);
-      enable(followups || []);
-      scroll30();
-    } else {
-      enable([]);
+
+    if (result.result.content !== "aborted") {
+      addResult(query, result);
     }
     setCurrent(undefined);
+  };
+
+  const fetchFollowup = async (
+    controller: AbortController,
+    followup: Followup
+  ) => {
+    setCurrent({ role: "assistant", content: "", phase: "started" });
+    const result = await getStampyContent(followup.pageid, controller);
+    if (!controller.signal.aborted) {
+      addResult(followup.text, result);
+    }
+    setCurrent(undefined);
+  };
+
+  const deleteEntry = (i: number) => {
+    const entry = entries[i];
+    if (entry === undefined) {
+      return;
+    } else if (
+      i === entries.length - 1 &&
+      ["assistant", "stampy"].includes(entry.role)
+    ) {
+      const prev = entries[i - 1];
+      if (prev !== undefined) setQuery(prev.content);
+      setEntries(entries.slice(0, i - 1));
+      setFollowups([]);
+    } else {
+      entry.deleted = true;
+      setEntries([...entries]);
+    }
   };
 
   return (
@@ -145,20 +206,24 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
               <EntryTag entry={entry} />
               <span
                 className="delete-item absolute right-5 hidden cursor-pointer group-hover:block"
-                onClick={() => {
-                  const entry = entries[i];
-                  if (entry !== undefined) {
-                    entry.deleted = true;
-                    setEntries([...entries]);
-                  }
-                }}
+                onClick={() => deleteEntry(i)}
               >
                 ✕
               </span>
             </li>
           )
       )}
-      <SearchBox search={search} onQuery={onQuery} />
+
+      <Followups followups={followups} onClick={abortable(fetchFollowup)} />
+      <SearchBox
+        search={abortable(search)}
+        query={query}
+        onQuery={(v: string) => {
+          setQuery(v);
+          onQuery && onQuery(v);
+        }}
+        abortSearch={() => controller.abort()}
+      />
       <ChatResponse
         current={current}
         defaultElem={
@@ -170,3 +235,24 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
 };
 
 export default Chat;
+
+const Followups = ({
+  followups,
+  onClick,
+}: {
+  followups: Followup[];
+  onClick: (f: Followup) => void;
+}) => (
+  <div className="mt-1 flex flex-col items-end">
+    {followups.map((followup: Followup, i: number) => (
+      <li key={i}>
+        <button
+          className="my-1 border border-gray-300 px-1"
+          onClick={() => onClick(followup)}
+        >
+          <span> {followup.text} </span>
+        </button>
+      </li>
+    ))}
+  </div>
+);
