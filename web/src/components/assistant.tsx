@@ -11,19 +11,18 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
       <CitationsBlock
         key={i}
         text={paragraph}
-        citations={entry.citationsMap}
+        citations={entry.citationsMap || new Map()}
         textRenderer={(t) => <GlossarySpan content={t} />}
       />
     ))}
     <ul className="mt-5">
-      {
+      {entry.citationsMap &&
         // show citations
         Array.from(entry.citationsMap.values()).map((citation) => (
           <li key={citation.index}>
             <ShowCitation citation={citation} />
           </li>
-        ))
-      }
+        ))}
     </ul>
   </div>
 );

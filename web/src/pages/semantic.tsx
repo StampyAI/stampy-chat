@@ -15,8 +15,8 @@ const ignoreAbort = (error: Error) => {
 };
 
 const Semantic: NextPage = () => {
-  const [query, setQuery] = useState(randomQuestion());
-  const [controller, setController] = useState(new AbortController());
+  const [query, setQuery] = useState(() => randomQuestion());
+  const [controller, setController] = useState(() => new AbortController());
   const [results, setResults] = useState<SemanticEntry[]>([]);
 
   const semantic_search = async (query: string) => {

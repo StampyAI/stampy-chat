@@ -109,10 +109,10 @@ type ChatParams = {
 const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
   const [entries, setEntries] = useState<Entry[]>([]);
 
-  const [query, setQuery] = useState(randomQuestion());
+  const [query, setQuery] = useState(() => randomQuestion());
   const [current, setCurrent] = useState<CurrentSearch>();
   const [followups, setFollowups] = useState<Followup[]>([]);
-  const [controller, setController] = useState(new AbortController());
+  const [controller, setController] = useState(() => new AbortController());
   const { citations, setEntryCitations } = useCitations();
 
   const updateCurrent = (current: CurrentSearch) => {
@@ -138,12 +138,13 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     scroll30();
   };
 
-  const withController =
+  const abortable =
     (f: any) =>
     (...args: any) => {
-      const controller = new AbortController();
-      setController(controller);
-      return f(controller, ...args);
+      controller.abort();
+      const newController = new AbortController();
+      setController(newController);
+      return f(newController, ...args);
     };
 
   const search = async (controller: AbortController, query: string) => {
@@ -170,8 +171,12 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
     controller: AbortController,
     followup: Followup
   ) => {
+    setCurrent({ role: "assistant", content: "", phase: "started" });
     const result = await getStampyContent(followup.pageid, controller);
-    addResult(followup.text, result);
+    if (!controller.signal.aborted) {
+      addResult(followup.text, result);
+    }
+    setCurrent(undefined);
   };
 
   const deleteEntry = (i: number) => {
@@ -209,12 +214,9 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
           )
       )}
 
-      <Followups
-        followups={followups}
-        onClick={withController(fetchFollowup)}
-      />
+      <Followups followups={followups} onClick={abortable(fetchFollowup)} />
       <SearchBox
-        search={withController(search)}
+        search={abortable(search)}
         query={query}
         onQuery={(v: string) => {
           setQuery(v);

@@ -24,7 +24,7 @@ export type AssistantEntry = {
   role: "assistant";
   content: string;
   citations?: Citation[];
-  citationsMap: Map<string, Citation>;
+  citationsMap?: Map<string, Citation>;
   deleted?: boolean;
 };
 
