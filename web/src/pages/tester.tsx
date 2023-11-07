@@ -49,7 +49,7 @@ const Tester: NextPage = () => {
     initialQuestions.map((q, i) => ({ question: q, selected: true, index: i }))
   );
 
-  const { settings, changeSetting, setMode, settingsLoaded } = useSettings();
+  const { settings, changeSettings, setMode, settingsLoaded } = useSettings();
 
   /** Run a search for the given `question` and insert the query promise into it
    */
@@ -118,7 +118,7 @@ const Tester: NextPage = () => {
             settings={settings}
             query="<this is where the query will go>"
             history={[]}
-            changeSetting={changeSetting}
+            changeSettings={changeSettings}
           />
           <div className="chat-settings mx-5 w-[400px] flex-none gap-4 border-2 outline-black">
             {questions.map(({ question, selected }, i) => (
@@ -159,7 +159,7 @@ const Tester: NextPage = () => {
           )}
         </div>
 
-        <ChatSettings settings={settings} changeSetting={changeSetting} />
+        <ChatSettings settings={settings} changeSettings={changeSettings} />
       </div>
     </Page>
   );

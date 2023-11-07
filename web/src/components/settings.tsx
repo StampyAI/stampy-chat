@@ -5,21 +5,46 @@ import type { Parseable, LLMSettings, Entry, Mode } from "../types";
 import { MODELS, ENCODERS } from "../hooks/useSettings";
 import { SectionHeader, NumberInput, Slider } from "../components/html";
 
+type ChatSettingsUpdate = [path: string[], value: any];
 type ChatSettingsParams = {
   settings: LLMSettings;
-  changeSetting: (path: string[], value: any) => void;
+  changeSettings: (...v: ChatSettingsUpdate[]) => void;
 };
 
 export const ChatSettings = ({
   settings,
-  changeSetting,
+  changeSettings,
 }: ChatSettingsParams) => {
   const changeVal = (field: string, value: any) =>
-    changeSetting([field], value);
+    changeSettings([[field], value]);
   const update = (field: string) => (event: ChangeEvent) =>
     changeVal(field, (event.target as HTMLInputElement).value);
   const updateNum = (field: string) => (num: Parseable) =>
     changeVal(field, num);
+
+  const updateTokenFraction = (field: string) => (num: Parseable) => {
+    // Calculate the fraction of the tokens taken by the buffer
+    const bufferFraction =
+      settings.tokensBuffer && settings.maxNumTokens
+        ? settings.tokensBuffer / settings.maxNumTokens
+        : 0;
+    const val = Math.min(parseFloat((num || 0).toString()), 1 - bufferFraction);
+
+    let context = settings.contextFraction || 0;
+    let history = settings.historyFraction || 0;
+
+    if (field == "contextFraction") {
+      history = Math.min(history, Math.max(0, 1 - val - bufferFraction));
+      context = val;
+    } else {
+      context = Math.min(context, Math.max(0, 1 - val - bufferFraction));
+      history = val;
+    }
+    changeSettings(
+      [["contextFraction"], context],
+      [["historyFraction"], history]
+    );
+  };
 
   return (
     <div
@@ -118,13 +143,13 @@ export const ChatSettings = ({
         value={settings.contextFraction}
         field="contextFraction"
         label="Approximate fraction of num_tokens to use for citations text before truncating"
-        updater={updateNum("contextFraction")}
+        updater={updateTokenFraction("contextFraction")}
       />
       <Slider
         value={settings.historyFraction}
         field="historyFraction"
         label="Approximate fraction of num_tokens to use for history text before truncating"
-        updater={updateNum("historyFraction")}
+        updater={updateTokenFraction("historyFraction")}
       />
     </div>
   );
@@ -134,22 +159,22 @@ type ChatPromptParams = {
   settings: LLMSettings;
   query: string;
   history: Entry[];
-  changeSetting: (path: string[], value: any) => void;
+  changeSettings: (...vals: ChatSettingsUpdate[]) => void;
 };
 
 export const ChatPrompts = ({
   settings,
   query,
   history,
-  changeSetting,
+  changeSettings,
 }: ChatPromptParams) => {
   const updatePrompt =
     (...path: string[]) =>
     (event: ChangeEvent) =>
-      changeSetting(
+      changeSettings([
         ["prompts", ...path],
-        (event.target as HTMLInputElement).value
-      );
+        (event.target as HTMLInputElement).value,
+      ]);
 
   return (
     <div className="chat-prompts mx-5 w-[400px] flex-none border-2 p-5 outline-black">
