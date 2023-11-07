@@ -103,13 +103,14 @@ def human(id):
 def ratings():
     session_id = request.json.get('sessionId')
     settings = request.json.get('settings', {})
+    comment = (request.json.get('comment') or '').strip() or None  # only save strings if not empty
     score = request.json.get('score')
 
     if not session_id or score is None:
         return Response('{"error": "missing params}', 400, mimetype='application/json')
 
     with make_session() as s:
-        s.add(Rating(session_id=session_id, score=score, settings=json.dumps(settings)))
+        s.add(Rating(session_id=session_id, score=score, settings=json.dumps(settings), comment=comment))
         s.commit()
 
     return jsonify({'status': 'ok'})

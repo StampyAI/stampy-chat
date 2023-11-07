@@ -22,6 +22,7 @@ const MAX_FOLLOWUPS = 4;
 export const saveRatings = async (
   sessionId: string,
   score: number,
+  comment: string | null,
   settings: LLMSettings
 ): Promise<any> =>
   fetch(API_URL + "/ratings", {
@@ -29,7 +30,7 @@ export const saveRatings = async (
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ sessionId, settings, score }),
+    body: JSON.stringify({ sessionId, settings, score, comment }),
   }).then((r) => r.json());
 
 const Rater = ({
@@ -41,8 +42,10 @@ const Rater = ({
   sessionId: string;
   reset: () => void;
 }) => {
+  const [comment, setComment] = useState<string | null>(null);
+
   const onRate = async (rate: number) => {
-    const res = await saveRatings(sessionId, rate, settings);
+    const res = await saveRatings(sessionId, rate, comment, settings);
     if (!res.error) reset();
   };
 
@@ -58,6 +61,10 @@ const Rater = ({
         ))}
         <span>Good</span>
       </div>
+      <textarea
+        placeholder="Add any comments here"
+        onChange={(e) => setComment(e.target.value)}
+      ></textarea>
     </div>
   );
 };
