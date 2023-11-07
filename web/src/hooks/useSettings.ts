@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import type { CurrentSearch, Mode, Entry, LLMSettings } from "../types";
 
@@ -42,7 +42,11 @@ const DEFAULT_PROMPTS = {
       "rather than just giving a formal definition.\n\n",
   },
 };
-export const MODELS = {
+interface Model {
+  maxNumTokens: number;
+  topKBlocks: number;
+}
+export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
@@ -73,6 +77,13 @@ export const updateIn = (
   }
   return obj;
 };
+
+const randomElement = (array: any[]) =>
+  array[Math.floor(Math.random() * array.length)];
+const randomFloat = (min: number, max: number) =>
+  Math.random() * (max - min) + min;
+const randomInt = (min: number, max: number) =>
+  Math.floor(randomFloat(min, max));
 
 /** Create a settings object in which all items in the `overrides` object will be parsed appropriately
  *
@@ -115,8 +126,8 @@ const SETTINGS_PARSERS = {
   mode: (v: string | undefined) => (v || "default") as Mode,
   completions: withDefault("gpt-3.5-turbo"),
   encoder: withDefault("cl100k_base"),
-  topKBlocks: withDefault(MODELS["gpt-3.5-turbo"].topKBlocks), //  the number of blocks to use as citations
-  maxNumTokens: withDefault(MODELS["gpt-3.5-turbo"].maxNumTokens),
+  topKBlocks: withDefault(MODELS["gpt-3.5-turbo"]?.topKBlocks), //  the number of blocks to use as citations
+  maxNumTokens: withDefault(MODELS["gpt-3.5-turbo"]?.maxNumTokens),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   historyFraction: withDefault(0.25), //  the (approximate) fraction of num_tokens to use for history text before truncating
@@ -131,6 +142,27 @@ export const makeSettings = (overrides: LLMSettings) =>
     ),
     SETTINGS_PARSERS
   );
+
+const randomSettings = () => {
+  const completions = randomElement(Object.keys(MODELS));
+  const model = MODELS[completions] as Model;
+  const maxNumTokens = randomInt(
+    Math.floor(model.maxNumTokens * 0.3),
+    model.maxNumTokens
+  );
+  const historyFraction = randomFloat(0.2, 0.8);
+  const contextFraction = randomFloat(0.2, 0.9 - historyFraction);
+  return makeSettings({
+    completions,
+    maxNumTokens,
+    historyFraction,
+    contextFraction,
+    mode: randomElement(Object.keys(DEFAULT_PROMPTS.modes)) as Mode,
+    topKBlocks: randomInt(Math.floor(model.topKBlocks * 0.3), model.topKBlocks),
+    tokensBuffer: randomInt(10, 200),
+    maxHistory: randomInt(1, 20),
+  });
+};
 
 type ChatSettingsParams = {
   settings: LLMSettings;
@@ -173,10 +205,13 @@ export default function useSettings() {
     setLoaded(router.isReady);
   }, [router]);
 
+  const randomize = useCallback(() => updateSettings(randomSettings()), []);
+
   return {
     settings,
     changeSetting,
     setMode,
     settingsLoaded,
+    randomize,
   };
 }

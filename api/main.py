@@ -11,6 +11,8 @@ from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
 from stampy_chat.citations import get_top_k_blocks
+from stampy_chat.db.session import make_session
+from stampy_chat.db.models import Rating
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -95,6 +97,24 @@ def human(id):
     return Response(text, mimetype='application/json')
 
 # ------------------------------------------------------------------------------
+
+@app.route('/ratings', methods=['POST'])
+@cross_origin()
+def ratings():
+    session_id = request.json.get('sessionId')
+    settings = request.json.get('settings', {})
+    score = request.json.get('score')
+
+    if not session_id or score is None:
+        return Response('{"error": "missing params}', 400, mimetype='application/json')
+
+    with make_session() as s:
+        s.add(Rating(session_id=session_id, score=score, settings=json.dumps(settings)))
+        s.commit()
+
+    return jsonify({'status': 'ok'})
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=FLASK_PORT)

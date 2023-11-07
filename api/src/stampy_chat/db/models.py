@@ -90,3 +90,26 @@ class Interaction(Base):
 
     def __repr__(self) -> str:
         return f"Interaction(session={self.session_id!r}, no={self.interaction_no!r}, query={self.query!r}, response={self.response!r})"
+
+
+class Rating(Base):
+    __tablename__ = "ratings"
+
+    id: Mapped[int] = mapped_column("id", primary_key=True)
+
+    # The session_id is set once per session, so can be easily used to extract whole histories
+    session_id: Mapped[str] = mapped_column(UUID(), default=uuid.uuid4)
+
+    # the user provided score
+    score: Mapped[int] = mapped_column(Integer)
+
+    # An optional comment
+    comment: Mapped[Optional[str]] = mapped_column(LONGTEXT)
+
+    # The settings object, serialized to JSON
+    settings: Mapped[str] = mapped_column(LONGTEXT)
+
+    date_created: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
+    def __repr__(self) -> str:
+        return f"Rating(session={self.session_id!r}, score={self.score!r})"

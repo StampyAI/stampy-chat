@@ -37,18 +37,18 @@ export const ChatSettings = ({
         onChange={(event: ChangeEvent) => {
           const value = (event.target as HTMLInputElement).value;
           const { maxNumTokens, topKBlocks } =
-            MODELS[value as keyof typeof MODELS];
+            MODELS[value as keyof typeof MODELS] || {};
           const prevNumTokens =
-            MODELS[settings.completions as keyof typeof MODELS].maxNumTokens;
+            MODELS[settings.completions as keyof typeof MODELS]?.maxNumTokens;
           const prevTopKBlocks =
-            MODELS[settings.completions as keyof typeof MODELS].topKBlocks;
+            MODELS[settings.completions as keyof typeof MODELS]?.topKBlocks;
 
           if (settings.maxNumTokens === prevNumTokens) {
             changeVal("maxNumTokens", maxNumTokens);
           } else {
             changeVal(
               "maxNumTokens",
-              Math.min(settings.maxNumTokens || 0, maxNumTokens)
+              Math.min(settings.maxNumTokens || 0, maxNumTokens || 0)
             );
           }
           if (settings.topKBlocks === prevTopKBlocks) {
@@ -86,7 +86,7 @@ export const ChatSettings = ({
         field="maxNumTokens"
         label="Tokens"
         min="1"
-        max={MODELS[settings.completions as keyof typeof MODELS].maxNumTokens}
+        max={MODELS[settings.completions as keyof typeof MODELS]?.maxNumTokens}
         updater={updateNum("maxNumTokens")}
       />
       <NumberInput

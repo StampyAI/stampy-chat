@@ -56,3 +56,12 @@ ol {
 .glossary-link {
   @apply underline hover:no-underline;
 }
+
+.rate-container {
+  margin-top: 20px;
+}
+
+.rate-button {
+  width: 2.5em;
+  margin: 0.5em;
+}
