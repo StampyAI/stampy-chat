@@ -108,6 +108,23 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
         for callback in self.callbacks:
             callback.on_memory_set_end(self.chat_memory)
 
+    def prune(self) -> None:
+        """Prune buffer if it exceeds max token limit.
+
+        This is the original Langchain version copied with a fix to handle the case when
+        all messages are longer than the max_token_limit
+        """
+        buffer = self.chat_memory.messages
+        curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+        if curr_buffer_length > self.max_token_limit:
+            pruned_memory = []
+            while buffer and curr_buffer_length > self.max_token_limit:
+                pruned_memory.append(buffer.pop(0))
+                curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+            self.moving_summary_buffer = self.predict_new_summary(
+                pruned_memory, self.moving_summary_buffer
+            )
+
 
 class ModeratedChatPrompt(ChatPromptTemplate):
     """Wraps a prompt with an OpenAI moderation check which will raise an exception if fails."""

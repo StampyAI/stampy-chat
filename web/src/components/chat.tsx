@@ -185,7 +185,7 @@ const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
       return;
     } else if (
       i === entries.length - 1 &&
-      ["assistant", "stampy"].includes(entry.role)
+      ["assistant", "stampy", "error"].includes(entry.role)
     ) {
       const prev = entries[i - 1];
       if (prev !== undefined) setQuery(prev.content);

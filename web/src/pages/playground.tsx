@@ -13,7 +13,7 @@ const Playground: NextPage = () => {
 
   const [query, setQuery] = useState<string>("");
   const [history, setHistory] = useState<Entry[]>([]);
-  const { settings, changeSetting, setMode } = useSettings();
+  const { settings, changeSettings, setMode } = useSettings();
 
   // initial load
   useEffect(() => {
@@ -28,7 +28,7 @@ const Playground: NextPage = () => {
           settings={settings}
           query={query}
           history={history}
-          changeSetting={changeSetting}
+          changeSettings={changeSettings}
         />
         <Chat
           sessionId={sessionId}
@@ -36,7 +36,7 @@ const Playground: NextPage = () => {
           onQuery={setQuery}
           onNewEntry={setHistory}
         />
-        <ChatSettings settings={settings} changeSetting={changeSetting} />
+        <ChatSettings settings={settings} changeSettings={changeSettings} />
       </div>
     </Page>
   );

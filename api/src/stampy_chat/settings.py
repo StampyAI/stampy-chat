@@ -4,7 +4,7 @@ import tiktoken
 from stampy_chat.env import COMPLETIONS_MODEL
 
 
-Model = namedtuple('Model', ['maxTokens', 'topKBlocks'])
+Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens'])
 
 
 SOURCE_PROMPT = (
@@ -51,9 +51,10 @@ DEFAULT_PROMPTS = {
     'modes': PROMPT_MODES,
 }
 MODELS = {
-    'gpt-3.5-turbo': Model(4097, 10),
-    'gpt-3.5-turbo-16k': Model(16385, 30),
-    'gpt-4': Model(8192, 20),
+    'gpt-3.5-turbo': Model(4097, 10, 4096),
+    'gpt-3.5-turbo-16k': Model(16385, 30, 4096),
+    'gpt-4': Model(8192, 20, 4096),
+    "gpt-4-1106-preview": Model(128000, 50, 4096),
     # 'gpt-4-32k': Model(32768, 30),
 }
 
@@ -138,6 +139,8 @@ class Settings:
         else:
             self.topKBlocks = MODELS[completions].topKBlocks
 
+        self.maxCompletionTokens = MODELS[completions].maxCompletionTokens
+
     @property
     def prompt_modes(self):
         return self.prompts['modes']
@@ -170,4 +173,4 @@ class Settings:
 
     @property
     def max_response_tokens(self):
-        return self.maxNumTokens - self.context_tokens - self.history_tokens
+        return min(self.maxNumTokens - self.context_tokens - self.history_tokens, self.maxCompletionTokens)

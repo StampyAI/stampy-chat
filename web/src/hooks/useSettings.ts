@@ -50,6 +50,7 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
+  "gpt-4-1106-preview": { maxNumTokens: 128000, topKBlocks: 50 },
   /* 'gpt-4-32k': {maxNumTokens: 32768, topKBlocks: 30}, */
 };
 export const ENCODERS = ["cl100k_base"];
@@ -169,23 +170,37 @@ type ChatSettingsParams = {
   changeSetting: (path: string[], value: any) => void;
 };
 
+type SettingsUpdatePair = [path: string[], val: any];
+
 export default function useSettings() {
   const [settingsLoaded, setLoaded] = useState(false);
   const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
   const router = useRouter();
 
-  const updateInUrl = (path: string[], value: any) =>
+  const updateInUrl = (vals: { [key: string]: any }) =>
     router.replace({
       pathname: router.pathname,
-      query: {
-        ...router.query,
-        [path.join(".")]: value.toString(),
-      },
+      query: { ...router.query, ...vals },
     });
 
   const changeSetting = (path: string[], value: any) => {
-    updateInUrl(path, value);
+    updateInUrl({ [path.join(".")]: value });
     updateSettings((settings) => ({ ...updateIn(settings, path, value) }));
+  };
+
+  const changeSettings = (...items: SettingsUpdatePair) => {
+    updateInUrl(
+      items.reduce(
+        (acc, [path, val]) => ({ ...acc, [path.join(".")]: val }),
+        {}
+      )
+    );
+    updateSettings((settings) =>
+      items.reduce(
+        (acc, [path, val]) => ({ ...acc, ...updateIn(settings, path, val) }),
+        settings
+      )
+    );
   };
 
   const setMode = (mode: Mode | undefined) => {
@@ -210,6 +225,7 @@ export default function useSettings() {
   return {
     settings,
     changeSetting,
+    changeSettings,
     setMode,
     settingsLoaded,
     randomize,
