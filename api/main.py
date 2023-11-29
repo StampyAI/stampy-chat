@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
-from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
+from stampy_chat.env import PINECONE_INDEX, FLASK_PORT, LANGCHAIN_API_KEY, LANGCHAIN_PROJECT
 from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
@@ -97,9 +97,7 @@ def human(id):
     # <a href=\"https://stampy.ai/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
     text = re.sub(r'<a href=\\"/\?state=(\d+.*)\\">', r'<a href=\"https://aisafety.info/?state=\1\\">', r.text)
 
-    LANGCHAIN_API_KEY = os.environ["LANGCHAIN_API_KEY"]
     if LANGCHAIN_API_KEY: #add to langsmith
-        LANGCHAIN_PROJECT = os.environ["LANGCHAIN_PROJECT"]
         run_id = str(uuid.uuid4())
         requests.post(
             "https://api.smith.langchain.com/runs",

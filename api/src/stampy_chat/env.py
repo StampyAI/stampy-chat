@@ -51,3 +51,4 @@ REMOTE_CHAT_INSTANCE = os.environ.get("REMOTE_CHAT_INSTANCE", "https://chat.stam
 ### Langsmith ###
 LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY")
 LANGCHAIN_PROJECT = os.environ.get("LANGCHAIN_PROJECT")
+LANGCHAIN_TRACING_V2 = os.environ.get("LANGCHAIN_TRACING_V2")

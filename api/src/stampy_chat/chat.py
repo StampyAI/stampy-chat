@@ -13,18 +13,18 @@ from langchain.prompts import (
 from langchain.pydantic_v1 import Extra
 from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
 
-from stampy_chat.env import OPENAI_API_KEY, COMPLETIONS_MODEL
+from stampy_chat.env import OPENAI_API_KEY, COMPLETIONS_MODEL, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2
 from stampy_chat.settings import Settings
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
 from stampy_chat.citations import make_example_selector
 
 from langsmith import Client
-if os.environ.get("LANGCHAIN_API_KEY"):
-    os.environ['LANGCHAIN_TRACING_V2'] = "true"
-    client = Client()   
-else: 
-    os.environ['LANGCHAIN_TRACING_V2'] = "false" #necessary in case the user sets is a true in the .env file but has not entered an api key
+
+if LANGCHAIN_TRACING_V2 == "true":
+    if not LANGCHAIN_API_KEY:
+        raise Exception("Langsmith tracing is enabled but no api key was provided. Please set LANGCHAIN_API_KEY in the .env file.")
+    client = Client()
 
 class ModerationError(ValueError):
     pass
