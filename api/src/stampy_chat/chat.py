@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable, Dict, List
 
 from langchain.chains import LLMChain, OpenAIModerationChain
@@ -18,6 +19,12 @@ from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandle
 from stampy_chat.followups import StampyChain
 from stampy_chat.citations import make_example_selector
 
+from langsmith import Client
+if os.environ.get("LANGCHAIN_API_KEY"):
+    os.environ['LANGCHAIN_TRACING_V2'] = "true"
+    client = Client()   
+else: 
+    os.environ['LANGCHAIN_TRACING_V2'] = "false" #necessary in case the user sets is a true in the .env file but has not entered an api key
 
 class ModerationError(ValueError):
     pass

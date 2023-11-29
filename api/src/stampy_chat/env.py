@@ -47,3 +47,7 @@ DB_CONNECTION_URI = f"mysql+mysqlconnector://{user}:{password}@{host}:{port}/{db
 
 ### Local testing helpers ###
 REMOTE_CHAT_INSTANCE = os.environ.get("REMOTE_CHAT_INSTANCE", "https://chat.stampy.ai:8443")
+
+### Langsmith ###
+LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY")
+LANGCHAIN_PROJECT = os.environ.get("LANGCHAIN_PROJECT")
