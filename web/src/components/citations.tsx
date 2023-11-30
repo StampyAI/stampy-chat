@@ -96,25 +96,50 @@ export const ShowCitation: React.FC<{ citation: Citation }> = ({
   );
 };
 
+const Popup = ({
+  children,
+  content,
+}: {
+  content: string;
+  children: React.ReactElement;
+}) => {
+  return (
+    <div className="popup-container">
+      {children}
+      <div className="popup">
+        {content.split("\n").map((v, i) => (
+          <div className="text-section" key={i}>
+            {v}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const CitationRef: React.FC<{ citation?: Citation }> = ({
   citation,
 }) => {
   if (!citation) return null;
 
+  const split = citation.text.split('"""');
+  const text = split.length === 1 ? citation.text : split[1];
   const url =
     citation.url && citation.url !== ""
       ? citation.url
       : `https://duckduckgo.com/?q=${encodeURIComponent(citation.title)}`;
   return (
-    <A
-      className={
-        Colours[(citation.index - 1) % Colours.length] +
-        " ml-1 mr-0.5 w-min rounded border-2 px-0.5 pb-0.5 text-sm no-underline"
-      }
-      href={url}
-    >
-      [{citation.index}]
-    </A>
+    <Popup content={text || ""}>
+      <A
+        className={
+          Colours[(citation.index - 1) % Colours.length] +
+          " ml-1 mr-0.5 w-min rounded border-2 px-0.5 pb-0.5 text-sm no-underline"
+        }
+        href={url}
+      >
+        [{citation.index}]
+      </A>
+    </Popup>
   );
 };
 
@@ -125,8 +150,7 @@ export const CitationsBlock: React.FC<{
 }> = ({ text, citations, textRenderer }) => {
   const regex = /\[([a-z]+)\]/g;
   return (
-    <p>
-      {" "}
+    <div className="text-section">
       {text.split(regex).map((part, i) => {
         // When splitting, the even parts are basic text sections, while the odd ones are
         // citations
@@ -136,6 +160,6 @@ export const CitationsBlock: React.FC<{
           return <CitationRef citation={citations.get(part)} key={i} />;
         }
       })}
-    </p>
+    </div>
   );
 };

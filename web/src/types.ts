@@ -4,6 +4,7 @@ export type Citation = {
   date: string;
   url: string;
   index: number;
+  text: string;
 };
 
 export type Followup = {

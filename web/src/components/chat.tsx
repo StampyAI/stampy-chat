@@ -37,15 +37,15 @@ type State =
       response: AssistantEntryType;
     };
 
-// smooth-scroll to the bottom of the window if we're already less than 30% a screen away
+// smooth-scroll to the bottom of the window if we're already less than 10% a screen away
 // note: finicky interaction with "smooth" - maybe fix later.
 function scroll30() {
   if (
-    document.documentElement.scrollHeight - window.scrollY >
-    window.innerHeight * 1.3
-  )
-    return;
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    document.documentElement.scrollHeight - window.scrollY <
+    window.innerHeight * 1.1
+  ) {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
 }
 
 const randomQuestion = () =>
