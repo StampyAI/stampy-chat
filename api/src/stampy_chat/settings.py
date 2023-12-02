@@ -173,4 +173,10 @@ class Settings:
 
     @property
     def max_response_tokens(self):
-        return min(self.maxNumTokens - self.context_tokens - self.history_tokens, self.maxCompletionTokens)
+        available_tokens = (
+            self.maxNumTokens -
+            self.context_tokens - len(self.encoder.encode(self.context_prompt)) -
+            self.history_tokens - len(self.encoder.encode(self.history_prompt)) -
+            len(self.encoder.encode(self.question_prompt))
+        )
+        return min(available_tokens, self.maxCompletionTokens)
