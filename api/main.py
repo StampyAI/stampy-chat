@@ -1,12 +1,16 @@
 import dataclasses
+import requests
+import datetime
+import uuid
 import json
 import re
+import os
 
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
-from stampy_chat.env import PINECONE_INDEX, FLASK_PORT
+from stampy_chat.env import PINECONE_INDEX, FLASK_PORT, LANGCHAIN_API_KEY, LANGCHAIN_PROJECT
 from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
@@ -82,7 +86,6 @@ def chat_simplified(param=''):
 @app.route('/human/<id>', methods=['GET'])
 @cross_origin()
 def human(id):
-    import requests
     r = requests.get(f"https://aisafety.info/questions/{id}")
     logging.info(f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}")
 
@@ -93,6 +96,30 @@ def human(id):
     #                               ⬇️
     # <a href=\"https://stampy.ai/?state=6207&question=What%20is%20%22superintelligence%22%3F\">
     text = re.sub(r'<a href=\\"/\?state=(\d+.*)\\">', r'<a href=\"https://aisafety.info/?state=\1\\">', r.text)
+
+    if LANGCHAIN_API_KEY: #add to langsmith
+        run_id = str(uuid.uuid4())
+        requests.post(
+            "https://api.smith.langchain.com/runs",
+            json={
+                "id": run_id,
+                "name": "aisafety.info/question",
+                "run_type": "chain",
+                "start_time": datetime.datetime.utcnow().isoformat(),
+                "session_name": LANGCHAIN_PROJECT,
+                "inputs": {"text": f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}"},
+            },
+            headers={"x-api-key": LANGCHAIN_API_KEY},
+        )
+
+        requests.patch(
+            f"https://api.smith.langchain.com/runs/{run_id}",
+            json={
+                "outputs": {"my_output": text},
+                "end_time": datetime.datetime.utcnow().isoformat(),
+            },
+            headers={"x-api-key": LANGCHAIN_API_KEY},
+        )
 
     return Response(text, mimetype='application/json')
 
