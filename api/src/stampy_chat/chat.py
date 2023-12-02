@@ -64,13 +64,14 @@ class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
 class PrefixedPrompt(BaseChatPromptTemplate):
     """A prompt that will prefix any messages with a system prompt, but only if messages provided."""
 
+    transformer: Callable[[Any], BaseMessage] = lambda i: i
     messages_field: str
     prompt: str  # the system prompt to be used
 
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         history = kwargs[self.messages_field]
         if history and self.prompt:
-            return [SystemMessage(content=self.prompt)] + history
+            return [SystemMessage(content=self.prompt)] + [self.transformer(i) for i in history]
         return []
 
 
@@ -132,6 +133,12 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
                 pruned_memory, self.moving_summary_buffer
             )
 
+    def save_context(self, inputs: Dict[str, Any], outputs: Dict[str, str]) -> None:
+        """
+        Because of how wonderfully LangChain is written, this method was blowing up.
+        It's not needed, so it's getting the chop.
+        """
+
 
 class ModeratedChatPrompt(ChatPromptTemplate):
     """Wraps a prompt with an OpenAI moderation check which will raise an exception if fails."""
@@ -157,6 +164,49 @@ def get_model(**kwargs):
     return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
 
 
+class LLMInputsChain(LLMChain):
+
+    inputs: Dict[str, Any] = {}
+
+    def _call(self, inputs: Dict[str, Any], run_manager=None):
+        self.inputs = inputs
+        return super()._call(inputs, run_manager)
+
+    def _acall(self, inputs: Dict[str, Any], run_manager=None):
+        self.inputs = inputs
+        return super()._acall(inputs, run_manager)
+
+    def create_outputs(self, llm_result) -> List[Dict[str, Any]]:
+        result = super().create_outputs(llm_result)
+        return [dict(self.inputs, **r) for r in result]
+
+
+def make_history_summary(settings):
+    model = get_model(
+        streaming=False,
+        max_tokens=settings.maxHistorySummaryTokens,
+        model=settings.completions
+    )
+    summary_prompt = PrefixedPrompt(
+        input_variables=['history'],
+        messages_field='history',
+        prompt=settings.history_summary_prompt,
+        transformer=lambda m: ChatMessage(**m)
+    )
+    return LLMInputsChain(
+        llm=model,
+        verbose=False,
+        output_key='history_summary',
+        prompt=ModeratedChatPrompt.from_messages([
+            summary_prompt,
+            ChatPromptTemplate.from_messages([
+                ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
+            ]),
+            SystemMessage(content="Reply in one sentence only"),
+        ]),
+    )
+
+
 def make_prompt(settings, chat_model, callbacks):
     """Create a proper prompt object will all the nessesery steps."""
     # 1. Create the context prompt from items fetched from pinecone
@@ -176,7 +226,7 @@ def make_prompt(settings, chat_model, callbacks):
     query_prompt = ChatPromptTemplate.from_messages(
         [
             SystemMessage(content=settings.question_prompt),
-            ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
+            ChatMessagePromptTemplate.from_template(template='Q: {history_summary}: {query}', role='user'),
         ]
     )
 
@@ -247,7 +297,7 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         model=settings.completions
     )
 
-    chain = LLMChain(
+    chain = make_history_summary(settings) | LLMChain(
         llm=chat_model,
         verbose=False,
         prompt=make_prompt(settings, chat_model, callbacks),

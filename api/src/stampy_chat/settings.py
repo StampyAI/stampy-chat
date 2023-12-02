@@ -9,7 +9,7 @@ Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens'])
 
 SOURCE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    "Please give a clear and coherent answer to the user's questions.(written after \"Q:\") "
+    "Please give a clear and coherent answer to the user's questions. (written after \"Q:\") "
     "using the following sources. Each source is labeled with a letter. Feel free to "
     "use the sources in any order, and try to use multiple sources in your answers.\n\n"
 )
@@ -18,6 +18,13 @@ HISTORY_PROMPT = (
     "Before the question (\"Q: \"), there will be a history of previous questions and answers. "
     "These sources only apply to the last question. Any sources used in previous answers "
     "are invalid."
+)
+HISTORY_SUMMARIZE_PROMPT = (
+    "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
+    "Please summarize the following chat history (written after \"H:\") in one "
+    "sentence so as to put the current questions (written after \"Q:\") in context. "
+    "Please keep things as terse as possible."
+    "\nH:"
 )
 
 QUESTION_PROMPT = (
@@ -47,6 +54,7 @@ PROMPT_MODES = {
 DEFAULT_PROMPTS = {
     'context': SOURCE_PROMPT,
     'history': HISTORY_PROMPT,
+    'history_summary': HISTORY_SUMMARIZE_PROMPT,
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
 }
@@ -72,8 +80,9 @@ class Settings:
             topKBlocks=None,
             maxNumTokens=None,
             min_response_tokens=10,
-            tokensBuffer=50,
+            tokensBuffer=100,
             maxHistory=10,
+            maxHistorySummaryTokens=200,
             historyFraction=0.25,
             contextFraction=0.5,
             **_kwargs,
@@ -92,6 +101,9 @@ class Settings:
 
         self.maxHistory = maxHistory
         """the max number of previous interactions to use as the history"""
+
+        self.maxHistorySummaryTokens = maxHistorySummaryTokens
+        """the max number of tokens to be used on the history summary"""
 
         self.historyFraction = historyFraction
         """the (approximate) fraction of num_tokens to use for history text before truncating"""
@@ -154,6 +166,10 @@ class Settings:
         return self.prompts['history']
 
     @property
+    def history_summary_prompt(self):
+        return self.prompts['history_summary']
+
+    @property
     def mode_prompt(self):
         return self.prompts['modes'].get(self.mode, '')
 
@@ -174,7 +190,7 @@ class Settings:
     @property
     def max_response_tokens(self):
         available_tokens = (
-            self.maxNumTokens -
+            self.maxNumTokens - self.maxHistorySummaryTokens -
             self.context_tokens - len(self.encoder.encode(self.context_prompt)) -
             self.history_tokens - len(self.encoder.encode(self.history_prompt)) -
             len(self.encoder.encode(self.question_prompt))

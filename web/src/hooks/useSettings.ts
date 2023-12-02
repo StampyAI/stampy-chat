@@ -21,6 +21,12 @@ const DEFAULT_PROMPTS = {
     'Before the question ("Q: "), there will be a history of previous questions and answers. ' +
     "These sources only apply to the last question. any sources used in previous answers " +
     "are invalid.",
+  history_summary:
+    "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
+    'Please summarize the following chat history (written after "H:") in one ' +
+    'sentence so as to put the current questions (written after "Q:") in context. ' +
+    "Please keep things as terse as possible." +
+    "\nH:",
   question:
     "In your answer, please cite any claims you make back to each source " +
     "using the format: [a], [b], etc. If you use multiple sources to make a claim " +
@@ -131,6 +137,7 @@ const SETTINGS_PARSERS = {
   maxNumTokens: withDefault(MODELS["gpt-3.5-turbo"]?.maxNumTokens),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
+  maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
   historyFraction: withDefault(0.25), //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: withDefault(0.5), //  the (approximate) fraction of num_tokens to use for context text before truncating
 };
