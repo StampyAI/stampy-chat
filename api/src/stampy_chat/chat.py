@@ -226,7 +226,7 @@ def merge_history(history):
     return messages
 
 
-def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None) -> Dict[str, str]:
+def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None, followups=True) -> Dict[str, str]:
     """Execute the query.
 
     :param str query: the phrase that was input by the user
@@ -252,7 +252,9 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         verbose=False,
         prompt=make_prompt(settings, chat_model, callbacks),
         memory=make_memory(settings, history, callbacks)
-    ) | StampyChain(callbacks=callbacks)
+    )
+    if followups:
+        chain = chain | StampyChain(callbacks=callbacks)
     result = chain.invoke({"query": query, 'history': history}, {'callbacks': []})
     if callback:
         callback({'state': 'done'})

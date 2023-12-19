@@ -54,8 +54,10 @@ def chat():
     session_id = request.json.get('sessionId')
     history = request.json.get('history', [])
     settings = request.json.get('settings', {})
+    followups = request.json.get('followups', True)
+    as_stream = request.json.get('stream', True)
 
-    if query is None:
+    if query is None and history:
         query = history[-1].get('content')
         history = history[:-1]
 
@@ -65,7 +67,10 @@ def chat():
         return json.dumps(item)
 
     def run(callback):
-        return run_query(session_id, query, history, Settings(**settings), callback)
+        return run_query(session_id, query, history, Settings(**settings), callback, followups)
+
+    if not as_stream:
+        return jsonify(run(None)['text'])
 
     return Response(stream_with_context(stream(stream_callback(run, formatter))), mimetype='text/event-stream')
 
