@@ -63,6 +63,8 @@ export const ChatResponse = ({
       return <p>Loading: Sending query...</p>;
     case "semantic":
       return <p>Loading: Performing semantic search...</p>;
+    case "history":
+      return <p>Loading: Processing history...</p>;
     case "context":
       return <p>Loading: Creating context...</p>;
     case "prompt":

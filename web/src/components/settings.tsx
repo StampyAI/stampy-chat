@@ -122,6 +122,14 @@ export const ChatSettings = ({
         max={settings.maxNumTokens}
         updater={updateNum("tokensBuffer")}
       />
+      <NumberInput
+        field="maxHistorySummaryTokens"
+        value={settings.maxHistorySummaryTokens}
+        label="The max number of tokens to use for the history summary"
+        min="0"
+        max={settings.maxNumTokens}
+        updater={updateNum("maxHistorySummaryTokens")}
+      />
 
       <SectionHeader text="Prompt options" />
       <NumberInput
@@ -178,6 +186,14 @@ export const ChatPrompts = ({
 
   return (
     <div className="chat-prompts mx-5 w-[400px] flex-none border-2 p-5 outline-black">
+      <details>
+        <summary>History summary prompt</summary>
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.history_summary}
+          onChange={updatePrompt("history_summary")}
+        />
+      </details>
       <details open>
         <summary>Source prompt</summary>
         <TextareaAutosize
