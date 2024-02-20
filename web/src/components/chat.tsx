@@ -102,14 +102,21 @@ const makeHistory = (query: string, entries: Entry[]): HistoryEntry[] => {
 type ChatParams = {
   sessionId: string;
   settings: LLMSettings;
+  initialQuery?: string;
   onQuery?: (q: string) => any;
   onNewEntry?: (history: Entry[]) => any;
 };
 
-const Chat = ({ sessionId, settings, onQuery, onNewEntry }: ChatParams) => {
+const Chat = ({
+  initialQuery,
+  sessionId,
+  settings,
+  onQuery,
+  onNewEntry,
+}: ChatParams) => {
   const [entries, setEntries] = useState<Entry[]>([]);
 
-  const [query, setQuery] = useState(() => randomQuestion());
+  const [query, setQuery] = useState(() => initialQuery || randomQuestion());
   const [current, setCurrent] = useState<CurrentSearch>();
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [controller, setController] = useState(() => new AbortController());

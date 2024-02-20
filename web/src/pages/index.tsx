@@ -1,5 +1,6 @@
-import { type NextPage } from "next";
 import { useState, useEffect } from "react";
+import { type NextPage } from "next";
+import { useRouter } from "next/router";
 import Link from "next/link";
 
 import useSettings from "../hooks/useSettings";
@@ -12,11 +13,15 @@ const MAX_FOLLOWUPS = 4;
 const Home: NextPage = () => {
   const [sessionId, setSessionId] = useState("");
   const { settings, setMode } = useSettings();
+  const router = useRouter();
 
   // initial load
   useEffect(() => {
     setSessionId(crypto.randomUUID());
   }, []);
+  const initialQuery = Array.isArray(router?.query?.question)
+    ? router?.query?.question[0]
+    : router?.query?.question;
 
   return (
     <Page page="index">
@@ -30,7 +35,13 @@ const Home: NextPage = () => {
         welcomed.
       </h2>
 
-      <Chat sessionId={sessionId} settings={{ mode: settings.mode }} />
+      {router.isReady && (
+        <Chat
+          sessionId={sessionId}
+          settings={{ mode: settings.mode }}
+          initialQuery={initialQuery}
+        />
+      )}
     </Page>
   );
 };
