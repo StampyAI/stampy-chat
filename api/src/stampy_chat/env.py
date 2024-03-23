@@ -1,6 +1,6 @@
 import os
 # import openai
-import pinecone
+from pinecone import Pinecone
 
 if os.path.exists('.env'):
     from dotenv import load_dotenv
@@ -16,6 +16,7 @@ DISCORD_LOGGING_URL = os.environ.get('LOGGING_URL')
 
 ### OpenAI ###
 OPENAI_API_KEY   = os.environ.get('OPENAI_API_KEY')
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
 ### Models ###
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-ada-002")
@@ -30,12 +31,12 @@ PINECONE_NAMESPACE   = os.environ.get("PINECONE_NAMESPACE", "alignment-search") 
 
 # Only init pinecone if we have an env value for it.
 if PINECONE_API_KEY:
-    pinecone.init(
+    pc = Pinecone(
         api_key = PINECONE_API_KEY,
         environment = PINECONE_ENVIRONMENT,
     )
 
-    PINECONE_INDEX = pinecone.Index(index_name=PINECONE_INDEX_NAME)
+    PINECONE_INDEX = pc.Index(PINECONE_INDEX_NAME)
 
 ### MySQL ###
 user = os.environ.get("CHAT_DB_USER", "user")

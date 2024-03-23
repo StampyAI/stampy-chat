@@ -56,8 +56,13 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
-  "gpt-4-1106-preview": { maxNumTokens: 128000, topKBlocks: 50 },
-  /* 'gpt-4-32k': {maxNumTokens: 32768, topKBlocks: 30}, */
+  "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
+  "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50},
+  "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50},
+  "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50},
+  "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50},
+  "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50},
+  "claude-instant-1.2": { maxNumTokens: 100_000, topKBlocks: 50},
 };
 export const ENCODERS = ["cl100k_base"];
 

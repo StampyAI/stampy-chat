@@ -27,6 +27,7 @@ sqlalchemy = "*"
 mysql-connector-python = "*"
 langchain = "*"
 transformers = "*"
+langchain-anthropic = "*"
 
 [dev-packages]
 pytest = "*"

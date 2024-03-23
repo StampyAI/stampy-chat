@@ -2,7 +2,7 @@ from unittest.mock import patch
 from langchain.llms.fake import FakeListLLM
 from langchain.memory import ChatMessageHistory
 from langchain.prompts import ChatPromptTemplate
-from langchain.schema import ChatMessage, HumanMessage, SystemMessage
+from langchain.schema import AIMessage, HumanMessage
 
 from stampy_chat.settings import Settings
 from stampy_chat.callbacks import StampyCallbackHandler
@@ -62,7 +62,7 @@ def test_PrefixedPrompt_format_messages():
     prompt = PrefixedPrompt(messages_field='history', prompt='bla bla bla', input_variables=[])
     history = [HumanMessage(content=f'human message {i}') for i in range(5)]
     assert prompt.format_messages(history=history) == [
-        SystemMessage(content='bla bla bla'),
+        AIMessage(content='bla bla bla'),
         HumanMessage(content='human message 0'),
         HumanMessage(content='human message 1'),
         HumanMessage(content='human message 2'),
@@ -94,8 +94,8 @@ def test_LimitedConversationSummaryBufferMemory_set():
         {'content': 'bla bla bla', 'role': 'human'},
     ])
     assert memory.chat_memory == ChatMessageHistory(messages=[
-        ChatMessage(content='a system message', role='system'),
-        ChatMessage(content='bla bla bla', role='human'),
+        HumanMessage(content='a system message', role='system'),
+        HumanMessage(content='bla bla bla', role='human'),
     ])
 
 
@@ -112,10 +112,10 @@ def test_LimitedConversationSummaryBufferMemory_set_more():
         {'content': 'message 5 - should be kept', 'role': 'human'},
     ])
     assert memory.chat_memory == ChatMessageHistory(messages=[
-        ChatMessage(content='this is a summary of what was before', role='assistant'),
-        ChatMessage(content='message 3 - should be kept', role='human'),
-        ChatMessage(content='message 4 - should be kept', role='human'),
-        ChatMessage(content='message 5 - should be kept', role='human'),
+        AIMessage(content='this is a summary of what was before', role='assistant'),
+        HumanMessage(content='message 3 - should be kept', role='human'),
+        HumanMessage(content='message 4 - should be kept', role='human'),
+        HumanMessage(content='message 5 - should be kept', role='human'),
     ])
 
 
@@ -137,8 +137,8 @@ def test_LimitedConversationSummaryBufferMemory_set_with_callbacks():
 
     memory.set_messages(history)
     assert memory.chat_memory == ChatMessageHistory(messages=[
-        ChatMessage(content='a system message', role='system'),
-        ChatMessage(content='bla bla bla', role='human'),
+        HumanMessage(content='a system message', role='system'),
+        HumanMessage(content='bla bla bla', role='human'),
     ])
     assert callback_calls == {
         'start': history,
@@ -157,9 +157,9 @@ def test_make_memory_skips_deleted():
     with patch('stampy_chat.chat.get_model', return_value=FakeListLLM(responses=[])):
         mem = make_memory(Settings(), history, [])
     assert mem.chat_memory == ChatMessageHistory(messages=[
-        ChatMessage(content='this should be kept', role='system'),
-        ChatMessage(content='as should this', role='human'),
-        ChatMessage(content='bla bla bla', role='assistant'),
+        HumanMessage(content='this should be kept', role='system'),
+        HumanMessage(content='as should this', role='human'),
+        AIMessage(content='bla bla bla', role='assistant'),
     ])
 
 
@@ -175,7 +175,7 @@ def test_merge_history_no_merges():
         {'content': 'bla bla bla', 'role': 'assistant'},
         {'content': 'remove me!!', 'role': 'deleted'},
     ]
-    assert merge_history(history) == history
+    assert merge_history(history) == [m for m in history if m['role'] != 'deleted']
 
 
 def test_merge_history_merges():

@@ -9,7 +9,7 @@ from langchain.prompts import (
     SemanticSimilarityExampleSelector
 )
 from langchain.pydantic_v1 import Extra
-from langchain.vectorstores import Pinecone
+from langchain_community.vectorstores import Pinecone
 
 from stampy_chat.env import PINECONE_INDEX, PINECONE_NAMESPACE, OPENAI_API_KEY, REMOTE_CHAT_INSTANCE
 from stampy_chat.callbacks import StampyCallbackHandler
@@ -89,7 +89,10 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
         for item in history[::-1]:
             if len(examples) >= self.k:
                 break
-            examples += self.fetch_docs({'answer': item.content})
+            if isinstance(item, dict):
+                examples += self.fetch_docs({'answer': item['content']})
+            else:
+                examples += self.fetch_docs({'answer': item.content})
 
         examples = [
             dict(

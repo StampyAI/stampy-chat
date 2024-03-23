@@ -1,20 +1,20 @@
-import os
 from typing import Any, Callable, Dict, List
 
 from langchain.chains import LLMChain, OpenAIModerationChain
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
 from langchain.prompts import (
     BaseChatPromptTemplate,
-    ChatMessagePromptTemplate,
     ChatPromptTemplate,
-    FewShotChatMessagePromptTemplate
+    FewShotChatMessagePromptTemplate,
+    HumanMessagePromptTemplate
 )
 from langchain.pydantic_v1 import Extra
-from langchain.schema import BaseMessage, ChatMessage, PromptValue, SystemMessage
+from langchain.schema import AIMessage, BaseMessage, HumanMessage, PromptValue, SystemMessage
 
-from stampy_chat.env import OPENAI_API_KEY, COMPLETIONS_MODEL, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2
-from stampy_chat.settings import Settings
+from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, COMPLETIONS_MODEL, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2
+from stampy_chat.settings import Settings, MODELS, OPENAI, ANTRHROPIC
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
 from stampy_chat.citations import make_example_selector
@@ -61,8 +61,14 @@ class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
         return messages
 
 
+def ChatMessage(m):
+    if m['role'] == 'assistant':
+        return AIMessage(**m)
+    return HumanMessage(**m)
+
+
 class PrefixedPrompt(BaseChatPromptTemplate):
-    """A prompt that will prefix any messages with a system prompt, but only if messages provided."""
+    """A prompt that will prefix any messages with a system prompt, but only if messages are provided."""
 
     transformer: Callable[[Any], BaseMessage] = lambda i: i
     messages_field: str
@@ -71,7 +77,7 @@ class PrefixedPrompt(BaseChatPromptTemplate):
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         history = kwargs[self.messages_field]
         if history and self.prompt:
-            return [SystemMessage(content=self.prompt)] + [self.transformer(i) for i in history]
+            return [AIMessage(content=self.prompt)] + [self.transformer(i) for i in history]
         return []
 
 
@@ -96,7 +102,7 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
         for callback in self.callbacks:
             callback.on_memory_set_start(history)
 
-        messages = [ChatMessage(**m) for m in history]
+        messages = [ChatMessage(m) for m in history if m.get('role') != 'deleted']
         # If there are more than `max_history` messages, first summarize the older ones. If there
         # are n messages (where n > max_history), then the first `n - max_history + 1` should be
         # summarized and inserted as the first item in the history, so as to ensure there are
@@ -105,7 +111,7 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
             offset = -self.max_history + 1
 
             pruned = messages[:offset]
-            summary = ChatMessage(role='assistant', content=self.predict_new_summary(pruned, ''))
+            summary = AIMessage(role='assistant', content=self.predict_new_summary(pruned, ''))
 
             messages = [summary] + messages[offset:]
 
@@ -160,8 +166,37 @@ class ModeratedChatPrompt(ChatPromptTemplate):
         return prompt
 
 
+class ChatAnthropicWrapper(ChatAnthropic):
+    """Make sure the Anthropic endpoint can handle prompts.
+
+    Anthropic only allows alternating human - ai messages, so join them up first.
+    So much for langchain being plug'n'play...
+    """
+    def _format_params(self, *args, **kwargs):
+        first = kwargs['messages'][0]
+        # Anthropic requires the first message to be either a system or human message
+        if isinstance(first, AIMessage):
+            first = SystemMessage(content=first.content)
+
+        messages = [first]
+        for m in kwargs['messages'][1:]:
+            if m.type != messages[-1].type:
+                messages.append(m)
+            else:
+                messages[-1].content += '\n\n' + m.content
+        kwargs['messages'] = messages
+        return super()._format_params(*args, **kwargs)
+
+
 def get_model(**kwargs):
-    return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
+    model = MODELS.get(kwargs.get('model'))
+    if not model:
+        raise ValueError("No model provided")
+    if model.publisher == ANTRHROPIC:
+        return ChatAnthropicWrapper(anthropic_api_key=ANTHROPIC_API_KEY, **kwargs)
+    if model.publisher == OPENAI:
+        return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
+    raise ValueError(f'Unsupported model: {kwargs.get("model")}')
 
 
 class LLMInputsChain(LLMChain):
@@ -191,7 +226,7 @@ def make_history_summary(settings):
         input_variables=['history'],
         messages_field='history',
         prompt=settings.history_summary_prompt,
-        transformer=lambda m: ChatMessage(**m)
+        transformer=ChatMessage,
     )
     return LLMInputsChain(
         llm=model,
@@ -200,9 +235,9 @@ def make_history_summary(settings):
         prompt=ModeratedChatPrompt.from_messages([
             summary_prompt,
             ChatPromptTemplate.from_messages([
-                ChatMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
+                HumanMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
             ]),
-            SystemMessage(content="Reply in one sentence only"),
+            HumanMessage(content="Reply in one sentence only"),
         ]),
     )
 
@@ -225,8 +260,8 @@ def make_prompt(settings, chat_model, callbacks):
     # 3. Construct the main query
     query_prompt = ChatPromptTemplate.from_messages(
         [
-            SystemMessage(content=settings.question_prompt),
-            ChatMessagePromptTemplate.from_template(template='Q: {history_summary}: {query}', role='user'),
+            HumanMessage(content=settings.question_prompt),
+            HumanMessagePromptTemplate.from_template(template='Q: {history_summary}: {query}', role='user'),
         ]
     )
 
@@ -267,6 +302,8 @@ def merge_history(history):
     messages = []
     current_message = history[0]
     for message in history[1:]:
+        if message.get('role') == 'deleted':
+            continue
         if message.get('role') != current_message.get('role'):
             messages.append(current_message)
             current_message = message

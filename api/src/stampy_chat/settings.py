@@ -4,7 +4,7 @@ import tiktoken
 from stampy_chat.env import COMPLETIONS_MODEL
 
 
-Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens'])
+Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens', 'publisher'])
 
 
 SOURCE_PROMPT = (
@@ -58,12 +58,19 @@ DEFAULT_PROMPTS = {
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
 }
+OPENAI = 'openai'
+ANTRHROPIC = 'anthropic'
 MODELS = {
-    'gpt-3.5-turbo': Model(4097, 10, 4096),
-    'gpt-3.5-turbo-16k': Model(16385, 30, 4096),
-    'gpt-4': Model(8192, 20, 4096),
-    "gpt-4-1106-preview": Model(128000, 50, 4096),
-    # 'gpt-4-32k': Model(32768, 30),
+    'gpt-3.5-turbo': Model(4097, 10, 4096, OPENAI),
+    'gpt-3.5-turbo-16k': Model(16385, 30, 4096, OPENAI),
+    'gpt-4': Model(8192, 20, 4096, OPENAI),
+    "gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
+    "claude-3-opus-20240229": Model(200_000, 50, 4096, ANTRHROPIC),
+    "claude-3-sonnet-20240229": Model(200_000, 50, 4096, ANTRHROPIC),
+    "claude-3-haiku-20240307": Model(200_000, 50, 4096, ANTRHROPIC),
+    "claude-2.1": Model(200_000, 50, 4096, ANTRHROPIC),
+    "claude-2.0": Model(100_000, 50, 4096, ANTRHROPIC),
+    "claude-instant-1.2": Model(100_000, 50, 4096, ANTRHROPIC),
 }
 
 
