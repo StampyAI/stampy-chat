@@ -57,12 +57,12 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
   "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
-  "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50},
-  "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50},
-  "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50},
-  "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50},
-  "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50},
-  "claude-instant-1.2": { maxNumTokens: 100_000, topKBlocks: 50},
+  "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
+  "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50 },
+  "claude-instant-1.2": { maxNumTokens: 100_000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
 
@@ -189,11 +189,23 @@ export default function useSettings() {
   const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
   const router = useRouter();
 
-  const updateInUrl = (vals: { [key: string]: any }) =>
-    router.replace({
+  const updateInUrl = (vals: { [key: string]: any }) => {
+    console.log(
+      "updating settings",
+      router.isReady,
+      router.pathname,
+      router.query,
+      vals,
+      {
+        pathname: router.pathname,
+        query: { ...router.query, ...vals },
+      }
+    );
+    return router.replace({
       pathname: router.pathname,
       query: { ...router.query, ...vals },
     });
+  };
 
   const changeSetting = (path: string[], value: any) => {
     updateInUrl({ [path.join(".")]: value });
