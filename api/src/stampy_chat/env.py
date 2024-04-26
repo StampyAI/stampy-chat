@@ -20,7 +20,7 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 
 ### Models ###
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "text-embedding-ada-002")
-COMPLETIONS_MODEL = os.environ.get("COMPLETIONS_MODEL", "gpt-3.5-turbo")
+COMPLETIONS_MODEL = os.environ.get("COMPLETIONS_MODEL", "claude-3-opus-20240229")
 
 ### Pinecone ###
 PINECONE_API_KEY     = os.environ.get('PINECONE_API_KEY')
