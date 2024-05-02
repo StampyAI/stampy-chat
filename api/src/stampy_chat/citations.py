@@ -56,7 +56,7 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
     @staticmethod
     def make_reference(i: int) -> str:
         """Make the reference used in citations - basically translate i -> 'a + i'"""
-        return chr(i + 97)
+        return str(i + 1)
 
     def fetch_docs(self, input_variables) -> List:
         ### Copied from parent - for some reason they ignore the ids of the returned items, so

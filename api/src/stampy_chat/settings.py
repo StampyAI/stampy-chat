@@ -10,8 +10,8 @@ Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens', '
 SOURCE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
     "Please give a clear and coherent answer to the user's questions. (written after \"Q:\") "
-    "using the following sources. Each source is labeled with a letter. Feel free to "
-    "use the sources in any order, and try to use multiple sources in your answers.\n\n"
+    "using the following sources. Each source is labeled with a number. Feel free to "
+    "use the sources in any order, and try to reference up to 8 sources in your answers.\n\n"
 )
 HISTORY_PROMPT = (
     "\n\n"
@@ -29,8 +29,8 @@ HISTORY_SUMMARIZE_PROMPT = (
 
 QUESTION_PROMPT = (
     "In your answer, please cite any claims you make back to each source "
-    "using the format: [a], [b], etc. If you use multiple sources to make a claim "
-    "cite all of them. For example: \"AGI is concerning [c, d, e].\"\n\n"
+    "using the format: [1], [2], etc. If you use multiple sources to make a claim "
+    "cite all of them. For example: \"AGI is concerning [1, 3, 8].\"\n\n"
 )
 PROMPT_MODES = {
     'default': "",

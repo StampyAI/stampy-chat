@@ -302,7 +302,7 @@ def merge_history(history):
     messages = []
     current_message = history[0]
     for message in history[1:]:
-        if message.get('role') == 'deleted':
+        if message.get('role') in ['deleted', 'error']:
             continue
         if message.get('role') != current_message.get('role'):
             messages.append(current_message)
