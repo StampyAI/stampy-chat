@@ -57,6 +57,7 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
   "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
+  "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
   "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50 },

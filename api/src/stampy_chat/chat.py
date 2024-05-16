@@ -13,7 +13,7 @@ from langchain.prompts import (
 from langchain.pydantic_v1 import Extra
 from langchain.schema import AIMessage, BaseMessage, HumanMessage, PromptValue, SystemMessage
 
-from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, COMPLETIONS_MODEL, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2
+from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2, SUMMARY_MODEL
 from stampy_chat.settings import Settings, MODELS, OPENAI, ANTRHROPIC
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
@@ -277,7 +277,7 @@ def make_prompt(settings, chat_model, callbacks):
 def make_memory(settings, history, callbacks):
     """Create a memory object to store the chat history."""
     memory = LimitedConversationSummaryBufferMemory(
-        llm=get_model(model=COMPLETIONS_MODEL),  # used for summarization
+        llm=get_model(model=SUMMARY_MODEL),  # used for summarization
         max_token_limit=settings.history_tokens,
         max_history=settings.maxHistory,
         chat_memory=ChatMessageHistory(),

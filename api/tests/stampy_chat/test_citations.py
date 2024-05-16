@@ -41,8 +41,7 @@ def selector():
 
 
 @pytest.mark.parametrize('num, letter', (
-    (0, 'a'), (25, 'z'),
-    (26, '{'),  # this is a basic ASCII translator, so too many citations will result in fun
+    (0, '1'), (25, '26'),
 ))
 def test_ReferencesSelector_make_references(num, letter):
     assert ReferencesSelector.make_reference(num) == letter
@@ -50,11 +49,11 @@ def test_ReferencesSelector_make_references(num, letter):
 
 def test_ReferencesSelector_select_examples(selector):
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': 'a'},
-        {'bla': 'bla 1', 'id': '1', 'reference': 'b'},
-        {'bla': 'bla 2', 'id': '2', 'reference': 'c'},
-        {'bla': 'bla 3', 'id': '3', 'reference': 'd'},
-        {'bla': 'bla 4', 'id': '4', 'reference': 'e'},
+        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
     ]
 
 
@@ -63,11 +62,11 @@ def test_ReferencesSelector_select_examples_callbacks(selector):
     selector.callbacks = [callback]
 
     expected_examples = [
-        {'bla': 'bla 0', 'id': '0', 'reference': 'a'},
-        {'bla': 'bla 1', 'id': '1', 'reference': 'b'},
-        {'bla': 'bla 2', 'id': '2', 'reference': 'c'},
-        {'bla': 'bla 3', 'id': '3', 'reference': 'd'},
-        {'bla': 'bla 4', 'id': '4', 'reference': 'e'},
+        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
     ]
     input_variables = {'var1': 'bla', 'var2': 'ble'}
 
@@ -84,11 +83,11 @@ def test_ReferencesSelector_select_examples_removes_duplicates(selector):
     ] * 5
 
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': 'a'},
-        {'bla': 'bla 1', 'id': '1', 'reference': 'b'},
-        {'bla': 'bla 2', 'id': '2', 'reference': 'c'},
-        {'bla': 'bla 3', 'id': '3', 'reference': 'd'},
-        {'bla': 'bla 4', 'id': '4', 'reference': 'e'},
+        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
     ]
 
 
@@ -107,9 +106,9 @@ def test_ReferencesSelector_select_examples_removes_low_scores(selector):
     ]
 
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': 'a'},
-        {'bla': 'bla 2', 'id': '2', 'reference': 'b'},
-        {'bla': 'bla 4', 'id': '4', 'reference': 'c'},
+        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 2', 'id': '2', 'reference': '2'},
+        {'bla': 'bla 4', 'id': '4', 'reference': '3'},
     ]
 
 
@@ -127,10 +126,10 @@ def test_ReferencesSelector_select_examples_check_history(selector):
         Mock(content='last history item'),
     ]
     assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
-        {'bla': 'queried value', 'id': 'queried value', 'reference': 'a'},
-        {'bla': 'last history item', 'id': 'last history item', 'reference': 'b'},
-        {'bla': 'second history item', 'id': 'second history item', 'reference': 'c'},
-        {'bla': 'first history item', 'id': 'first history item', 'reference': 'd'}
+        {'bla': 'queried value', 'id': 'queried value', 'reference': '1'},
+        {'bla': 'last history item', 'id': 'last history item', 'reference': '2'},
+        {'bla': 'second history item', 'id': 'second history item', 'reference': '3'},
+        {'bla': 'first history item', 'id': 'first history item', 'reference': '4'}
     ]
 
 
@@ -150,12 +149,12 @@ def test_ReferencesSelector_select_examples_check_history_n_items(selector):
         Mock(content='last history item'),
     ]
     assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
-        {'bla': 'queried value', 'id': 'queried value - 0', 'reference': 'a'},
-        {'bla': 'queried value', 'id': 'queried value - 1', 'reference': 'b'},
-        {'bla': 'queried value', 'id': 'queried value - 2', 'reference': 'c'},
-        {'bla': 'last history item', 'id': 'last history item - 0', 'reference': 'd'},
-        {'bla': 'last history item', 'id': 'last history item - 1', 'reference': 'e'},
-        {'bla': 'last history item', 'id': 'last history item - 2', 'reference': 'f'},
+        {'bla': 'queried value', 'id': 'queried value - 0', 'reference': '1'},
+        {'bla': 'queried value', 'id': 'queried value - 1', 'reference': '2'},
+        {'bla': 'queried value', 'id': 'queried value - 2', 'reference': '3'},
+        {'bla': 'last history item', 'id': 'last history item - 0', 'reference': '4'},
+        {'bla': 'last history item', 'id': 'last history item - 1', 'reference': '5'},
+        {'bla': 'last history item', 'id': 'last history item - 2', 'reference': '6'},
     ]
 
 
