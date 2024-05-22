@@ -31,9 +31,11 @@ def get_followups(query):
     if not query.strip():
         return []
 
-    url = 'https://nlp.stampy.ai/api/search?query=' + quote(query)
-    response = requests.get(url).json()
-    return [Followup(entry['title'], entry['pageid'], entry['score']) for entry in response]
+    url = 'https://nlp.stampy.ai/api/search?query=' + quote(query[:4093]) # make sure there aren't too many characters
+    response = requests.get(url)
+    if response.status_code == 200:
+        return [Followup(entry['title'], entry['pageid'], entry['score']) for entry in response.json()]
+    return []
 
 
 # search with multiple queries, combine results

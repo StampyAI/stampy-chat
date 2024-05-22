@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, Mock
 
+
 from stampy_chat.followups import Followup, search_authored, multisearch_authored
 
 
@@ -8,7 +9,7 @@ from stampy_chat.followups import Followup, search_authored, multisearch_authore
     ("what is agi", [Followup("agi title", "agi", 0.5)],),
     ("what is ai", [Followup("ai title", "ai", 0.5)],)])
 def test_search_authored(query, expected_result):
-    response = Mock(json=lambda: [
+    response = Mock(status_code=200, json=lambda: [
         {'title': r.text, 'pageid': r.pageid, 'score': r.score}
         for r in expected_result
     ])
@@ -27,7 +28,7 @@ def test_multisearch_authored(_logger):
         {'pageid': '5', 'title': f'result 5', 'score': 0.543},
     ]
 
-    response = Mock(json=lambda: results)
+    response = Mock(json=lambda: results, status_code=200)
     with patch('requests.get', return_value=response):
         assert multisearch_authored(["what is this?", "how about this?"]) == [
             Followup('result 2', '2', 0.623),
@@ -57,7 +58,7 @@ def test_multisearch_authored_duplicates(_logger):
     }
     def getter(url):
         query = url.split('query=')[-1]
-        return Mock(json=lambda: results[query])
+        return Mock(json=lambda: results[query], status_code=200)
 
     with patch('requests.get', getter):
         assert multisearch_authored(["query1", "query2", "query3"]) == [

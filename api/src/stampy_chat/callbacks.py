@@ -1,7 +1,7 @@
 import threading
+import traceback
 from queue import Queue
 from typing import Any, Dict, List, Callable, Iterator
-from flask import stream_with_context
 
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import BaseMessage
@@ -151,6 +151,7 @@ def stream_callback(function: Callable[[Callback], Any], formatter: Callable[[An
         try:
             function(callback)
         except Exception as e:
+            logger.error(traceback.format_exc())
             callback(e)
 
         callback(None)
