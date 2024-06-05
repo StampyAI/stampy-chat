@@ -62,7 +62,7 @@ def test_PrefixedPrompt_format_messages():
     prompt = PrefixedPrompt(messages_field='history', prompt='bla bla bla', input_variables=[])
     history = [HumanMessage(content=f'human message {i}') for i in range(5)]
     assert prompt.format_messages(history=history) == [
-        AIMessage(content='bla bla bla'),
+        HumanMessage(content='bla bla bla'),
         HumanMessage(content='human message 0'),
         HumanMessage(content='human message 1'),
         HumanMessage(content='human message 2'),
