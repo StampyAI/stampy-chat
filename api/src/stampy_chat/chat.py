@@ -77,7 +77,7 @@ class PrefixedPrompt(BaseChatPromptTemplate):
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         history = kwargs[self.messages_field]
         if history and self.prompt:
-            return [AIMessage(content=self.prompt)] + [self.transformer(i) for i in history]
+            return [HumanMessage(content=self.prompt)] + [self.transformer(i) for i in history]
         return []
 
 
