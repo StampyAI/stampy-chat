@@ -67,6 +67,7 @@ MODELS = {
     "gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
     "gpt-4o": Model(128000, 50, 4096, OPENAI),
     "claude-3-opus-20240229": Model(200_000, 50, 4096, ANTRHROPIC),
+    "claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTRHROPIC),
     "claude-3-sonnet-20240229": Model(200_000, 50, 4096, ANTRHROPIC),
     "claude-3-haiku-20240307": Model(200_000, 50, 4096, ANTRHROPIC),
     "claude-2.1": Model(200_000, 50, 4096, ANTRHROPIC),
