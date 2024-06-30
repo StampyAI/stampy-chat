@@ -60,6 +60,7 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
   "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50 },
