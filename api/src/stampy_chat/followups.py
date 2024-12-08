@@ -76,7 +76,7 @@ class StampyChain(Chain):
 
     @property
     def input_keys(self) -> List[str]:
-        return ['query', 'text', 'history_summary']
+        return ['query', 'text']
 
     @property
     def output_keys(self) -> List[str]:
