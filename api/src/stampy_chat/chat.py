@@ -223,34 +223,8 @@ class LLMInputsChain(LLMChain):
         return [dict(self.inputs, **r) for r in result]
 
 
-def make_history_summary(settings):
-    model = get_model(
-        streaming=False,
-        max_tokens=settings.maxHistorySummaryTokens,
-        model=settings.completions
-    )
-    summary_prompt = PrefixedPrompt(
-        input_variables=['history'],
-        messages_field='history',
-        prompt=settings.history_summary_prompt,
-        transformer=ChatMessage,
-    )
-    return LLMInputsChain(
-        llm=model,
-        verbose=False,
-        output_key='history_summary',
-        prompt=ModeratedChatPrompt.from_messages([
-            summary_prompt,
-            ChatPromptTemplate.from_messages([
-                HumanMessagePromptTemplate.from_template(template='Q: {query}', role='user'),
-            ]),
-            HumanMessage(content="Reply in one sentence only"),
-        ]),
-    )
-
-
 def make_prompt(settings, chat_model, callbacks):
-    """Create a proper prompt object will all the nessesery steps."""
+    """Create a proper prompt object with all the necessary steps."""
     # 1. Create the context prompt from items fetched from pinecone
     context_template = "\n\n[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}\n\n"
     context_prompt = MessageBufferPromptTemplate(
@@ -269,8 +243,7 @@ def make_prompt(settings, chat_model, callbacks):
         [
             HumanMessage(content=settings.question_prompt),
             HumanMessagePromptTemplate.from_template(
-                template='{history_summary}{delimiter}{query}',
-                partial_variables={"delimiter": lambda **kwargs: ": " if kwargs.get("history_summary") else ""}
+                template=f'{settings.question_marker}: {{query}}',
             ),
         ]
     )
@@ -344,16 +317,6 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         model=settings.completions
     )
 
-    history_summary_chain = make_history_summary(settings)
-    
-    if history:
-        history_summary_result = history_summary_chain.invoke({"query": query, 'history': history})
-        history_summary = history_summary_result.get('history_summary', '')
-    else:
-        history_summary = ''
-
-    delimiter = ": " if history_summary else ""
-
     llm_chain = LLMChain(
         llm=chat_model,
         verbose=False,
@@ -361,15 +324,13 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         memory=make_memory(settings, history, callbacks)
     )
     
-    chain = history_summary_chain | llm_chain
+    chain = llm_chain
     if followups:
         chain = chain | StampyChain(callbacks=callbacks)
     
     chain_input = {
         "query": query,
         'history': history,
-        'history_summary': history_summary,
-        'delimiter': delimiter,
     }
     
     result = chain.invoke(chain_input)

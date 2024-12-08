@@ -9,28 +9,33 @@ Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens', '
 
 SOURCE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    "Please give a clear and coherent answer to the user's questions. (written after \"Q:\") "
+    "Please give a clear and coherent answer to the user's questions. (written after \"Question:\") "
     "using the following sources. Each source is labeled with a number. Feel free to "
     "use the sources in any order, and try to reference up to 8 sources in your answers.\n\n"
+    "# Sources\n"
 )
 HISTORY_PROMPT = (
     "\n\n"
-    "Before the question (\"Q: \"), there will be a history of previous questions and answers. "
+    "# History:\n\n"
+    "Before the question (\"Question:\"), there will be a history of previous questions and answers. "
     "These sources only apply to the last question. Any sources used in previous answers "
     "are invalid."
 )
 HISTORY_SUMMARIZE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    "Please summarize the following chat history (written after \"H:\") in one "
-    "sentence so as to put the current questions (written after \"Q:\") in context. "
+    "Please summarize the following chat history (written after \"History:\") in one "
+    "sentence so as to put the current questions (written after \"Question:\") in context. "
     "Please keep things as terse as possible."
-    "\nH:"
+    "\nHistory:"
 )
 
 QUESTION_PROMPT = (
+    "# Question context:\n\n"
     "In your answer, please cite any claims you make back to each source "
     "using the format: [1], [2], etc. If you use multiple sources to make a claim "
-    "cite all of them. For example: \"AGI is concerning. [1, 3, 8]\" (note the period placement)\n\n"
+    "cite all of them. For example: \"AGI is concerning. [1, 3, 8]\" (note the period placement)\n"
+    "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite "
+    "them. Don't repeat the question in your answer. \n\n"
 )
 PROMPT_MODES = {
     'default': "",
@@ -57,6 +62,7 @@ DEFAULT_PROMPTS = {
     'history_summary': HISTORY_SUMMARIZE_PROMPT,
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
+    "question_marker": "Question:",
 }
 OPENAI = 'openai'
 ANTHROPIC = 'anthropic'
@@ -188,6 +194,10 @@ class Settings:
     @property
     def question_prompt(self):
         return self.prompts['question'] + self.mode_prompt
+
+    @property
+    def question_marker(self):
+        return self.prompts['question_marker']
 
     @property
     def context_tokens(self):
