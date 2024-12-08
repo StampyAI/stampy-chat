@@ -33,7 +33,7 @@ QUESTION_PROMPT = (
     "# Question context:\n\n"
     "In your answer, please cite any claims you make back to each source "
     "using the format: [1], [2], etc. If you use multiple sources to make a claim "
-    "cite all of them. For example: \"AGI is concerning [1, 3, 8].\"\n"
+    "cite all of them. For example: \"AGI is concerning. [1, 3, 8]\" (note the period placement)\n"
     "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite "
     "them. Don't repeat the question in your answer. \n\n"
 )
