@@ -1,3 +1,4 @@
+import os
 from typing import Any, Callable, Dict, List
 
 from langchain.chains import LLMChain, OpenAIModerationChain
@@ -14,12 +15,18 @@ from langchain.pydantic_v1 import Extra
 from langchain.schema import AIMessage, BaseMessage, HumanMessage, PromptValue, SystemMessage
 
 from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2, SUMMARY_MODEL
-from stampy_chat.settings import Settings, MODELS, OPENAI, ANTRHROPIC
+from stampy_chat.settings import Settings, MODELS, OPENAI, ANTHROPIC
 from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
 from stampy_chat.followups import StampyChain
 from stampy_chat.citations import make_example_selector
 
 from langsmith import Client
+
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 
 if LANGCHAIN_TRACING_V2 == "true":
     if not LANGCHAIN_API_KEY:
@@ -192,7 +199,7 @@ def get_model(**kwargs):
     model = MODELS.get(kwargs.get('model'))
     if not model:
         raise ValueError("No model provided")
-    if model.publisher == ANTRHROPIC:
+    if model.publisher == ANTHROPIC:
         return ChatAnthropicWrapper(anthropic_api_key=ANTHROPIC_API_KEY, **kwargs)
     if model.publisher == OPENAI:
         return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
@@ -245,7 +252,7 @@ def make_history_summary(settings):
 def make_prompt(settings, chat_model, callbacks):
     """Create a proper prompt object will all the nessesery steps."""
     # 1. Create the context prompt from items fetched from pinecone
-    context_template = "[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}"
+    context_template = "\n\n[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}\n\n"
     context_prompt = MessageBufferPromptTemplate(
         example_selector=make_example_selector(k=settings.topKBlocks, callbacks=callbacks),
         example_prompt=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
@@ -261,7 +268,10 @@ def make_prompt(settings, chat_model, callbacks):
     query_prompt = ChatPromptTemplate.from_messages(
         [
             HumanMessage(content=settings.question_prompt),
-            HumanMessagePromptTemplate.from_template(template='Q: {history_summary}: {query}', role='user'),
+            HumanMessagePromptTemplate.from_template(
+                template='{history_summary}{delimiter}{query}',
+                partial_variables={"delimiter": lambda **kwargs: ": " if kwargs.get("history_summary") else ""}
+            ),
         ]
     )
 
@@ -334,16 +344,37 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         model=settings.completions
     )
 
-    chain = make_history_summary(settings) | LLMChain(
+    history_summary_chain = make_history_summary(settings)
+    
+    if history:
+        history_summary_result = history_summary_chain.invoke({"query": query, 'history': history})
+        history_summary = history_summary_result.get('history_summary', '')
+    else:
+        history_summary = ''
+
+    delimiter = ": " if history_summary else ""
+
+    llm_chain = LLMChain(
         llm=chat_model,
         verbose=False,
         prompt=make_prompt(settings, chat_model, callbacks),
         memory=make_memory(settings, history, callbacks)
     )
+    
+    chain = history_summary_chain | llm_chain
     if followups:
         chain = chain | StampyChain(callbacks=callbacks)
-    result = chain.invoke({"query": query, 'history': history}, {'callbacks': []})
+    
+    chain_input = {
+        "query": query,
+        'history': history,
+        'history_summary': history_summary,
+        'delimiter': delimiter,
+    }
+    
+    result = chain.invoke(chain_input)
+
     if callback:
         callback({'state': 'done'})
-        callback(None)  # make sure the callback handler know that things have ended
+        callback(None)
     return result
