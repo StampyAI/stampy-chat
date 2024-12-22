@@ -33,7 +33,7 @@ QUESTION_PROMPT = (
     "# Question context:\n\n"
     "In your answer, please cite any claims you make back to each source "
     "using the format: [1], [2], etc. If you use multiple sources to make a claim "
-    "cite all of them. For example: \"AGI is concerning. [1, 3, 8]\" (note the period placement)\n"
+    "cite all of them. For example: \"AGI is concerning [1, 3, 8].\"\n"
     "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite "
     "them. Don't repeat the question in your answer. \n\n"
 )
@@ -56,13 +56,14 @@ PROMPT_MODES = {
         "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
     ),
 }
+QUESTION_MARKER = "Question:"
 DEFAULT_PROMPTS = {
     'context': SOURCE_PROMPT,
     'history': HISTORY_PROMPT,
     'history_summary': HISTORY_SUMMARIZE_PROMPT,
     'question': QUESTION_PROMPT,
     'modes': PROMPT_MODES,
-    "question_marker": "Question:",
+    "question_marker": QUESTION_MARKER,
 }
 OPENAI = 'openai'
 ANTHROPIC = 'anthropic'
@@ -197,7 +198,7 @@ class Settings:
 
     @property
     def question_marker(self):
-        return self.prompts['question_marker']
+        return self.prompts.get('question_marker', QUESTION_MARKER)
 
     @property
     def context_tokens(self):
