@@ -70,6 +70,8 @@ ANTHROPIC = 'anthropic'
 MODELS = {
     'gpt-3.5-turbo': Model(4097, 10, 4096, OPENAI),
     'gpt-3.5-turbo-16k': Model(16385, 30, 4096, OPENAI),
+    'o1': Model(128000, 50, 4096, OPENAI),
+    'o1-mini': Model(128000, 50, 4096, OPENAI),
     'gpt-4': Model(8192, 20, 4096, OPENAI),
     "gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
     "gpt-4o": Model(128000, 50, 4096, OPENAI),
