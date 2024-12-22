@@ -230,13 +230,22 @@ export const ChatPrompts = ({
           value={settings?.prompts?.question}
           onChange={updatePrompt("question")}
         />
+        User mode prompt:
         <TextareaAutosize
           className="border-gray w-full border px-1"
           value={settings?.prompts?.modes[settings.mode || "default"]}
           onChange={updatePrompt("modes", settings.mode || "default")}
         />
       </details>
-      <div>Q: {query}</div>
+      <div>
+        <input
+          type="text"
+          value={settings?.prompts?.question_marker}
+          onChange={updatePrompt("question_marker")}
+          style={{ border: '1px solid #ccc', width: 'auto' }}
+        />
+        <span>asd {query}</span>
+      </div>
     </div>
   );
 };

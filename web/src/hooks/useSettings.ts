@@ -13,24 +13,30 @@ type LLMSettingsParsers = {
 const DEFAULT_PROMPTS = {
   context:
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
-    'Please give a clear and coherent answer to the user\'s questions.(written after "Q:") ' +
-    "using the following sources. Each source is labeled with a letter. Feel free to " +
-    "use the sources in any order, and try to use multiple sources in your answers.\n\n",
+    "Please give a clear and coherent answer to the user's questions. (written after \"Question:\") " +
+    "using the following sources. Each source is labeled with a number. Feel free to " +
+    "use the sources in any order, and try to reference up to 8 sources in your answers.\n\n" +
+    "# Sources\n",
   history:
     "\n\n" +
-    'Before the question ("Q: "), there will be a history of previous questions and answers. ' +
-    "These sources only apply to the last question. any sources used in previous answers " +
+    "# History:\n\n" +
+    "Before the question (\"Question:\"), there will be a history of previous questions and answers. " +
+    "These sources only apply to the last question. Any sources used in previous answers " +
     "are invalid.",
   history_summary:
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
-    'Please summarize the following chat history (written after "H:") in one ' +
-    'sentence so as to put the current questions (written after "Q:") in context. ' +
+    "Please summarize the following chat history (written after \"History:\") in one " +
+    "sentence so as to put the current questions (written after \"Question:\") in context. " +
     "Please keep things as terse as possible." +
-    "\nH:",
+    "\nHistory:",
   question:
+    "# Question context:\n\n" +
     "In your answer, please cite any claims you make back to each source " +
-    "using the format: [a], [b], etc. If you use multiple sources to make a claim " +
-    'cite all of them. For example: "AGI is concerning [c, d, e]."\n\n',
+    "using the format: [1], [2], etc. If you use multiple sources to make a claim " +
+    "cite all of them. For example: \"AGI is concerning [1, 3, 8].\"\n" +
+    "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite " +
+    "them. Don't repeat the question in your answer. \n\n",
+  question_marker: "Question:",
   modes: {
     default: "",
     discord:
@@ -55,9 +61,12 @@ interface Model {
 export const MODELS: { [key: string]: Model } = {
   "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
   "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
+  "o1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "o1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
   "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
   "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
   "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
+  "claude-3-5": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
