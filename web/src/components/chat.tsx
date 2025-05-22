@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   queryLLM,
   getStampyContent,
@@ -8,34 +8,15 @@ import {
 import { initialQuestions } from "../settings";
 
 import type {
-  CurrentSearch,
-  Citation,
-  Entry,
-  AssistantEntry as AssistantEntryType,
-  LLMSettings,
+  CurrentSearch, Entry, LLMSettings,
   Followup,
-  SearchResult,
+  SearchResult
 } from "../types";
 import useCitations from "../hooks/useCitations";
 import { SearchBox } from "../components/searchbox";
 import { AssistantEntry } from "../components/assistant";
 import { Entry as EntryTag } from "../components/entry";
 
-const MAX_FOLLOWUPS = 4;
-
-type State =
-  | {
-      state: "idle";
-    }
-  | {
-      state: "loading";
-      phase: "semantic" | "prompt" | "llm";
-      citations: Citation[];
-    }
-  | {
-      state: "streaming";
-      response: AssistantEntryType;
-    };
 
 // smooth-scroll to the bottom of the window if we're already less than 10% a screen away
 // note: finicky interaction with "smooth" - maybe fix later.
@@ -125,6 +106,7 @@ const Chat = ({
   const { citations, setEntryCitations } = useCitations();
 
   const updateCurrent = (current: CurrentSearch) => {
+    console.log("updateCurrent", current);
     if (current?.phase === "streaming") {
       setCurrent(setEntryCitations(current));
       scroll30();

@@ -7,65 +7,57 @@ export const formatCitations: (text: string) => string = (text) => {
   // well to almost everything the LLM emits. We won't ever reach five nines,
   // but the domain is one where occasionally failing isn't catastrophic.
 
-  // transform all things that look like [a, b, c] into [a][b][c]
+  // transform all things that look like [1, 2, 3] into [1][2][3]
   let response = text.replace(
-    /\[((?:[a-z]+,\s*)*[a-z]+)\]/g, // identify groups of this form
+    /\[((?:\d+,\s*)*\d+)\]/g, // identify groups of this form
 
     (block: string) =>
       block
-        .split(",")
+        .split(',')
         .map((x) => x.trim())
-        .join("][")
-  );
+        .join('][')
+  )
 
-  // transform all things that look like [(a), (b), (c)] into [(a)][(b)][(c)]
+  // transform all things that look like [(1), (2), (3)] into [(1)][(2)][(3)]
   response = response.replace(
-    /\[((?:\([a-z]+\),\s*)*\([a-z]+\))\]/g, // identify groups of this form
+    /\[((?:\(\d+\),\s*)*\(\d+\))\]/g, // identify groups of this form
 
     (block: string) =>
       block
-        .split(",")
+        .split(',')
         .map((x) => x.trim())
-        .join("][")
-  );
+        .join('][')
+  )
 
-  // transform all things that look like [(a)] into [a]
-  response = response.replace(
-    /\[\(([a-z]+)\)\]/g,
-    (_match: string, x: string) => `[${x}]`
-  );
+  // transform all things that look like [(3)] into [3]
+  response = response.replace(/\[\((\d+)\)\]/g, (_match: string, x: string) => `[${x}]`)
 
-  // transform all things that look like [ a ] into [a]
-  response = response.replace(
-    /\[\s*([a-z]+)\s*\]/g,
-    (_match: string, x: string) => `[${x}]`
-  );
-  return response;
-};
+  // transform all things that look like [ 12 ] into [12]
+  response = response.replace(/\[\s*(\d+)\s*\]/g, (_match: string, x: string) => `[${x}]`)
+  return response
+}
 
-export const findCitations: (
-  text: string,
-  citations: Citation[]
-) => Map<string, Citation> = (text, citations) => {
+export const findCitations: (text: string, citations: Citation[]) => Map<string, Citation> = (
+  text,
+  citations
+) => {
   // figure out what citations are in the response, and map them appropriately
-  const cite_map = new Map<string, Citation>();
-
-  // scan a regex for [x] over the response. If x isn't in the map, add it.
-  // (note: we're actually doing this twice - once on parsing, once on render.
-  // if that looks like a problem, we could swap from strings to custom ropes).
-  const regex = /\[([a-z]+)\]/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    const letter = match[1];
-    if (!letter || cite_map.has(letter!)) continue;
-
-    const citation = citations[letter.charCodeAt(0) - "a".charCodeAt(0)];
-    if (!citation) continue;
-
-    cite_map.set(letter!, citation);
+  const cite_map = new Map<string, Citation>()
+  const byRef = citations.reduce((acc, c) => ({...acc, [c.reference]: c}), {}) as {
+    [k: string]: Citation
   }
-  return cite_map;
-};
+  let index = 1
+  const refs = [...text.matchAll(/\[(\d+)\]/g)]
+  refs.forEach(([_, num]) => {
+    if (!num || cite_map.has(num)) return
+    const citation = byRef[num as keyof typeof byRef]
+    if (!citation) return
+
+    cite_map.set(num, {...citation, index: index++})
+  })
+
+  return cite_map
+}
 
 export const ShowCitation: React.FC<{ citation: Citation }> = ({
   citation,
