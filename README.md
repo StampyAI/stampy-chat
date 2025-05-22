@@ -22,6 +22,18 @@ Discord](https://discord.com/invite/Bt8PaRTDQC) if you need help with this.
 
 Install `npm`, `python 3.11`, and [`pipenv`](https://pipenv.pypa.io/en/latest/).
 
+Install dependencies for the API:
+```bash
+cd api # from repository root
+pipenv install --dev --ignore-pipfile
+```
+
+Install dependencies for the web UI:
+```bash
+cd web # from repository root
+npm install
+```
+
 ### Database setup
 
 Some things (e.g. logging) require a database connection to work correctly. To make this easier, there is a script to set one up locally via Docker. To get this working:
@@ -37,7 +49,6 @@ Open two terminal windows. In the first, run:
 
 ```bash
 cd api
-pipenv install --dev --ignore-pipfile # (skip this line after the first time)
 pipenv run python3 main.py
 ```
 
@@ -45,7 +56,6 @@ In the second, run:
 
 ```bash
 cd web
-npm install # (skip this line after the first time)
 npm run dev
 ```
 

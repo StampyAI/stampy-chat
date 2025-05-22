@@ -7,6 +7,11 @@ if [ $? -ne 0 ]; then
     docker run --name stampy-db -p 3306:3306 -e MYSQL_ROOT_PASSWORD=$ROOT_PASSWORD -d mysql:latest
 fi
 
+if ! command -v mysql &> /dev/null
+then
+    echo "mysql command could not be found. Please install MySQL client."
+    exit 1
+fi
 echo "Waiting till mysql is available..."
 while ! mysql -h 127.0.0.1 --user root --password=$ROOT_PASSWORD -e "SELECT 1" ; do
     sleep 5
