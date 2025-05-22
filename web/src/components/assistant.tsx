@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { ShowCitation, CitationsBlock } from "./citations";
 import { GlossarySpan } from "./glossary";
-import type { Citation, AssistantEntry as AssistantType } from "../types";
+import type { AssistantEntry as AssistantType } from "../types";
 
 export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
   entry,
@@ -24,5 +23,9 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
           </li>
         ))}
     </ul>
+    <details className="prompt">
+      <summary>Full prompt</summary>
+      <div className="prompt-container">{entry.prompt?.split("\n").map((line) => <div className="prompt-item">{line}</div>)}</div>
+    </details>
   </div>
 );

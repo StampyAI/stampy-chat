@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from unittest.mock import Mock
 
-from langchain.schema.vectorstore import VectorStore
+from langchain_core.vectorstores import VectorStore
 
 from stampy_chat.citations import ReferencesSelector, format_block
 

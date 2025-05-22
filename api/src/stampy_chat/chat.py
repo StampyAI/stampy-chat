@@ -1,28 +1,45 @@
 import os
-from typing import Any, Callable, Dict, List
+import warnings
+from typing import Any, Callable, Dict, List, Optional
 
 from langchain.chains import LLMChain, OpenAIModerationChain
-from langchain_community.chat_models import ChatOpenAI
+from langchain_core.chat_history import InMemoryChatMessageHistory
+from langchain.memory import ConversationSummaryBufferMemory
 from langchain_anthropic import ChatAnthropic
-from langchain.memory import ChatMessageHistory, ConversationSummaryBufferMemory
-from langchain.prompts import (
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    messages_from_dict,
+)
+from langchain_core.prompt_values import PromptValue
+from langchain_core.prompts import (
     BaseChatPromptTemplate,
     ChatPromptTemplate,
     FewShotChatMessagePromptTemplate,
-    HumanMessagePromptTemplate
+    HumanMessagePromptTemplate,
 )
-from langchain.pydantic_v1 import Extra
-from langchain.schema import AIMessage, BaseMessage, HumanMessage, PromptValue, SystemMessage
-
-from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, LANGCHAIN_API_KEY, LANGCHAIN_TRACING_V2, SUMMARY_MODEL
-from stampy_chat.settings import Settings, MODELS, OPENAI, ANTHROPIC
-from stampy_chat.callbacks import StampyCallbackHandler, BroadcastCallbackHandler, LoggerCallbackHandler
-from stampy_chat.followups import StampyChain
-from stampy_chat.citations import make_example_selector
-
+from langchain_openai import ChatOpenAI
 from langsmith import Client
+from pydantic import Extra
 
-import warnings
+from stampy_chat.callbacks import (
+    BroadcastCallbackHandler,
+    LoggerCallbackHandler,
+    StampyCallbackHandler,
+)
+from stampy_chat.citations import make_example_selector
+from stampy_chat.env import (
+    ANTHROPIC_API_KEY,
+    LANGCHAIN_API_KEY,
+    LANGCHAIN_TRACING_V2,
+    OPENAI_API_KEY,
+    SUMMARY_MODEL,
+)
+from stampy_chat.followups import StampyChain
+from stampy_chat.settings import ANTHROPIC, MODELS, OPENAI, Settings
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -30,8 +47,11 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 if LANGCHAIN_TRACING_V2 == "true":
     if not LANGCHAIN_API_KEY:
-        raise Exception("Langsmith tracing is enabled but no api key was provided. Please set LANGCHAIN_API_KEY in the .env file.")
+        raise Exception(
+            "Langsmith tracing is enabled but no api key was provided. Please set LANGCHAIN_API_KEY in the .env file."
+        )
     client = Client()
+
 
 class ModerationError(ValueError):
     pass
@@ -44,11 +64,14 @@ class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
     return the first n formatted messages such that `sum(tokens(messages)) < max_tokens`.
     """
 
-    get_num_tokens: Callable[[str], int]  # the function used to calculate the number of tokens in a string
+    get_num_tokens: Callable[
+        [str], int
+    ]  # the function used to calculate the number of tokens in a string
     max_tokens: int
 
     class Config:
         """This is needed for extra fields to be added..."""
+
         extra = Extra.forbid
         arbitrary_types_allowed = True
 
@@ -69,7 +92,7 @@ class MessageBufferPromptTemplate(FewShotChatMessagePromptTemplate):
 
 
 def ChatMessage(m):
-    if m['role'] == 'assistant':
+    if m["role"] == "assistant":
         return AIMessage(**m)
     return HumanMessage(**m)
 
@@ -84,7 +107,9 @@ class PrefixedPrompt(BaseChatPromptTemplate):
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         history = kwargs[self.messages_field]
         if history and self.prompt:
-            return [HumanMessage(content=self.prompt)] + [self.transformer(i) for i in history]
+            return [HumanMessage(content=self.prompt)] + [
+                self.transformer(i) for i in history
+            ]
         return []
 
 
@@ -104,26 +129,26 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
     callbacks: List[StampyCallbackHandler] = []
     max_history: int = 10
 
-    def set_messages(self, history: List[dict]) -> None:
+    def set_messages(self, history: List[BaseMessage]) -> None:
         """Replace the current list of messages with `history`, pruning as needed."""
         for callback in self.callbacks:
             callback.on_memory_set_start(history)
 
-        messages = [ChatMessage(m) for m in history if m.get('role') != 'deleted']
+        messages = history
         # If there are more than `max_history` messages, first summarize the older ones. If there
         # are n messages (where n > max_history), then the first `n - max_history + 1` should be
         # summarized and inserted as the first item in the history, so as to ensure there are
         # `max_history` items.
-        if len(messages) > self.max_history :
+        if len(messages) > self.max_history:
             offset = -self.max_history + 1
 
             pruned = messages[:offset]
-            summary = AIMessage(role='assistant', content=self.predict_new_summary(pruned, ''))
+            summary = AIMessage(content=self.predict_new_summary(pruned, ""))
 
             messages = [summary] + messages[offset:]
 
         self.clear()
-        self.chat_memory = ChatMessageHistory(messages=messages)
+        self.chat_memory = InMemoryChatMessageHistory(messages=messages)
         self.prune()
 
         for callback in self.callbacks:
@@ -136,6 +161,8 @@ class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
         all messages are longer than the max_token_limit
         """
         buffer = self.chat_memory.messages
+        if not buffer:
+            return
         curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
         if curr_buffer_length > self.max_token_limit:
             pruned_memory = []
@@ -161,10 +188,13 @@ class ModeratedChatPrompt(ChatPromptTemplate):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.moderation_chain:
-            self.moderation_chain = OpenAIModerationChain(error=True, openai_api_key=OPENAI_API_KEY)
+            self.moderation_chain = OpenAIModerationChain(
+                error=True, openai_api_key=OPENAI_API_KEY
+            )
 
     def format_prompt(self, **kwargs: Any) -> PromptValue:
         """Raise an exception if the prompt is flagged as offensive by OpenAI."""
+        print(kwargs.get("history"))
         prompt = super().format_prompt(**kwargs)
         try:
             self.moderation_chain.run(prompt.to_string())
@@ -179,35 +209,35 @@ class ChatAnthropicWrapper(ChatAnthropic):
     Anthropic only allows alternating human - ai messages, so join them up first.
     So much for langchain being plug'n'play...
     """
+
     def _format_params(self, *args, **kwargs):
-        first = kwargs['messages'][0]
+        first = kwargs["messages"][0]
         # Anthropic requires the first message to be either a system or human message
         if isinstance(first, AIMessage):
             first = SystemMessage(content=first.content)
 
         messages = [first]
-        for m in kwargs['messages'][1:]:
+        for m in kwargs["messages"][1:]:
             if m.type != messages[-1].type:
                 messages.append(m)
             else:
-                messages[-1].content += '\n\n' + m.content
-        kwargs['messages'] = messages
+                messages[-1].content += "\n\n" + m.content
+        kwargs["messages"] = messages
         return super()._format_params(*args, **kwargs)
 
 
 def get_model(**kwargs):
-    model = MODELS.get(kwargs.get('model'))
+    model = MODELS.get(kwargs.get("model"))
     if not model:
         raise ValueError("No model provided")
     if model.publisher == ANTHROPIC:
         return ChatAnthropicWrapper(anthropic_api_key=ANTHROPIC_API_KEY, **kwargs)
     if model.publisher == OPENAI:
         return ChatOpenAI(openai_api_key=OPENAI_API_KEY, **kwargs)
-    raise ValueError(f'Unsupported model: {kwargs.get("model")}')
+    raise ValueError(f"Unsupported model: {kwargs.get('model')}")
 
 
 class LLMInputsChain(LLMChain):
-
     inputs: Dict[str, Any] = {}
 
     def _call(self, inputs: Dict[str, Any], run_manager=None):
@@ -228,33 +258,43 @@ def make_prompt(settings, chat_model, callbacks):
     # 1. Create the context prompt from items fetched from pinecone
     context_template = "\n\n[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}\n\n"
     context_prompt = MessageBufferPromptTemplate(
-        example_selector=make_example_selector(k=settings.topKBlocks, callbacks=callbacks),
-        example_prompt=ChatPromptTemplate.from_template(context_template, template_format="jinja2"),
+        example_selector=make_example_selector(
+            k=settings.topKBlocks, callbacks=callbacks
+        ),
+        example_prompt=ChatPromptTemplate.from_template(
+            context_template, template_format="jinja2"
+        ),
         get_num_tokens=chat_model.get_num_tokens,
         max_tokens=settings.context_tokens,
-        input_variables=['query', 'history'],
+        input_variables=["query", "history"],
     )
 
     # 2. The history items will be passed in from the memory
-    history_prompt = PrefixedPrompt(input_variables=['history'], messages_field='history', prompt=settings.history_prompt)
+    history_prompt = PrefixedPrompt(
+        input_variables=["history"],
+        messages_field="history",
+        prompt=settings.history_prompt,
+    )
 
     # 3. Construct the main query
     query_prompt = ChatPromptTemplate.from_messages(
         [
             HumanMessage(content=settings.question_prompt),
             HumanMessagePromptTemplate.from_template(
-                template=f'{settings.question_marker}: {{query}}',
+                template=f"{settings.question_marker}: {{query}}",
             ),
         ]
     )
 
     # 4. ModeratedChatPrompt will cause the whole chain to fail if untoward values are provided
-    return ModeratedChatPrompt.from_messages([
-        SystemMessage(content=settings.context_prompt),
-        context_prompt,
-        history_prompt,
-        query_prompt,
-    ])
+    return ModeratedChatPrompt.from_messages(
+        [
+            SystemMessage(content=settings.context_prompt),
+            context_prompt,
+            history_prompt,
+            query_prompt,
+        ]
+    )
 
 
 def make_memory(settings, history, callbacks):
@@ -263,11 +303,11 @@ def make_memory(settings, history, callbacks):
         llm=get_model(model=SUMMARY_MODEL),  # used for summarization
         max_token_limit=settings.history_tokens,
         max_history=settings.maxHistory,
-        chat_memory=ChatMessageHistory(),
+        chat_memory=InMemoryChatMessageHistory(),
         return_messages=True,
-        callbacks=callbacks
+        callbacks=callbacks,
     )
-    memory.set_messages([i for i in history if i.get('role') != 'deleted'])
+    memory.set_messages(history)
     return memory
 
 
@@ -285,18 +325,37 @@ def merge_history(history):
     messages = []
     current_message = history[0]
     for message in history[1:]:
-        if message.get('role') in ['deleted', 'error']:
+        role = message.get("role")
+        if role in ["deleted", "error"]:
             continue
-        if message.get('role') != current_message.get('role'):
+        if role != current_message.get("role"):
             messages.append(current_message)
             current_message = message
         else:
-            current_message['content'] += '\n' + message.get('content', '')
+            current_message["content"] += "\n" + message.get("content", "")
     messages.append(current_message)
-    return messages
+
+    #  The frontend returns "role", while newer langchain requires "type". I'd change the frontend,
+    #  but that's annoying - I'd rather just purge langchain...
+    def transform(h):
+        role = h.pop("role")
+        if role == "user":
+            role = "human"
+        if role == "assistant":
+            role = "ai"
+        return {"type": role, "data": h}
+
+    return messages_from_dict([transform(m) for m in messages])
 
 
-def run_query(session_id: str, query: str, history: List[Dict], settings: Settings, callback: Callable[[Any], None] = None, followups=True) -> Dict[str, str]:
+def run_query(
+    session_id: str,
+    query: str,
+    history: List[Dict],
+    settings: Settings,
+    callback: Optional[Callable[[Any], None]] = None,
+    followups=True,
+) -> Dict[str, str]:
     """Execute the query.
 
     :param str query: the phrase that was input by the user
@@ -305,7 +364,9 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
     :param Callable[[Any], None] callback: an optional callback that will be called at various key parts of the chain
     :returns: the result of the chain
     """
-    callbacks = [LoggerCallbackHandler(session_id=session_id, query=query, history=history)]
+    callbacks = [
+        LoggerCallbackHandler(session_id=session_id, query=query, history=history)
+    ]
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
 
@@ -314,28 +375,33 @@ def run_query(session_id: str, query: str, history: List[Dict], settings: Settin
         streaming=True,
         callbacks=callbacks,
         max_tokens=settings.max_response_tokens,
-        model=settings.completions
+        model=settings.completions,
     )
+
+    prompt = make_prompt(settings, chat_model, callbacks)
+    for call in callbacks:
+        call.on_prompt(prompt, query, history)
 
     llm_chain = LLMChain(
         llm=chat_model,
         verbose=False,
-        prompt=make_prompt(settings, chat_model, callbacks),
-        memory=make_memory(settings, history, callbacks)
+        prompt=prompt,
+        memory=make_memory(settings, history, callbacks),
     )
-    
+
     chain = llm_chain
     if followups:
         chain = chain | StampyChain(callbacks=callbacks)
-    
+
     chain_input = {
         "query": query,
-        'history': history,
+        "history": history,
     }
-    
+
     result = chain.invoke(chain_input)
+    print("result", result)
 
     if callback:
-        callback({'state': 'done'})
+        callback({"state": "done"})
         callback(None)
     return result

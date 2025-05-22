@@ -3,9 +3,9 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
-from langchain.callbacks.manager import CallbackManagerForChainRun
+from langchain_core.callbacks import CallbackManagerForChainRun
 from langchain.chains.base import Chain
-from langchain.pydantic_v1 import Extra
+from pydantic import Extra
 
 from stampy_chat import logging
 

@@ -120,3 +120,14 @@ ol {
 .text-section {
   padding-bottom: 8px;
 }
+
+.prompt-container {
+  background-color: #f0f0f0;
+  padding: 4px;
+}
+
+.prompt-item {
+  @apply text-sm;
+  padding: 8px;
+  border-radius: 4px;
+}

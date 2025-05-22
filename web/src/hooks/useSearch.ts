@@ -1,9 +1,6 @@
 import { API_URL, STAMPY_URL, STAMPY_CONTENT_URL } from "../settings";
 import type {
-  Citation,
-  Entry,
   AssistantEntry,
-  ErrorMessage,
   StampyMessage,
   Followup,
   CurrentSearch,
@@ -58,12 +55,12 @@ export async function* iterateData(res: Response) {
 }
 
 const makeEntry = () =>
-  ({
-    role: "assistant",
-    content: "",
-    citations: [],
-    citationsMap: new Map(),
-  } as AssistantEntry);
+({
+  role: "assistant",
+  content: "",
+  citations: [],
+  citationsMap: new Map(),
+} as AssistantEntry);
 
 export const extractAnswer = async (
   res: Response,
@@ -89,12 +86,20 @@ export const extractAnswer = async (
         // incrementally build up the response
         const content = formatCitations((result?.content || "") + data.content);
         result = {
+          ...result,
           content,
           role: "assistant",
-          citations: result?.citations || [],
           citationsMap: findCitations(content, result?.citations || []),
         };
         setCurrent({ phase: "streaming", ...result });
+        break;
+
+      case "prompt":
+        result = {
+          ...result,
+          prompt: data.prompt,
+        };
+        setCurrent({ phase: "prompt", ...result });
         break;
 
       case "followups":

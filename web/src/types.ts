@@ -1,11 +1,14 @@
 export type Citation = {
-  title: string;
-  authors: string[];
-  date: string;
-  url: string;
-  index: number;
-  text: string;
-};
+  title: string
+  authors: string[]
+  date: string
+  url: string
+  source: string
+  index: number
+  text: string
+  reference: string
+  id?: string
+}
 
 export type Followup = {
   text: string;
@@ -27,6 +30,7 @@ export type AssistantEntry = {
   citations?: Citation[];
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
+  prompt?: string;
 };
 
 export type ErrorMessage = {

@@ -3,21 +3,26 @@ import traceback
 from queue import Queue
 from typing import Any, Dict, List, Callable, Iterator
 
-from langchain.callbacks.base import BaseCallbackHandler
-from langchain.schema import BaseMessage
-
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.messages import BaseMessage
+from langchain_core.prompts import ChatPromptTemplate
 from stampy_chat import logging
-
+from sqlalchemy.exc import DatabaseError
+import mysql.connector.errors
 
 logger = logging.getLogger(__name__)
 
 
 class StampyCallbackHandler(BaseCallbackHandler):
-
-    def on_memory_set_start(self, history: List[dict]) -> None:
+    def on_memory_set_start(self, history: List[BaseMessage]) -> None:
         pass
 
-    def on_memory_set_end(self, history: List[dict]) -> None:
+    def on_memory_set_end(self, history: List[BaseMessage]) -> None:
+        pass
+
+    def on_prompt(
+        self, prompt: ChatPromptTemplate, query: str, history: List[BaseMessage]
+    ) -> None:
         pass
 
     def on_context_fetch_start(self, input_variables: Dict[str, str]) -> None:
@@ -44,36 +49,49 @@ class BroadcastCallbackHandler(StampyCallbackHandler):
         if self.broadcaster:
             self.broadcaster(value and value)
 
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.broadcast({'state': 'streaming', 'content': token})
+    def on_prompt(
+        self, prompt: ChatPromptTemplate, query: str, history: List[dict]
+    ) -> None:
+        formatted = prompt.format_prompt(query=query, history=history)
+        self.broadcast({"state": "prompt", "prompt": formatted.to_string()})
 
-    def on_memory_set_start(self, history: List[dict]):
-        self.broadcast({'state': 'loading', 'phase': 'history'})
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.broadcast({"state": "streaming", "content": token})
+
+    def on_memory_set_start(self, history: List[BaseMessage]):
+        self.broadcast({"state": "loading", "phase": "history"})
 
     def on_context_fetch_start(self, input_variables: Dict[str, str]) -> None:
-        self.broadcast({'state': 'loading', 'phase': 'context'})
+        self.broadcast({"state": "loading", "phase": "context"})
 
     def on_context_fetch_end(self, context: List[dict]) -> None:
-        self.broadcast({'state': 'citations', 'citations': context})
-        self.broadcast({'state': 'loading', 'phase': 'prompt'})
+        self.broadcast({"state": "citations", "citations": context})
+        self.broadcast({"state": "loading", "phase": "prompt"})
 
-    def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[BaseMessage]], **kwargs: Any) -> Any:
-        self.broadcast({'state': 'loading', 'phase': 'llm'})
+    def on_chat_model_start(
+        self,
+        serialized: Dict[str, Any],
+        messages: List[List[BaseMessage]],
+        **kwargs: Any,
+    ) -> Any:
+        self.broadcast({"state": "loading", "phase": "llm"})
 
     # def on_llm_end(self, response, **kwargs: Any) -> Any:
     #     self.broadcast({'state': 'done'})
 
     def on_followups_start(self, inputs: Dict[str, Any]) -> None:
-        self.broadcast({'state': 'loading', 'phase': 'followups'})
+        self.broadcast({"state": "loading", "phase": "followups"})
 
     def on_followups_end(self, followups: List[Dict[str, Any]]) -> None:
-        self.broadcast({'state': 'followups', 'followups': followups})
+        self.broadcast({"state": "followups", "followups": followups})
 
 
 class LoggerCallbackHandler(StampyCallbackHandler):
     """A callback handler that will collect events and then log it in the database."""
 
-    def __init__(self, session_id=None, query=None, history=None, *args, **kwargs) -> None:
+    def __init__(
+        self, session_id=None, query=None, history=None, *args, **kwargs
+    ) -> None:
         self.session_id = session_id
         self.query = query
         self.response = None
@@ -82,22 +100,38 @@ class LoggerCallbackHandler(StampyCallbackHandler):
         self.prompt = None
         super().__init__(*args, **kwargs)
 
-    def on_memory_set_start(self, history: List[dict]):
+    def on_memory_set_start(self, history: List[BaseMessage]):
         self.history = history
 
     def on_context_fetch_end(self, context: List[dict]) -> None:
         self.context = context
 
     def on_llm_end(self, response, **kwargs: Any) -> Any:
-        response = ''.join([gen.text for gen in response.generations[0]])
-        logger.interaction(self.session_id, self.query, response, self.history, self.prompt, self.context)
+        response = "".join([gen.text for gen in response.generations[0]])
+        try:
+            logger.interaction(
+                self.session_id,
+                self.query,
+                response,
+                self.history,
+                self.prompt,
+                self.context,
+            )
+        except (DatabaseError, mysql.connector.errors.DatabaseError):
+            logger.error(traceback.format_exc())
 
-    def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any) -> Any:
-        self.prompt = '\n'.join(prompts)
+    def on_llm_start(
+        self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
+    ) -> Any:
+        self.prompt = "\n".join(prompts)
 
 
 Callback = Callable[[Any], None]
-def stream_callback(function: Callable[[Callback], Any], formatter: Callable[[Any], str] = str) -> Iterator:
+
+
+def stream_callback(
+    function: Callable[[Callback], Any], formatter: Callable[[Any], str] = str
+) -> Iterator:
     """Stream the items that are sent via a callback.
 
     This function expects to get a one argument function that will generate stuff. The
@@ -158,5 +192,11 @@ def stream_callback(function: Callable[[Callback], Any], formatter: Callable[[An
 
     # Call the `function` in a child thread - all callback items will be added to the queue and read from
     # this thread, i.e. the one in which `stream_callback` was called
-    threading.Thread(target=error_handler, args=(function, callback,)).start()
+    threading.Thread(
+        target=error_handler,
+        args=(
+            function,
+            callback,
+        ),
+    ).start()
     return generate(queue)
