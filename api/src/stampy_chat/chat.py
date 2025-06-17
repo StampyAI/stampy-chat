@@ -343,6 +343,8 @@ def merge_history(history):
             role = "human"
         if role == "assistant":
             role = "ai"
+        if role == "stampy":
+            role = "ai"
         return {"type": role, "data": h}
 
     return messages_from_dict([transform(m) for m in messages])
