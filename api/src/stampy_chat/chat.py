@@ -256,7 +256,7 @@ class LLMInputsChain(LLMChain):
 def make_prompt(settings, chat_model, callbacks):
     """Create a proper prompt object with all the necessary steps."""
     # 1. Create the context prompt from items fetched from pinecone
-    context_template = "\n\n[{{reference}}] {{title}} {{authors | join(', ')}} - {{date_published}} {{text}}\n\n"
+    context_template = "\n\<source-fragment id={{reference}} title=\"{{title}}\" authors=\"{{authors | join(', ')}}\" timestamp=\"{{date_published}}\">\n...{{text}}\n...\n</source-fragment>\n\n"
     context_prompt = MessageBufferPromptTemplate(
         example_selector=make_example_selector(
             k=settings.topKBlocks, callbacks=callbacks

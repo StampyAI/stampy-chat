@@ -34,7 +34,8 @@ class DummyVectorStore(VectorStore):
 def selector():
     examples = [
         (Mock(page_content=f'{i}', metadata={
-            'bla': f'bla {i}'
+            'bla': f'bla {i}',
+            'text': f'bla {i}'
         }), 0.81 + i / 10) for i in range(5)
     ]
     return ReferencesSelector(vectorstore=DummyVectorStore(similarity_search_return=examples))
@@ -49,11 +50,11 @@ def test_ReferencesSelector_make_references(num, letter):
 
 def test_ReferencesSelector_select_examples(selector):
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
-        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
-        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
-        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
-        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
+        {'bla': 'bla 0', 'text': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'text': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'text': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'text': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'text': 'bla 4', 'id': '4', 'reference': '5'},
     ]
 
 
@@ -62,11 +63,11 @@ def test_ReferencesSelector_select_examples_callbacks(selector):
     selector.callbacks = [callback]
 
     expected_examples = [
-        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
-        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
-        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
-        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
-        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
+        {'bla': 'bla 0', 'text': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'text': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'text': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'text': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'text': 'bla 4', 'id': '4', 'reference': '5'},
     ]
     input_variables = {'var1': 'bla', 'var2': 'ble'}
 
@@ -78,16 +79,17 @@ def test_ReferencesSelector_select_examples_callbacks(selector):
 def test_ReferencesSelector_select_examples_removes_duplicates(selector):
     selector.vectorstore.similarity_search_return_value = [
         (Mock(page_content=f'{i}', metadata={
-            'bla': f'bla {i}'
+            'bla': f'bla {i}',
+            'text': f'bla {i}'
         }), selector.min_score + 0.1 + i / 10) for i in range(5)
     ] * 5
 
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
-        {'bla': 'bla 1', 'id': '1', 'reference': '2'},
-        {'bla': 'bla 2', 'id': '2', 'reference': '3'},
-        {'bla': 'bla 3', 'id': '3', 'reference': '4'},
-        {'bla': 'bla 4', 'id': '4', 'reference': '5'},
+        {'bla': 'bla 0', 'text': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 1', 'text': 'bla 1', 'id': '1', 'reference': '2'},
+        {'bla': 'bla 2', 'text': 'bla 2', 'id': '2', 'reference': '3'},
+        {'bla': 'bla 3', 'text': 'bla 3', 'id': '3', 'reference': '4'},
+        {'bla': 'bla 4', 'text': 'bla 4', 'id': '4', 'reference': '5'},
     ]
 
 
@@ -101,21 +103,22 @@ def test_ReferencesSelector_select_examples_removes_low_scores(selector):
 
     selector.vectorstore.similarity_search_return_value = [
         (Mock(page_content=f'{i}', metadata={
-            'bla': f'bla {i}'
+            'bla': f'bla {i}',
+            'text': f'bla {i}'
         }), calc_score(i)) for i in range(5)
     ]
 
     assert selector.select_examples(input_variables={}) == [
-        {'bla': 'bla 0', 'id': '0', 'reference': '1'},
-        {'bla': 'bla 2', 'id': '2', 'reference': '2'},
-        {'bla': 'bla 4', 'id': '4', 'reference': '3'},
+        {'bla': 'bla 0', 'text': 'bla 0', 'id': '0', 'reference': '1'},
+        {'bla': 'bla 2', 'text': 'bla 2', 'id': '2', 'reference': '2'},
+        {'bla': 'bla 4', 'text': 'bla 4', 'id': '4', 'reference': '3'},
     ]
 
 
 def test_ReferencesSelector_select_examples_check_history(selector):
 
     def searcher(query, *args, **kwargs):
-        return [(Mock(page_content=query, metadata={'bla': query}), 0.9)]
+        return [(Mock(page_content=query, metadata={'bla': query, 'text': query}), 0.9)]
 
     selector.vectorstore.similarity_search_return_value = None
     selector.vectorstore.similarity_search_func = searcher
@@ -126,17 +129,17 @@ def test_ReferencesSelector_select_examples_check_history(selector):
         Mock(content='last history item'),
     ]
     assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
-        {'bla': 'queried value', 'id': 'queried value', 'reference': '1'},
-        {'bla': 'last history item', 'id': 'last history item', 'reference': '2'},
-        {'bla': 'second history item', 'id': 'second history item', 'reference': '3'},
-        {'bla': 'first history item', 'id': 'first history item', 'reference': '4'}
+        {'bla': 'queried value', 'text': 'queried value', 'id': 'queried value', 'reference': '1'},
+        {'bla': 'last history item', 'text': 'last history item', 'id': 'last history item', 'reference': '2'},
+        {'bla': 'second history item', 'text': 'second history item', 'id': 'second history item', 'reference': '3'},
+        {'bla': 'first history item', 'text': 'first history item', 'id': 'first history item', 'reference': '4'}
     ]
 
 
 def test_ReferencesSelector_select_examples_check_history_n_items(selector):
     def searcher(query, *args, **kwargs):
         return [
-            (Mock(page_content=f'{query} - {i}', metadata={'bla': query}), 0.9)
+            (Mock(page_content=f'{query} - {i}', metadata={'bla': query, 'text': query}), 0.9)
             for i in range(3)
         ]
 
@@ -149,12 +152,12 @@ def test_ReferencesSelector_select_examples_check_history_n_items(selector):
         Mock(content='last history item'),
     ]
     assert selector.select_examples(input_variables={'query': 'queried value', 'history': history}) == [
-        {'bla': 'queried value', 'id': 'queried value - 0', 'reference': '1'},
-        {'bla': 'queried value', 'id': 'queried value - 1', 'reference': '2'},
-        {'bla': 'queried value', 'id': 'queried value - 2', 'reference': '3'},
-        {'bla': 'last history item', 'id': 'last history item - 0', 'reference': '4'},
-        {'bla': 'last history item', 'id': 'last history item - 1', 'reference': '5'},
-        {'bla': 'last history item', 'id': 'last history item - 2', 'reference': '6'},
+        {'bla': 'queried value', 'text': 'queried value', 'id': 'queried value - 0', 'reference': '1'},
+        {'bla': 'queried value', 'text': 'queried value', 'id': 'queried value - 1', 'reference': '2'},
+        {'bla': 'queried value', 'text': 'queried value', 'id': 'queried value - 2', 'reference': '3'},
+        {'bla': 'last history item', 'text': 'last history item', 'id': 'last history item - 0', 'reference': '4'},
+        {'bla': 'last history item', 'text': 'last history item', 'id': 'last history item - 1', 'reference': '5'},
+        {'bla': 'last history item', 'text': 'last history item', 'id': 'last history item - 2', 'reference': '6'},
     ]
 
 

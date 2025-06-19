@@ -51,6 +51,14 @@ class RemoteVectorStore(VectorStore):
         ]
 
 
+def fix_text(received_text):
+    """
+    discard the title format received from the vector db
+    """
+    import re
+    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
+
+
 class ReferencesSelector(SemanticSimilarityExampleSelector):
     """Get examples with enumerated indexes added."""
 
@@ -109,7 +117,7 @@ class ReferencesSelector(SemanticSimilarityExampleSelector):
                 examples += self.fetch_docs({"answer": item.content})
 
         examples = [
-            dict(e.metadata, id=e.page_content, reference=self.make_reference(i))
+            dict(e.metadata, id=e.page_content, reference=self.make_reference(i), text=fix_text(e.metadata['text']))
             for i, e in enumerate(examples)
         ]
 
