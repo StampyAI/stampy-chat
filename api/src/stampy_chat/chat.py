@@ -343,6 +343,17 @@ def merge_history(history):
             role = "human"
         if role == "assistant":
             role = "ai"
+        if role == "stampy":
+            # Stampy answers (i.e. human written answers) aren't clearly human or ai.
+            # They are "human" in the sense that humans wrote them,
+            # but they are also "ai" in the sense that they are answers to questions.
+            # Importantly, LLM providers/langchain may expect LLM messages to be in a specific format or have restrictions.
+            # For example, Anthropic seems to require that AI messages don't have trailing whitespace (https://github.com/microsoft/autogen/issues/6167)
+            # As there seem to be less restrictions on human messages, we'll use that
+            # See list of message types: https://python.langchain.com/api_reference/_modules/langchain_core/messages/utils.html#messages_from_dict
+            # Anthropic seems to only accept "human" and "ai" messages:
+            # https://github.com/langchain-ai/langchain/blob/a79998800c2f0dc17347fcaee4dab77681235490/libs/partners/anthropic/langchain_anthropic/chat_models.py#L74
+            role = "human"
         return {"type": role, "data": h}
 
     return messages_from_dict([transform(m) for m in messages])
