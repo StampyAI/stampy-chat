@@ -80,6 +80,8 @@ MODELS = {
     "claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTHROPIC),
     "claude-3-5-sonnet-20241022": Model(200_000, 50, 4096, ANTHROPIC),
     "claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
+    "claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+    "claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
     "claude-3-sonnet-20240229": Model(200_000, 50, 4096, ANTHROPIC),
     "claude-3-haiku-20240307": Model(200_000, 50, 4096, ANTHROPIC),
     "claude-2.1": Model(200_000, 50, 4096, ANTHROPIC),

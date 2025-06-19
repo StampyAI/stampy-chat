@@ -67,6 +67,9 @@ export const MODELS: { [key: string]: Model } = {
   "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
   "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
   "claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "claude-sonnet-4-20250514": { maxNumTokens: 8000, topKBlocks: 50 },
+  "claude-opus-4-20250514": { maxNumTokens: 8000, topKBlocks: 50 },
+  "claude-3-7-sonnet-20250219": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
   "claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
@@ -147,10 +150,10 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  completions: withDefault("gpt-3.5-turbo"),
+  completions: withDefault("claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
-  topKBlocks: withDefault(MODELS["gpt-3.5-turbo"]?.topKBlocks), //  the number of blocks to use as citations
-  maxNumTokens: withDefault(MODELS["gpt-3.5-turbo"]?.maxNumTokens),
+  topKBlocks: withDefault(MODELS["claude-sonnet-4-20250514"]?.topKBlocks), //  the number of blocks to use as citations
+  maxNumTokens: withDefault(MODELS["claude-sonnet-4-20250514"]?.maxNumTokens),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
