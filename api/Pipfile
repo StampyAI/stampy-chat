@@ -30,6 +30,7 @@ alembic = "*"
 sqlalchemy = "*"
 mysql-connector-python = "*"
 transformers = "*"
+frozendict = "*"
 
 [dev-packages]
 pytest = "*"
