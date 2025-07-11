@@ -33,6 +33,8 @@ transformers = "*"
 
 [dev-packages]
 pytest = "*"
+pytest-cov = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.11"
