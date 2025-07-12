@@ -1,4 +1,8 @@
-,claude-sonnet-4-20250514|stampy-full|system=stampy-context-2507111705-aa7693,claude-sonnet-4-20250514|system=stampy-context-2507111705-aa7693,gemini-2.5-flash|system=stampy-context-2507111705-aa7693
+,"claude-sonnet-4-20250514;
+stampy-full;
+system=stampy-context-2507111705-aa7693","claude-sonnet-4-20250514;
+system=stampy-context-2507111705-aa7693","gemini-2.5-flash;
+system=stampy-context-2507111705-aa7693"
 what is alignment?,"<thinking>
 The user is asking about alignment in the context of AI. I need to look through the sources to see what definitions and explanations they provide. Let me analyze what each source says about alignment:
 
