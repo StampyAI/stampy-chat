@@ -31,6 +31,7 @@ sqlalchemy = "*"
 mysql-connector-python = "*"
 transformers = "*"
 frozendict = "*"
+google-genai = "*"
 
 [dev-packages]
 pytest = "*"
