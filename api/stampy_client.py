@@ -12,6 +12,7 @@ import hashlib
 import os
 import glob
 import re
+import argparse
 from datetime import datetime
 from typing import Any, Optional
 from frozendict import frozendict
@@ -28,7 +29,7 @@ def strip_version_suffix(filename_without_ext: str) -> str:
     return re.sub(pattern, '', filename_without_ext)
 
 
-def _resolve_prompt_name(incoming_name: str, prompts: dict[str, str]) -> str:
+def _resolve_prompt_name(incoming_name: str, prompts: dict[str, str], oneonly_skip: bool) -> str:
     """Resolve prompt name, with fallback matching for versioned prompts.
 
     If incoming_name doesn't exist in prompts, look for prompts that match
@@ -39,7 +40,7 @@ def _resolve_prompt_name(incoming_name: str, prompts: dict[str, str]) -> str:
         return incoming_name
 
     # Pattern to match versioned prompts: incoming_name followed by -timestamp-hash
-    pattern = f"^{re.escape(incoming_name)}-[0-9]+-[a-zA-Z0-9]{{6}}$"
+    pattern = f"^{re.escape(incoming_name)}"
 
     matching_prompts = []
     for prompt_name in prompts.keys():
@@ -47,6 +48,9 @@ def _resolve_prompt_name(incoming_name: str, prompts: dict[str, str]) -> str:
             matching_prompts.append(prompt_name)
 
     if matching_prompts:
+        if oneonly_skip and len(matching_prompts) == 1:
+            return incoming_name
+
         # Return the maximum (latest) matching prompt
         return max(matching_prompts)
 
@@ -61,15 +65,19 @@ def parse_config(config: str, prompts: dict[str, str]) -> frozendict:
         config: String with model and settings separated by |
         prompts: dict of available prompts for name matching
     """
-    parts = config.lower().split('|')
+    parts = re.split(r'\s*\|\s*|\s*;\s*', config.lower())
     result = {'model': None, 'data': None}
 
     for part in parts:
+        part = part.strip()
+        if not part: continue
         if '=' in part:
-            key, value = part.split('=', 1)
+            key, values = part.split('=', 1)
             # Handle prompt name matching for any key if prompts dict is provided
-            value = _resolve_prompt_name(value, prompts)
-            result[key] = value
+            values = values.split(",")
+            values = [_resolve_prompt_name(value.strip(), prompts, oneonly_skip=True) for value in values]
+            key = key.strip()
+            result[key] = tuple(values)
         else:
             # Handle parts without '=' - assume they're model or context names
             models = ('claude', 'gpt', 'gemini', 'deepseek', 'gemma', 'llama', 'mistral', 'o1', 'o3', 'o4', 'qwen')
@@ -90,15 +98,17 @@ def format_config(config: frozendict[str, str]) -> str:
     if data: res.append(data)
 
     for key, value in sorted(config.items(), key=lambda x: (len(x), x)):
+        if type(value) == tuple:
+            value = ", ".join(value)
         res.append(f"{key}={value}")
 
-    return "|".join(res)
+    return ";\n".join(res)
 
 
 def load_prompts() -> dict[str, str]:
     """Load all prompts from ~/prompts directory with versioned names."""
     prompts = {}
-    prompts_dir = os.path.expanduser("~/prompts")
+    prompts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "prompts")
 
     # Create prompts directory if it doesn't exist
     if not os.path.exists(prompts_dir):
@@ -125,7 +135,7 @@ def load_prompts() -> dict[str, str]:
             file_stat = os.stat(file_path)
 
             # Generate SHA256 hash of content
-            content_hash = hashlib.sha256(content.encode()).hexdigest()[:6]
+            content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()[:6]
 
             # Get filename without extension and strip any existing version suffix
             filename = os.path.basename(file_path)
@@ -152,7 +162,7 @@ def load_prompts() -> dict[str, str]:
 
 def _process_settings_prompt(prompts_dir: str, name: str, content: str, time_str: str, prompts: dict[str, str]) -> None:
     """Process a settings prompt: check for duplicates and save if new."""
-    content_hash = hashlib.sha256(content.encode()).hexdigest()[:6]
+    content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()[:6]
 
     # Check if any existing file has matching hash and content
     for pattern_ext in ["*.md", "*.txt"]:
@@ -165,19 +175,8 @@ def _process_settings_prompt(prompts_dir: str, name: str, content: str, time_str
             with open(existing_file, 'r', encoding='utf-8') as f:
                 existing_content = f.read()
 
-            existing_hash = hashlib.sha256(existing_content.encode()).hexdigest()[:6]
-            if existing_hash == content_hash and existing_content == content:
-                # Found duplicate, don't save but add to prompts
-                filename = os.path.basename(existing_file)
-                name_without_ext = os.path.splitext(filename)[0]
-                clean_name = strip_version_suffix(name_without_ext)
-
-                file_stat = os.stat(existing_file)
-                mtime = datetime.fromtimestamp(file_stat.st_mtime)
-                file_time_str = mtime.strftime("%y%m%d%H%M")
-
-                key = f"{clean_name}-{file_time_str}-{content_hash}"
-                prompts[key] = content
+            if existing_content == content:
+                # will be handled by main load, above
                 return
 
     # No duplicate found, save new file
@@ -191,47 +190,48 @@ def _process_settings_prompt(prompts_dir: str, name: str, content: str, time_str
     prompts[key] = content
 
 
-def load_csv(file_path: str, prompts: dict[str, str]) -> dict[str, dict[str, str]]:
+def load_csv(file_path: str, prompts: dict[str, str]) -> tuple[list[frozendict], dict[str, dict[frozendict, str]]]:
     """Load CSV file into question-major dict representation."""
     result = {}
 
-    configs_dict = {}
-    with open(file_path, 'r', newline='', encoding='utf-8') as f:
+    configs_dict: dict[frozendict, str] = {}
+    configs_list: list[frozendict] = []
+
+    try:
+        f = open(file_path, 'r', newline='', encoding='utf-8')
+    except FileNotFoundError:
+        return {}
+
+    with f:
+        #import pudb; pudb.set_trace()
         reader = csv.DictReader(f)
-        for row in reader:
+        rows = list(reader)
+        for config_str in reader.fieldnames[1:]:
+            configs_list.append(parse_config(config_str, prompts))
+            configs_dict[configs_list[-1]] = config_str
+        all_questions = []
+        for row in rows:
             question = row.get('', '')  # First column should be empty header for questions
             if not question:
+                print("no question in row", row)
                 continue
 
             question_responses = {}
-            for config, response in row.items():
-                if config == '': continue # question column
+            for config in configs_list:
+                config_str = configs_dict[config]
 
-                if config in configs_dict:
-                    config = configs_dict[config]
-                else:
-                    config = configs_dict[config] = parse_config(config, prompts)
+                question_responses[config] = row.get(config_str, '')
 
-                # Add all configs, even with empty responses
-                question_responses[config] = response
+            all_questions.append(question)
+            result[question] = question_responses
 
-            if question_responses:
-                result[question] = question_responses
-
-    return result
+    return configs_list, all_questions, result
 
 
-def save_csv(data: dict[str, dict[str, str]], file_path: str) -> None:
+def save_csv(data: dict[str, dict[frozendict, str]], file_path: str, all_questions: list[str], all_configs: list[frozendict]) -> None:
     """Save question-major dict to CSV format."""
     if not data:
         return
-
-    # Collect all unique config across all questions
-    all_configs = set()
-    for question_responses in data.values():
-        all_configs.update(question_responses.keys())
-
-    all_configs = sorted(list(all_configs), key=lambda x: format_config(x))
 
     with open(file_path, 'w', newline='', encoding='utf-8') as f:
         # Write header
@@ -239,7 +239,8 @@ def save_csv(data: dict[str, dict[str, str]], file_path: str) -> None:
         writer.writerow([''] + [format_config(config) for config in all_configs])
 
         # Write data rows
-        for question, responses in data.items():
+        for question in all_questions:
+            responses = data[question]
             row = [question]
             for config in all_configs:
                 row.append(responses.get(config, ''))
@@ -251,14 +252,17 @@ def stampy(
     messages: list[str],
     system: str = settings.SOURCE_PROMPT,
     history_prompt: str = settings.HISTORY_PROMPT,
-    pre_question: str = settings.QUESTION_PROMPT,
-    question_marker: str = settings.QUESTION_MARKER,
+    history_summary_prompt: str = settings.HISTORY_SUMMARIZE_PROMPT,
+    pre_message: str = settings.PRE_MESSAGE_PROMPT,
+    post_message: str = settings.POST_MESSAGE_PROMPT,
+    message_format: str = settings.MESSAGE_FORMAT,
+    instruction_wrapper: str = settings.INSTRUCTION_WRAPPER,
     modes: Optional[dict] = None,
     session_id: Optional[str] = None,
     url: str = "http://127.0.0.1:3001/chat",
     mode: str = "default",
     model: str = "claude-sonnet-4-20250514",
-    stream: bool = False,
+    skip_reply: bool = False,
     **kwargs
 ) -> dict[str, Any]:
     if len(messages) % 2 == 0:
@@ -283,15 +287,16 @@ def stampy(
             "context": system,
             "history": history_prompt,
             "history_summary": history_prompt,  # TODO: this should probably be different
-            "question": pre_question,
-            "question_marker": question_marker,
+            "pre_message": pre_message,
+            "post_message": post_message,
+            "message_format": message_format,
             "modes": our_modes
         },
         "mode": mode,
         "completions": model,
         "encoder": "cl100k_base",
         "topKBlocks": 50,
-        "maxNumTokens": 8000,
+        "maxNumTokens": 25000,
         "tokensBuffer": 50,
         "maxHistory": 10,
         "maxHistorySummaryTokens": 200,
@@ -300,43 +305,44 @@ def stampy(
         **kwargs
     }
 
-    # Build request payload
-    payload = {
-        "sessionId": session_id or str(uuid.uuid4()),
-        "query": query,
-        "history": history,
-        "settings": request_settings,
-        "stream": stream
-    }
-
-
     # Make request
     response = requests.post(
         url,
-        json=payload,
+        json={
+            "sessionId": session_id or str(uuid.uuid4()),
+            "query": query,
+            "history": history,
+            "settings": request_settings,
+            "stream": True
+        },
         headers={
             "Content-Type": "application/json",
-            "Accept": "text/event-stream" if stream else "application/json"
+            "Accept": "text/event-stream"
         }
     )
 
     response.raise_for_status()
 
-    if stream:
-        # Parse streaming response
-        return _parse_streaming_response(response.text)
-    else:
-        # Non-streaming response - note: server may always return streaming format
-        try:
-            return {"reply": response.json(), "full_context": ""}
-        except:
-            # Fallback to parsing as streaming response if JSON parse fails
-            return _parse_streaming_response(response.text)
+    return _parse_streaming_response(response.text)
 
 
 def _parse_streaming_response(response_text: str) -> dict[str, Any]:
     """Parse the streaming response format."""
     lines = response_text.strip().split('\n')
+    # TODO: switch to using actual stream client, and count timing between each state change
+    # from SO:
+    # import requests
+    # 
+    # def get_stream(url):
+    #     s = requests.Session()
+    # 
+    #     with s.get(url, headers=None, stream=True) as resp:
+    #         for line in resp.iter_lines():
+    #             if line:
+    #                 print(line)
+    # 
+    # url = 'https://jsonplaceholder.typicode.com/posts/1'
+    # get_stream(url)
 
     citations = []
     prompt = ""
@@ -372,7 +378,7 @@ def _parse_streaming_response(response_text: str) -> dict[str, Any]:
     }
 
 
-def _prepare_messages(messages: list[str], fm_template: str, fm_head_inject: Optional[str], fm_bottom_inject: Optional[str]):
+def _prepare_messages(messages: list[str], fm_template: str, pre_message: Optional[str], post_message: Optional[str], instruction_wrapper: str):
     if len(messages) % 2 == 0:
         raise ValueError("Messages list must have odd length (ending with user message)")
 
@@ -384,11 +390,11 @@ def _prepare_messages(messages: list[str], fm_template: str, fm_head_inject: Opt
 
     # Handle the final message with template and injections
     final_message = messages[-1]
-    chunks = [fm_template.format(final_message=final_message)]
-    if fm_head_inject:
-        chunks.insert(0, fm_head_inject)
-    if fm_bottom_inject:
-        chunks.append(fm_bottom_inject)
+    chunks = [fm_template.replace("{{", "{").replace("}}", "}").format(final_message=final_message,query=final_message)]
+    if pre_message:
+        chunks.insert(0, instruction_wrapper.replace("{{", "{").replace("}}", "}").format(content=pre_message.strip()))
+    if post_message:
+        chunks.append(instruction_wrapper.replace("{{", "{").replace("}}", "}").format(content=post_message.strip()))
     final_message_content = "\n\n".join(chunks)
 
     api_messages.append({"role": "user", "content": final_message_content})
@@ -398,22 +404,24 @@ def _prepare_messages(messages: list[str], fm_template: str, fm_head_inject: Opt
 
 def anthropic_client(
     messages: list[str],
-    final_message_template: str = "<user-message>\n{final_message}\n</user-message>",
-    final_head_inject: Optional[str] = None,
-    final_bottom_inject: Optional[str] = None,
+    message_format: str = "<user-message>\n{final_message}\n</user-message>",
+    pre_message: Optional[str] = None,
+    post_message: Optional[str] = None,
+    instruction_wrapper: str = settings.INSTRUCTION_WRAPPER,
     system: Optional[str] = None,
     model: str = "claude-sonnet-4-20250514",
     max_tokens: int = 4096,
     temperature: Optional[float] = None,
     top_p: Optional[float] = None,
+    skip_reply: bool = False,
 ) -> dict[str, Any]:
     """Direct Anthropic API client with alternating message format.
 
     Args:
         messages: list of alternating user/assistant messages (must be odd length, ending with user message)
-        final_message_template: Template for formatting the final message
-        final_head_inject: Optional content to inject at the head of the final message
-        final_bottom_inject: Optional content to inject at the bottom of the final message
+        message_format: Template for formatting the final message
+        pre_message: Optional content to inject at the head of the final message
+        post_message: Optional content to inject at the bottom of the final message
         system: Optional system prompt
         model: Anthropic model to use
         max_tokens: Maximum tokens in response
@@ -424,7 +432,7 @@ def anthropic_client(
     Returns:
         dict with 'reply' key containing the response text
     """
-    api_messages = _prepare_messages(messages, final_message_template, final_head_inject, final_bottom_inject)
+    api_messages = _prepare_messages(messages, message_format, pre_message, post_message, instruction_wrapper)
 
     # Build API call parameters
     api_params = {
@@ -453,16 +461,17 @@ def anthropic_client(
     return {
         "reply": reply,
         "full_context": None,
-        "citations": None,
+        #"citations": None,
         "followups": None
     }
 
 
 def gemini_client(
     messages: list[str],
-    final_message_template: str = "<user-message>\n{final_message}\n</user-message>",
-    final_head_inject: Optional[str] = None,
-    final_bottom_inject: Optional[str] = None,
+    message_format: str,
+    pre_message: Optional[str] = None,
+    post_message: Optional[str] = None,
+    instruction_wrapper: str = settings.INSTRUCTION_WRAPPER,
     system: Optional[str] = None,
     model: str = "gemini-2.5-flash",
     max_tokens: int = 4096,
@@ -470,15 +479,16 @@ def gemini_client(
     temperature: Optional[float] = None,
     top_p: Optional[float] = None,
     top_k: Optional[int] = None,
+    skip_reply: bool = False,
 ) -> dict[str, Any]:
     """Direct Gemini API client with alternating message format.
 
     Args:
         messages: list of alternating user/assistant messages (must be odd length, ending with user message)
-        final_message_template: Template for formatting the final message
-        final_head_inject: Optional content to inject at the head of the final message
-        final_bottom_inject: Optional content to inject at the bottom of the final message
-        system_instruction: Optional system instruction
+        message_format: Template for formatting the final message
+        pre_message: Optional content to inject at the head of the final message
+        post_message: Optional content to inject at the bottom of the final message
+        system: Optional system instruction
         model: Gemini model to use
         max_tokens: Maximum tokens in response
         thinking_budget: Thinking budget (0 to disable thinking)
@@ -490,7 +500,7 @@ def gemini_client(
     Returns:
         dict with 'reply' key containing the response text
     """
-    api_messages = _prepare_messages(messages, final_message_template, final_head_inject, final_bottom_inject)
+    api_messages = _prepare_messages(messages, message_format, pre_message, post_message, instruction_wrapper)
 
     # Convert to Gemini's Content format
     contents = []
@@ -521,34 +531,36 @@ def gemini_client(
 
     config = genai.types.GenerateContentConfig(**config_params)
 
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=config
-    )
+    response = None
+    if not skip_reply:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config
+        )
 
     return {
-        "reply": response.text,
+        "reply": response.text if response else None,
         "full_context": None,
-        "citations": None,
+        #"citations": None,
         "followups": None
     }
 
 
 def test_csv_functions():
-    """Test CSV load/save functionality."""
+    """Test CSV load/save functionality. test is badly outdated and broken."""
     import tempfile
     import os
 
     # Test data
     test_data = {
         'What is AI alignment?': {
-            'claude-sonnet-4|data=stampy-full': 'AI alignment is the field...',
-            'gpt-4|data=stampy-miri': 'AI alignment refers to...'
+            parse_config('claude-sonnet-4|data=stampy-full'): 'AI alignment is the field...',
+            parse_config('gpt-4|data=stampy-miri'): 'AI alignment refers to...'
         },
         'What are x-risks?': {
-            'claude-sonnet-4|data=stampy-full': 'X-risks are existential risks...',
-            'gemini-pro|data=miri_the_question': 'Existential risks...'
+            parse_config('claude-sonnet-4|data=stampy-full'): 'X-risks are existential risks...',
+            parse_config('gemini-pro|data=miri_the_question'): 'Existential risks...'
         }
     }
 
@@ -561,8 +573,8 @@ def test_csv_functions():
         prompts = load_prompts()
         print(f'  Loaded prompts: {len(prompts)}')
 
-        save_csv(test_data, csv_path)
-        loaded_data = load_csv(csv_path, prompts)
+        save_csv(test_data, csv_path, list(test_data.keys()), list(list(test_data.values())[0].keys()))
+        _, _, loaded_data = load_csv(csv_path, prompts)
 
         print('CSV test results:')
         print(f'  Original questions: {len(test_data)}')
@@ -606,6 +618,11 @@ def test_csv_functions():
         if os.path.exists(csv_path):
             os.unlink(csv_path)
 
+parser = argparse.ArgumentParser()
+parser.add_argument("rw_csv")
+parser.add_argument("ro_csvs", nargs="*")
+parser.add_argument("-n", "--no-gen", action="store_true")
+
 
 if __name__ == "__main__":
     import sys
@@ -613,58 +630,100 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         test_csv_functions()
-    else:
-        if len(sys.argv) < 2:
-            print("Usage: python stampy_client.py <csv_path>")
-            sys.exit(1)
+        sys.exit()
 
-        csv_path = sys.argv[1]
-        prompts = load_prompts()
-        print(f'  Loaded prompts: {len(prompts)}')
+    args = parser.parse_args()
+    prompts = load_prompts()
+    print(f'  Loaded prompts: {len(prompts)}')
 
-        data = load_csv(csv_path, prompts)
-        print(f"  Loaded data: {len(data)} questions")
-        for q, r in data.items():
-            print(f"    Question: {q!r}, Responses: {len(r)}")
-        all_configs: set[frozendict[str,str]] = set()
-        for responses in data.values():
-            all_configs.update(responses.keys())
-        print(f"  All model configs: {len(all_configs)}")
+    all_configs, all_questions, data = load_csv(args.rw_csv, prompts)
+    print(f"  Loaded data: {len(data)} questions")
+    for q, r in data.items():
+        print(f"    Question: {q!r}, Responses: {len(r)}")
+    print(f"  All model configs: {len(all_configs)}")
 
-        for question, answers in data.items():
-            question_parts = re.split(r"\s*-{4,}\s*", question)
-            for config in all_configs:
-                response = answers.get(config)
-                if response and response != "invalid":
-                    continue
+    used_prompts = set()
 
-                start_time = time.time()
+    for question in all_questions:
+        answers = data[question]
+        question_parts = re.split(r"\s*-{4,}\s*", question)
+        for config in all_configs:
+            response = answers.get(config)
+            if response and response != "invalid" and not args.no_gen:
+                continue
 
+            start_time = time.time()
+
+            def fmt_prompt(key):
+                if not key:
+                    key = default
+                used_prompts.update(config.get(key, set()))
+                return "\n\n".join([prompts[_resolve_prompt_name(name, prompts, False)] for name in config.get(key, [])])
+
+            system = fmt_prompt('system')
+            pre_message = fmt_prompt('pre_message')
+            post_message = fmt_prompt('post_message')
+            message_format = fmt_prompt('message_format') or settings.MESSAGE_FORMAT
+            instruction_wrapper = fmt_prompt('instruction_wrapper') or settings.INSTRUCTION_WRAPPER
+            fields = [x.strip() for x in config.get("fields", "reply").split(",")]
+            skip_reply = "reply" not in fields
+
+            if args.no_gen:
+                rendered = {
+                    "config": format_config(config),
+                    "system": system,
+                    "pre_message": pre_message,
+                    "post_message": post_message,
+                    "message_format": message_format,
+
+                }
+                print()
+                print()
+                print("================================")
+                print("================================")
+                print()
+                print()
+                print("\n\n----------------\n".join([f"#### {key} ####\n\n{value}" for key, value in rendered.items()]))
+                continue
+
+            try:
                 match dict(config): # dict() to simplify type
-                    case {"data": data_name} if data_name in ["stampy-full", "stampy-miri"]:
+                    case {"data": data_name} if data_name in ["stampy-full"]: #, "stampy-miri"]:
                         result = stampy(
                             messages=question_parts,
                             #use_miri=data_name == "stampy-miri" # TODO: blocked on serverside work, including preparing vector db
-                            system=prompts.get(config.get('system'), ''),
-                            model=config.get("model", "claude-sonnet-4-20250514")
+                            system=system,
+                            pre_message=pre_message,
+                            post_message=post_message,
+                            message_format=message_format,
+                            model=config.get("model", "claude-sonnet-4-20250514"),
+                            skip_reply=skip_reply,
                         )
                     case {"model": model} if model.startswith("claude"):
                         result = anthropic_client(
                             messages=question_parts,
-                            system=prompts.get(config.get('system'), ''),
+                            system=system,
+                            pre_message=pre_message,
+                            post_message=post_message,
+                            message_format=message_format,
                             model=model,
                             temperature=float(config.get("temperature", 0.8)),
-                            top_p=float(config.get("top_p", 1.0))
+                            top_p=float(config.get("top_p", 1.0)),
+                            skip_reply=skip_reply,
                         )
                     case {"model": model} if model.startswith("gemini"):
                         result = gemini_client(
                             messages=question_parts,
-                            system=prompts.get(config.get('system'), ''),
+                            system=system,
+                            pre_message=pre_message,
+                            post_message=post_message,
+                            message_format=message_format,
                             model=model,
                             temperature=float(config.get("temperature", 0.8)),
                             top_p=float(config.get("top_p", 1.0)),
                             top_k=int(config["top_k"]) if "top_k" in config else None,
-                            thinking_budget=int(config.get("thinking_budget", 0))
+                            thinking_budget=int(config.get("thinking_budget", 0)),
+                            skip_reply=skip_reply,
                         )
                     case _:
                         answers[config] = "invalid"
@@ -672,10 +731,22 @@ if __name__ == "__main__":
 
 
                 elapsed = time.time() - start_time
+                print(f"# result from {config} for {question}:")
+                for key, value in result.items():
+                    print(f"### {key}:")
+                    print(value)
 
-                response = result[config.get("field", "reply")]
-                response = f"{response}\n\n[Response time: {elapsed:.2f}s]"
+                response = "\n\n".join(
+                    [result[field] for field in fields]
+                    + [f"[Response time: {elapsed:.2f}s]"]
+                )
 
                 answers[config] = response
+            except Exception as e:
+                if args.no_gen: raise
+                import traceback; traceback.print_exc()
+                continue
+            if not args.no_gen:
+                save_csv(data, args.rw_csv, all_questions, all_configs)
+        if args.no_gen: break
 
-        save_csv(data, csv_path)
