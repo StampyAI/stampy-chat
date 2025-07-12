@@ -1,0 +1,5 @@
+1. There isn’t a ceiling at human-level capabilities.
+2. ASI is very likely to exhibit goal-oriented behavior.
+3. ASI is very likely to pursue the wrong goals.
+4. It would be lethally dangerous to build ASIs that have the wrong goals.
+5. Catastrophe can be averted via a sufficiently aggressive policy response.
