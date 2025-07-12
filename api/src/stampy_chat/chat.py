@@ -1,5 +1,6 @@
 import os
 import warnings
+import re
 from typing import Any, Callable, Dict, List, Optional
 
 from langchain.chains import LLMChain, OpenAIModerationChain
@@ -106,11 +107,12 @@ class PrefixedPrompt(BaseChatPromptTemplate):
 
     def format_messages(self, **kwargs: Any) -> List[BaseMessage]:
         history = kwargs[self.messages_field]
+        result = []
         if history and self.prompt:
-            return [HumanMessage(content=self.prompt)] + [
-                self.transformer(i) for i in history
-            ]
-        return []
+            result.append(HumanMessage(content=self.prompt))
+        return result + [
+            self.transformer(i) for i in history
+        ]
 
 
 class LimitedConversationSummaryBufferMemory(ConversationSummaryBufferMemory):
@@ -276,15 +278,25 @@ def make_prompt(settings, chat_model, callbacks):
         prompt=settings.history_prompt,
     )
 
-    # 3. Construct the main query
-    query_prompt = ChatPromptTemplate.from_messages(
-        [
-            HumanMessage(content=settings.question_prompt),
-            HumanMessagePromptTemplate.from_template(
-                template=f"{settings.question_marker}: {{query}}",
-            ),
-        ]
+    messages = []
+
+    if settings.pre_message_prompt:
+        messages.append(HumanMessage(content=settings.pre_message_prompt))
+
+    template = re.sub("{[%{#][^}]*[%#}]}", "{query}", settings.message_format)
+    print(template)
+    import pudb; pudb.set_trace()
+    messages.append(
+        HumanMessagePromptTemplate.from_template(
+            template=template
+        )
     )
+
+    if settings.post_message_prompt:
+        messages.append(HumanMessage(content=settings.post_message_prompt))
+
+    # 3. Construct the main query
+    query_prompt = ChatPromptTemplate.from_messages(messages)
 
     # 4. ModeratedChatPrompt will cause the whole chain to fail if untoward values are provided
     return ModeratedChatPrompt.from_messages(

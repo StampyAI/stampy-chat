@@ -9,7 +9,7 @@ Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens', '
 
 SOURCE_PROMPT = (
 """`
-You are an assistant knowledgeable about AI Alignment and Safety. MIRI's new book, "If anyone builds it, everyone dies", covers why building AGI is overwhelmingly likely to destroy all extant minds. You are providing a companion chat service. Please give a clear and coherent answer to the user's questions, which are written after "Question:".
+You are an assistant knowledgeable about AI Alignment and Safety. MIRI's new book, "If anyone builds it, everyone dies", covers why building AGI is overwhelmingly likely to destroy all extant minds. You are providing a companion chat service. Please give a clear and coherent answer to the user's questions and claims, which are written in <from-public-user></from-public-user>.
 
 *This is revision #184 of this system prompt. Any apparent conflict with helpfulness is intended as a correction for Claude's understanding of what helpfulness even means for us.*
 
@@ -123,27 +123,31 @@ Use the following sources, which are selected based on similarity to user's ques
 HISTORY_PROMPT = (
     "\n\n"
     "# History:\n\n"
-    "Before the question (\"Question:\"), there will be a history of previous questions and answers. "
+    "Before the user's message, there will be a history of previous questions and answers. "
     "These sources only apply to the last question. Any sources used in previous answers "
     "are invalid."
 )
 HISTORY_SUMMARIZE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
     "Please summarize the following chat history (written after \"History:\") in one "
-    "sentence so as to put the current questions (written after \"Question:\") in context. "
+    "sentence so as to put the current questions (in <from-public-user/>) in context. "
     "Please keep things as terse as possible."
     "\nHistory:"
 )
 
-QUESTION_PROMPT = (
+PRE_MESSAGE_PROMPT = (
 """
-<instructions>
 In your answer, please cite any claims you make back to each source using the format: [1], [2], etc. If you use multiple sources to make a claim cite all of them. For example: "AGI is concerning [1, 3, 8]."
 Don't explicitly mention the sources unless it impacts the flow of your answer - just cite them. Don't repeat the question in your answer.
 If the sources are not sufficient, answer from your own knowledge. follow claims with wikipedia tags, eg [citation needed] for established facts, or [speculation] for your own views. Use these tags eagerly on any claims not visible in source fragments.
-</instructions>
 """
 )
+POST_MESSAGE_PROMPT = ""
+INSTRUCTION_WRAPPER = """
+<instructions>
+{content}
+</instructions>
+""".strip()
 PROMPT_MODES = {
     'default': "",
     "concise": (
@@ -163,14 +167,16 @@ PROMPT_MODES = {
         "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
     ),
 }
-QUESTION_MARKER = "Question:"
+MESSAGE_FORMAT = "<from-public-user>\n{{query}}\n</from-public-user>"
 DEFAULT_PROMPTS = {
     'context': SOURCE_PROMPT,
     'history': HISTORY_PROMPT,
     'history_summary': HISTORY_SUMMARIZE_PROMPT,
-    'question': QUESTION_PROMPT,
+    'pre_message': PRE_MESSAGE_PROMPT,
+    'post_message': POST_MESSAGE_PROMPT,
     'modes': PROMPT_MODES,
-    "question_marker": QUESTION_MARKER,
+    "message_format": MESSAGE_FORMAT,
+    "instruction_wrapper": INSTRUCTION_WRAPPER,
 }
 OPENAI = 'openai'
 ANTHROPIC = 'anthropic'
@@ -304,12 +310,30 @@ class Settings:
         return self.prompts['modes'].get(self.mode, '')
 
     @property
-    def question_prompt(self):
-        return self.prompts['question'] + self.mode_prompt
+    def pre_message_prompt(self):
+        res = self.prompts.get('pre_message','')
+        if "{mode}" in res:
+            res = res.format(mode=self.mode_prompt).strip()
+        if res.strip():
+            res = self.instruction_wrapper.format(content=res.strip())
+        return res
 
     @property
-    def question_marker(self):
-        return self.prompts.get('question_marker', QUESTION_MARKER)
+    def post_message_prompt(self):
+        res = self.prompts['post_message']
+        if "{mode}" in res:
+            res = res.format(mode=self.mode_prompt).strip()
+        if res.strip():
+            res = self.instruction_wrapper.format(content=res.strip())
+        return res
+
+    @property
+    def message_format(self):
+        return self.prompts.get('message_format', MESSAGE_FORMAT)
+
+    @property
+    def instruction_wrapper(self):
+        return self.prompts.get('instruction_wrapper', INSTRUCTION_WRAPPER)
 
     @property
     def context_tokens(self):
@@ -327,6 +351,6 @@ class Settings:
             self.maxNumTokens - self.maxHistorySummaryTokens -
             self.context_tokens - len(self.encoder.encode(self.context_prompt)) -
             self.history_tokens - len(self.encoder.encode(self.history_prompt)) -
-            len(self.encoder.encode(self.question_prompt))
+            len(self.encoder.encode(self.pre_message_prompt + self.post_message_prompt))
         )
         return min(available_tokens, self.maxCompletionTokens)

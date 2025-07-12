@@ -224,7 +224,7 @@ export const ChatPrompts = ({
         </details>
       )}
       <details open>
-        <summary>Question prompt</summary>
+        <summary>System prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
           value={settings?.prompts?.question}
@@ -240,8 +240,8 @@ export const ChatPrompts = ({
       <div>
         <input
           type="text"
-          value={settings?.prompts?.question_marker}
-          onChange={updatePrompt("question_marker")}
+          value={settings?.prompts?.message_format}
+          onChange={updatePrompt("message_format")}
           style={{ border: '1px solid #ccc', width: 'auto' }}
         />
         <span>asd {query}</span>

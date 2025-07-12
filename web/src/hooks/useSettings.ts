@@ -132,13 +132,15 @@ Use the following sources, which are selected based on similarity to user's ques
     "sentence so as to put the current questions (written after \"Question:\") in context. " +
     "Please keep things as terse as possible." +
     "\nHistory:",
-  question: `<instructions>
+  pre_message: `
 In your answer, please cite any claims you make back to each source using the format: [1], [2], etc. If you use multiple sources to make a claim cite all of them. For example: "AGI is concerning [1, 3, 8]."
 Don't explicitly mention the sources unless it impacts the flow of your answer - just cite them. Don't repeat the question in your answer.
 If the sources are not sufficient, answer from your own knowledge. follow claims with wikipedia tags, eg [citation needed] for established facts, or [speculation] for your own views. Use these tags eagerly on any claims not visible in source fragments.
-</instructions>`
+
+{mode}`
     ,
-  question_marker: "Question:",
+  post_message: '',
+  message_format: "Question: {{query}}",
   modes: {
     default: "",
     discord:
