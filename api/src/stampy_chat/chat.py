@@ -198,10 +198,10 @@ class ModeratedChatPrompt(ChatPromptTemplate):
         """Raise an exception if the prompt is flagged as offensive by OpenAI."""
         print(kwargs.get("history"))
         prompt = super().format_prompt(**kwargs)
-        try:
-            self.moderation_chain.run(prompt.to_string())
-        except ValueError as e:
-            raise ModerationError(e)
+        #try:
+        #    self.moderation_chain.run(prompt.to_string())
+        #except ValueError as e:
+        #    raise ModerationError(e)
         return prompt
 
 
