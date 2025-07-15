@@ -5,9 +5,9 @@ import type { CurrentSearch, Mode, Entry, LLMSettings } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
-    | ((v: number | undefined) => any)
-    | ((v: string | undefined) => any)
-    | ((v: object | undefined) => any);
+  | ((v: number | undefined) => any)
+  | ((v: string | undefined) => any)
+  | ((v: object | undefined) => any);
 };
 
 const DEFAULT_PROMPTS = {
@@ -59,21 +59,26 @@ interface Model {
   topKBlocks: number;
 }
 export const MODELS: { [key: string]: Model } = {
-  "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
-  "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
-  "o1": { maxNumTokens: 128000, topKBlocks: 50 },
-  "o1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
-  "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
-  "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
-  "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
-  "claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
-  "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50 },
-  "claude-instant-1.2": { maxNumTokens: 100_000, topKBlocks: 50 },
+  "openai/gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
+  "openai/gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
+  "openai/o1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
+  "openai/gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4o-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o4-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o3": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1-nano": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-20241022": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
 
