@@ -64,8 +64,3 @@ VOYAGEAI_API_KEY = os.environ.get("VOYAGEAI_API_KEY")
 VOYAGEAI_EMBEDDINGS_MODEL = os.environ.get(
     "VOYAGEAI_EMBEDDINGS_MODEL", "voyage-3-large"
 )
-
-### Langsmith ###
-LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY")
-LANGCHAIN_PROJECT = os.environ.get("LANGCHAIN_PROJECT")
-LANGCHAIN_TRACING_V2 = os.environ.get("LANGCHAIN_TRACING_V2")
