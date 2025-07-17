@@ -105,6 +105,7 @@ export const extractAnswer = async (
       case "followups":
         // add any potential followup questions
         followups = data.followups.map((value: any) => value as Followup);
+        console.log("followups", followups);
         break;
       case "done":
         break;
