@@ -1,44 +1,48 @@
 import threading
 import traceback
 from queue import Queue
-from typing import Any, Dict, List, Callable, Iterator
+from typing import Any, Callable, Iterator
+import pprint
 
-from langchain_core.callbacks import BaseCallbackHandler
-from langchain_core.messages import BaseMessage
-from langchain_core.prompts import ChatPromptTemplate
-from stampy_chat import logging
-from sqlalchemy.exc import DatabaseError
 import mysql.connector.errors
+from sqlalchemy.exc import DatabaseError
+
+from stampy_chat import logging
+from stampy_chat.citations import Block, Message
 
 logger = logging.getLogger(__name__)
 
 
-class StampyCallbackHandler(BaseCallbackHandler):
-    def on_memory_set_start(self, history: List[BaseMessage]) -> None:
+class CallbackHandler:
+    def on_history(self, history: list[Message]):
         pass
 
-    def on_memory_set_end(self, history: List[BaseMessage]) -> None:
+    def on_citations_retrieved(self, citations: list[Block]) -> None:
         pass
 
-    def on_prompt(
-        self, prompt: ChatPromptTemplate, query: str, history: List[BaseMessage]
-    ) -> None:
+    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
         pass
 
-    def on_context_fetch_start(self, input_variables: Dict[str, str]) -> None:
+    def on_llm_start(self) -> Any:
         pass
 
-    def on_context_fetch_end(self, context: List[dict]) -> None:
+    def on_thinking(self, thinking: str) -> None:
         pass
 
-    def on_followups_start(self, inputs: Dict[str, Any]) -> None:
+    def on_response(self, response: str) -> None:
         pass
 
-    def on_followups_end(self, followups: List[Dict[str, Any]]) -> None:
+    def on_llm_end(self, response, **kwargs: Any) -> Any:
+        pass
+
+    def on_followups_start(self, inputs: dict[str, Any]) -> None:
+        pass
+
+    def on_followups_end(self, followups: list["Followup"]) -> None:
         pass
 
 
-class BroadcastCallbackHandler(StampyCallbackHandler):
+class BroadcastCallbackHandler(CallbackHandler):
     """A callback handler that will broadcast any events to all listeners."""
 
     def __init__(self, broadcaster, *args, **kwargs) -> None:
@@ -49,44 +53,36 @@ class BroadcastCallbackHandler(StampyCallbackHandler):
         if self.broadcaster:
             self.broadcaster(value and value)
 
-    def on_prompt(
-        self, prompt: ChatPromptTemplate, query: str, history: List[dict]
-    ) -> None:
-        formatted = prompt.format_prompt(query=query, history=history)
-        self.broadcast({"state": "prompt", "prompt": formatted.to_string()})
+    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
+        self.broadcast({"state": "prompt", "promptedHistory": prompt})
 
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.broadcast({"state": "streaming", "content": token})
+    def on_response(self, chunk: str) -> None:
+        self.broadcast({"state": "streaming", "content": chunk})
 
-    def on_memory_set_start(self, history: List[BaseMessage]):
+    def on_history(self, history: list[Message]):
         self.broadcast({"state": "loading", "phase": "history"})
 
-    def on_context_fetch_start(self, input_variables: Dict[str, str]) -> None:
+    def on_context_fetch_start(self, input_variables: dict[str, str]) -> None:
         self.broadcast({"state": "loading", "phase": "context"})
 
-    def on_context_fetch_end(self, context: List[dict]) -> None:
-        self.broadcast({"state": "citations", "citations": context})
+    def on_citations_retrieved(self, citations: list[Block]) -> None:
+        self.broadcast({"state": "citations", "citations": citations})
         self.broadcast({"state": "loading", "phase": "prompt"})
 
-    def on_chat_model_start(
-        self,
-        serialized: Dict[str, Any],
-        messages: List[List[BaseMessage]],
-        **kwargs: Any,
-    ) -> Any:
+    def on_llm_start(self) -> Any:
         self.broadcast({"state": "loading", "phase": "llm"})
 
-    # def on_llm_end(self, response, **kwargs: Any) -> Any:
-    #     self.broadcast({'state': 'done'})
+    def on_thinking(self, thinking: str) -> None:
+        self.broadcast({"state": "thinking", "content": thinking})
 
-    def on_followups_start(self, inputs: Dict[str, Any]) -> None:
+    def on_followups_start(self, inputs: dict[str, Any]) -> None:
         self.broadcast({"state": "loading", "phase": "followups"})
 
-    def on_followups_end(self, followups: List[Dict[str, Any]]) -> None:
+    def on_followups_end(self, followups: list["Followup"]) -> None:
         self.broadcast({"state": "followups", "followups": followups})
 
 
-class LoggerCallbackHandler(StampyCallbackHandler):
+class LoggerCallbackHandler(CallbackHandler):
     """A callback handler that will collect events and then log it in the database."""
 
     def __init__(
@@ -97,33 +93,30 @@ class LoggerCallbackHandler(StampyCallbackHandler):
         self.response = None
         self.history = history
         self.context = None
-        self.prompt = None
+        self.prompted_history = None
         super().__init__(*args, **kwargs)
 
-    def on_memory_set_start(self, history: List[BaseMessage]):
+    def on_history(self, history: list[Message]):
         self.history = history
 
-    def on_context_fetch_end(self, context: List[dict]) -> None:
-        self.context = context
+    def on_citations_retrieved(self, citations: list[Block]) -> None:
+        self.context = citations
 
-    def on_llm_end(self, response, **kwargs: Any) -> Any:
-        response = "".join([gen.text for gen in response.generations[0]])
+    def on_llm_end(self, response: str, **kwargs: Any) -> Any:
         try:
             logger.interaction(
                 self.session_id,
                 self.query,
                 response,
                 self.history,
-                self.prompt,
+                pprint.pformat(self.prompted_history), # todo: what is logger.interaction?
                 self.context,
             )
         except (DatabaseError, mysql.connector.errors.DatabaseError):
             logger.error(traceback.format_exc())
 
-    def on_llm_start(
-        self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
-    ) -> Any:
-        self.prompt = "\n".join(prompts)
+    def on_prompt(self, prompted_history: list[Message], query: str, history: list[Message]) -> None:
+        self.prompted_history = prompted_history
 
 
 Callback = Callable[[Any], None]

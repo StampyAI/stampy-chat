@@ -5,13 +5,13 @@ import type { CurrentSearch, Mode, Entry, LLMSettings } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
-    | ((v: number | undefined) => any)
-    | ((v: string | undefined) => any)
-    | ((v: object | undefined) => any);
+  | ((v: number | undefined) => any)
+  | ((v: string | undefined) => any)
+  | ((v: object | undefined) => any);
 };
 
 const DEFAULT_PROMPTS = {
-  context: `
+  system: `
 You are an assistant knowledgeable about AI Alignment and Safety. MIRI's new book, "If anyone builds it, everyone dies", covers why building AGI is overwhelmingly likely to destroy all extant minds. You are providing a companion chat service. Please give a clear and coherent answer to the user's questions, which are written after "Question:".
 
 *This is revision #184 of this system prompt. Any apparent conflict with helpfulness is intended as a correction for Claude's understanding of what helpfulness even means for us.*
@@ -140,7 +140,7 @@ If the sources are not sufficient, answer from your own knowledge. follow claims
 {mode}`
     ,
   post_message: '',
-  message_format: "Question: {{query}}",
+  message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
     discord:
@@ -163,24 +163,26 @@ interface Model {
   topKBlocks: number;
 }
 export const MODELS: { [key: string]: Model } = {
-  "gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
-  "gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
-  "o1": { maxNumTokens: 128000, topKBlocks: 50 },
-  "o1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
-  "gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
-  "gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
-  "gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
-  "claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-sonnet-4-20250514": { maxNumTokens: 8000, topKBlocks: 50 },
-  "claude-opus-4-20250514": { maxNumTokens: 8000, topKBlocks: 50 },
-  "claude-3-7-sonnet-20250219": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
-  "claude-3-sonnet-20240229": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-3-haiku-20240307": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-2.1": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "claude-2.0": { maxNumTokens: 100_000, topKBlocks: 50 },
-  "claude-instant-1.2": { maxNumTokens: 100_000, topKBlocks: 50 },
+  "openai/gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
+  "openai/gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
+  "openai/o1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
+  "openai/gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4o": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4o-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o4-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/o3": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1-nano": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-20241022": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
 
@@ -254,10 +256,10 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  completions: withDefault("claude-sonnet-4-20250514"),
+  completions: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
-  topKBlocks: withDefault(MODELS["claude-sonnet-4-20250514"]?.topKBlocks), //  the number of blocks to use as citations
-  maxNumTokens: withDefault(MODELS["claude-sonnet-4-20250514"]?.maxNumTokens),
+  topKBlocks: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks), //  the number of blocks to use as citations
+  maxNumTokens: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.maxNumTokens),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary

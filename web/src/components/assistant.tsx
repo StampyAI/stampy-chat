@@ -2,6 +2,12 @@ import { ShowCitation, CitationsBlock } from "./citations";
 import { GlossarySpan } from "./glossary";
 import type { AssistantEntry as AssistantType } from "../types";
 
+const roles = {
+    assistant: 'Assistant',
+    user: 'User',
+    system: 'System'
+}
+
 export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
   entry,
 }) => (
@@ -25,7 +31,12 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
     </ul>
     <details className="prompt">
       <summary>Full prompt</summary>
-      <div className="prompt-container">{entry.prompt?.split("\n").map((line) => <div className="prompt-item">{line}</div>)}</div>
+      <div className="prompt-container">{entry.promptedHistory?.map(entry =>
+        <div className="prompt-block">
+          <div className="prompt-role">{"\n\n"}{roles[entry.role]}:</div>
+          <div className="prompt-line">{entry.content}</div>
+        </div>
+      )}</div>
     </details>
   </div>
 );

@@ -1,171 +1,105 @@
-import datetime
-import requests
-from typing import Dict, List, Any
+from typing import TypedDict, Literal
 
-from langchain_core.documents import Document
-from langchain_core.vectorstores import VectorStore
-from langchain_openai import OpenAIEmbeddings
-from langchain_core.example_selectors import SemanticSimilarityExampleSelector
-from pydantic import Extra
-from langchain_pinecone import PineconeVectorStore
-
+from stampy_chat.settings import Settings
+from pinecone import Pinecone
+import voyageai
 from stampy_chat.env import (
-    PINECONE_INDEX,
+    VOYAGEAI_API_KEY,
+    VOYAGEAI_EMBEDDINGS_MODEL,
     PINECONE_NAMESPACE,
-    OPENAI_API_KEY,
-    REMOTE_CHAT_INSTANCE,
+    PINECONE_API_KEY,
+    PINECONE_ENVIRONMENT,
+    PINECONE_INDEX_NAME,
 )
-from stampy_chat.callbacks import StampyCallbackHandler
+from datetime import datetime, date
 
 
-class RemoteVectorStore(VectorStore):
-    """Make a wrapper around the deployed semantic search.
-
-    One of the prerequisites for the chat bot to work properly is for Pinecone to be set up. This can
-    be a bother, so to make things easier, this will just call the semantic search of the deployed chatbot.
-    """
-
-    def add_texts(self, *args, **kwargs):
-        "This is an abstract method, so must be instanciated..."
-
-    def from_texts(self, *args, **kwargs):
-        "This is an abstract method, so must be instanciated..."
-
-    def similarity_search(self, *args, **kwargs):
-        "This is an abstract method, so must be instanciated..."
-
-    def similarity_search_with_score(self, query, k=2, **kwargs):
-        results = requests.post(
-            REMOTE_CHAT_INSTANCE + "/semantic", json={"query": query, "k": k}
-        ).json()
-        SCORE = 1  # set the score to 1, as it's already been filtered once
-        return [
-            (
-                Document(
-                    page_content=res.get("id"),
-                    metadata=dict(res, date_published=res.get("date")),
-                ),
-                SCORE,
-            )
-            for res in results
-        ]
+class Message(TypedDict):
+    role: Literal["user", "assistant", "system", "deleted", "error"]
+    content: str
 
 
-def fix_text(received_text):
-    """
-    discard the title format received from the vector db
-    """
-    import re
-    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
+class Block(TypedDict):
+    id: str
+    reference: str
+    date_published: str
+    authors: list[str]
+    title: str
+    url: str
+    tags: list[str]
+    text: str
 
 
-class ReferencesSelector(SemanticSimilarityExampleSelector):
-    """Get examples with enumerated indexes added."""
-
-    callbacks: List[StampyCallbackHandler] = []
-    history_field: str = "history"
-    min_score: float = 0.8  # docs with lower scores will be excluded from the context
-
-    class Config:
-        """This is needed for extra fields to be added..."""
-
-        extra = Extra.forbid
-        arbitrary_types_allowed = True
-
-    @staticmethod
-    def make_reference(i: int) -> str:
-        """Make the reference used in citations - basically translate i -> 'a + i'"""
-        return str(i + 1)
-
-    def fetch_docs(self, input_variables) -> List:
-        ### Copied from parent - for some reason they ignore the ids of the returned items, so
-        # it has to be added manually here...
-        if self.input_keys:
-            input_variables = {key: input_variables[key] for key in self.input_keys}
-        query = " ".join(v for v in input_variables.values())
-        example_docs = [
-            doc
-            for doc, score in self.vectorstore.similarity_search_with_score(
-                query, k=self.k
-            )
-            if score > self.min_score
-        ]
-
-        # Remove any duplicates - sometimes the same document is returned multiple times
-        return list({e.page_content: e for e in example_docs}.values())
-
-    def select_examples(self, input_variables: Dict[str, str]) -> List[dict]:
-        """Fetch the top matching items from the underlying storage and add indexes.
-
-        :param Dict[str, str] input_variables: a dict of {<field>: <query>} pairs to look through the dataset
-        :returns: a list of example objects
-        """
-        for callback in self.callbacks:
-            callback.on_context_fetch_start(input_variables)
-
-        input_variables = dict(**input_variables)
-        history = input_variables.pop(self.history_field, [])
-
-        examples = self.fetch_docs(input_variables)
-
-        for item in history[::-1]:
-            if len(examples) >= self.k:
-                break
-            if isinstance(item, dict):
-                examples += self.fetch_docs({"answer": item["content"]})
-            else:
-                examples += self.fetch_docs({"answer": item.content})
-
-        examples = [
-            dict(e.metadata, id=e.page_content, reference=self.make_reference(i), text=fix_text(e.metadata['text']))
-            for i, e in enumerate(examples)
-        ]
-
-        for callback in self.callbacks:
-            callback.on_context_fetch_end(examples)
-
-        return examples
+def hyde_enhance(
+    prompt: str, history: list[Message], settings: Settings
+) -> list[Message]:
+    """prepare a [Hy]pothetical [D]ocument for [E]mbedding."""
+    return history
 
 
-def make_example_selector(**params) -> ReferencesSelector:
-    if PINECONE_INDEX:
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-        vectorstore = PineconeVectorStore(
-            PINECONE_INDEX,
-            embeddings,
-            "hash_id",
-            namespace=PINECONE_NAMESPACE,
-        )
-    else:
-        vectorstore = RemoteVectorStore()
-    return ReferencesSelector(vectorstore=vectorstore, **params)
+def embed_query(query: str, settings: Settings) -> list[float] | list[int]:
+    """Embed the query."""
+    voyageai_client = voyageai.Client(api_key=VOYAGEAI_API_KEY)
+    return voyageai_client.embed([query], model=VOYAGEAI_EMBEDDINGS_MODEL).embeddings[0]
 
 
-def format_block(block) -> Dict[str, Any]:
-    date = block.get("date_published") or block.get("date")
+def clean_block(reference: int, block) -> Block:
+    block_id = block.get("hash_id") or block.get("id")
+    date_published = block.get("date_published") or block.get("date")
 
-    if isinstance(date, datetime.datetime):
-        date = date.date().isoformat()
-    elif isinstance(date, datetime.date):
-        date = date.isoformat()
-    elif isinstance(date, (int, float)):
-        date = datetime.datetime.fromtimestamp(date).date().isoformat()
+    if isinstance(date_published, datetime):
+        date_published = date_published.date().isoformat()
+    elif isinstance(date_published, date):
+        date_published = date_published.isoformat()
+    elif isinstance(date_published, (int, float)):
+        date_published = datetime.fromtimestamp(date_published).date().isoformat()
 
     authors = block.get("authors")
     if not authors and block.get("author"):
         authors = [block.get("author")]
 
-    return {
-        "id": block.get("hash_id") or block.get("id"),
-        "title": block["title"],
-        "authors": authors,
-        "date": date,
-        "url": block["url"],
-        "tags": block.get("tags"),
-        "text": block["text"],
-    }
+    return Block(
+        reference=str(reference),
+        id=block_id,
+        date_published=date_published,
+        authors=authors,
+        title=block["title"],
+        url=block["url"],
+        tags=block.get("tags"),
+        text=block["text"],
+    )
 
 
-def get_top_k_blocks(query, k):
-    blocks = make_example_selector(k=k).select_examples({"query": query})
-    return list(map(format_block, blocks))
+def retrieve_docs(
+    query: str, history: list[Message], settings: Settings
+) -> list[Block]:
+    """Retrieve the documents for the query."""
+    pc = Pinecone(
+        api_key=PINECONE_API_KEY,
+        environment=PINECONE_ENVIRONMENT,
+    )
+
+    index = pc.Index(PINECONE_INDEX_NAME)
+
+    vector = embed_query(query, settings)
+    results = index.query_namespaces(
+        vector=list(vector),
+        metric="cosine",
+        include_metadata=True,
+        namespaces=[PINECONE_NAMESPACE],
+    )
+    return [clean_block(i, r.metadata) for i, r in enumerate(results.matches, 1)]
+
+
+def get_top_k_blocks(query: str, k: int) -> list[Block]:
+    return retrieve_docs(query, [], Settings())[:k]
+#+def fix_text(received_text):
+#+    """
+#+    discard the title format received from the vector db
+#+    """
+#+    import re
+#+    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
+#+
+#+
+#-            dict(e.metadata, id=e.page_content, reference=self.make_reference(i))
+#+            dict(e.metadata, id=e.page_content, reference=self.make_reference(i), text=fix_text(e.metadata['text']))

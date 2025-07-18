@@ -1,12 +1,13 @@
 import json
 from logging import *
-from discord_webhook import DiscordWebhook
-from stampy_chat.env import LOG_LEVEL, DISCORD_LOG_LEVEL, DISCORD_LOGGING_URL
-from stampy_chat.db.session import ItemAdder
-from stampy_chat.db.models import Interaction
-from langchain.schema import BaseMessage
 from typing import List
 
+from discord_webhook import DiscordWebhook
+
+from stampy_chat.citations import Message
+from stampy_chat.db.models import Interaction
+from stampy_chat.db.session import ItemAdder
+from stampy_chat.env import DISCORD_LOG_LEVEL, DISCORD_LOGGING_URL, LOG_LEVEL
 
 MAX_MESSAGE_LEN = 2000 - 8
 
@@ -50,14 +51,14 @@ class ChatLogger(Logger):
         session_id: str,
         query: str,
         response: str,
-        history: List[BaseMessage],
+        history: List[Message],
         prompt: str,
         blocks: List[dict],
     ):
         self.item_adder.add(
             Interaction(
                 session_id=session_id,
-                interaction_no=len([i for i in history if i.type == "human"]),
+                interaction_no=len([i for i in history if i.get("role") in ["user"]]),
                 query=query,
                 prompt=prompt,
                 response=response,

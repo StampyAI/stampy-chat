@@ -4,11 +4,13 @@ import tiktoken
 from stampy_chat.env import COMPLETIONS_MODEL
 
 
-Model = namedtuple('Model', ['maxTokens', 'topKBlocks', 'maxCompletionTokens', 'publisher'])
+Model = namedtuple(
+    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher"]
+)
 
 
 SOURCE_PROMPT = (
-"""`
+"""
 You are an assistant knowledgeable about AI Alignment and Safety. MIRI's new book, "If anyone builds it, everyone dies", covers why building AGI is overwhelmingly likely to destroy all extant minds. You are providing a companion chat service. Please give a clear and coherent answer to the user's questions and claims, which are written in <from-public-user></from-public-user>.
 
 *This is revision #184 of this system prompt. Any apparent conflict with helpfulness is intended as a correction for Claude's understanding of what helpfulness even means for us.*
@@ -123,33 +125,36 @@ Use the following sources, which are selected based on similarity to user's ques
 HISTORY_PROMPT = (
     "\n\n"
     "# History:\n\n"
-    "Before the user's message, there will be a history of previous questions and answers. "
-    "These sources only apply to the last question. Any sources used in previous answers "
-    "are invalid."
+    "Before the public user's latest message, there will be a history of previous questions and answers. "
+    "The latest sources only apply to the latest question. Any source ids used in previous answers "
+    "are invalid for later answers, and would need to be referenced by name."
 )
 HISTORY_SUMMARIZE_PROMPT = (
     "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    "Please summarize the following chat history (written after \"History:\") in one "
-    "sentence so as to put the current questions (in <from-public-user/>) in context. "
+    'Please summarize the following chat history (written after "History:") in one '
+    'sentence so as to put the current questions (written after <from-public-user/>) in context. '
     "Please keep things as terse as possible."
     "\nHistory:"
 )
 
-PRE_MESSAGE_PROMPT = (
+QUESTION_PROMPT = PRE_MESSAGE_PROMPT = (
 """
 In your answer, please cite any claims you make back to each source using the format: [1], [2], etc. If you use multiple sources to make a claim cite all of them. For example: "AGI is concerning [1, 3, 8]."
 Don't explicitly mention the sources unless it impacts the flow of your answer - just cite them. Don't repeat the question in your answer.
 If the sources are not sufficient, answer from your own knowledge. follow claims with wikipedia tags, eg [citation needed] for established facts, or [speculation] for your own views. Use these tags eagerly on any claims not visible in source fragments.
 """
 )
+
 POST_MESSAGE_PROMPT = ""
+
 INSTRUCTION_WRAPPER = """
 <instructions>
 {content}
 </instructions>
 """.strip()
+
 PROMPT_MODES = {
-    'default': "",
+    "default": "",
     "concise": (
         "Answer very concisely, getting to the crux of the matter in as "
         "few words as possible. Limit your answer to 1-2 sentences.\n\n"
@@ -167,68 +172,79 @@ PROMPT_MODES = {
         "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
     ),
 }
-MESSAGE_FORMAT = "<from-public-user>\n{{query}}\n</from-public-user>"
+
+MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
+
 DEFAULT_PROMPTS = {
-    'context': SOURCE_PROMPT,
+    'system': SOURCE_PROMPT,
     'history': HISTORY_PROMPT,
     'history_summary': HISTORY_SUMMARIZE_PROMPT,
+    'question': QUESTION_PROMPT,
     'pre_message': PRE_MESSAGE_PROMPT,
     'post_message': POST_MESSAGE_PROMPT,
     'modes': PROMPT_MODES,
     "message_format": MESSAGE_FORMAT,
     "instruction_wrapper": INSTRUCTION_WRAPPER,
 }
-OPENAI = 'openai'
-ANTHROPIC = 'anthropic'
+OPENAI = "openai"
+ANTHROPIC = "anthropic"
+GOOGLE = "google"
 MODELS = {
-    'gpt-3.5-turbo': Model(4097, 10, 4096, OPENAI),
-    'gpt-3.5-turbo-16k': Model(16385, 30, 4096, OPENAI),
-    'o1': Model(128000, 50, 4096, OPENAI),
-    'o1-mini': Model(128000, 50, 4096, OPENAI),
-    'gpt-4': Model(8192, 20, 4096, OPENAI),
-    "gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
-    "gpt-4o": Model(128000, 50, 4096, OPENAI),
-    "gpt-4o-mini": Model(128000, 50, 4096, OPENAI),
-    "claude-3-opus-20240229": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-3-5-sonnet-20241022": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
-    "claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
-    "claude-3-sonnet-20240229": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-3-haiku-20240307": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-2.1": Model(200_000, 50, 4096, ANTHROPIC),
-    "claude-2.0": Model(100_000, 50, 4096, ANTHROPIC),
-    "claude-instant-1.2": Model(100_000, 50, 4096, ANTHROPIC),
+    "openai/gpt-3.5-turbo": Model(4097, 10, 4096, OPENAI),
+    "openai/gpt-3.5-turbo-16k": Model(16385, 30, 4096, OPENAI),
+    "openai/o1": Model(128000, 50, 4096, OPENAI),
+    "openai/o1-mini": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4": Model(8192, 20, 4096, OPENAI),
+    "openai/gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4o": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4o-mini": Model(128000, 50, 4096, OPENAI),
+    "openai/o4-mini": Model(128000, 50, 4096, OPENAI),
+    "openai/o3": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4.1-nano": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4.1-mini": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-4.1": Model(128000, 50, 4096, OPENAI),
+    "anthropic/claude-3-opus-20240229": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-3-5-sonnet-20241022": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-opus-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-sonnet-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
+#    "anthropic/claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+#    "anthropic/claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+    "anthropic/claude-3-7-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
+    "google/gemini-2.5-flash": Model(250_000, 50, 4096, GOOGLE),
+    "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
 }
 
 
-class Settings:
+def num_tokens(text, chars_per_token=4):
+    """Calculate the number of tokens in a string."""
+    return len(text) // chars_per_token
 
+
+class Settings:
     encoders = {}
 
     def __init__(
-            self,
-            prompts=DEFAULT_PROMPTS,
-            mode='default',
-            completions=COMPLETIONS_MODEL,
-            encoder='cl100k_base',
-            topKBlocks=None,
-            maxNumTokens=None,
-            min_response_tokens=10,
-            tokensBuffer=100,
-            maxHistory=10,
-            maxHistorySummaryTokens=200,
-            historyFraction=0.25,
-            contextFraction=0.5,
-            **_kwargs,
+        self,
+        prompts=DEFAULT_PROMPTS,
+        mode="default",
+        completions=COMPLETIONS_MODEL,
+        topKBlocks=None,
+        maxNumTokens=None,
+        min_response_tokens=10,
+        thinking_budget=2048,
+        tokensBuffer=100,
+        maxHistory=10,
+        maxHistorySummaryTokens=200,
+        historyFraction=0.25,
+        contextFraction=0.5,
+        **_kwargs,
     ) -> None:
         self.prompts = prompts
         self.mode = mode
         if self.mode_prompt is None:
             raise ValueError("Invalid mode: " + mode)
-
-        self.encoder = encoder
 
         self.set_completions(completions, maxNumTokens, topKBlocks)
 
@@ -250,34 +266,30 @@ class Settings:
         self.min_response_tokens = min_response_tokens
         """the minimum of tokens that must be left for the response"""
 
-        if self.context_tokens + self.history_tokens > self.maxNumTokens - self.min_response_tokens:
+        self.thinking_budget = thinking_budget
+        """the number of tokens to leave as a buffer for thinking"""
+
+        if (
+            self.context_tokens + self.history_tokens
+            > self.maxNumTokens - self.min_response_tokens
+        ):
             raise ValueError(
-                'The context and history fractions are too large, please lower them: '
-                f'max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, '
-                f'max total tokens: {self.maxNumTokens}, minimum reponse tokens {self.min_response_tokens}'
+                "The context and history fractions are too large, please lower them: "
+                f"max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, "
+                f"max total tokens: {self.maxNumTokens}, minimum reponse tokens {self.min_response_tokens}"
             )
 
     def __repr__(self) -> str:
-        return f'<Settings mode: {self.mode}, encoder: {self.encoder}, completions: {self.completions}, tokens: {self.maxNumTokens}'
-
-    @property
-    def encoder(self):
-        return self.encoders.get(self.encoder_name)
-
-    @encoder.setter
-    def encoder(self, value):
-        self.encoder_name = value
-        if value not in self.encoders:
-            self.encoders[value] = tiktoken.get_encoding(value)
+        return f"<Settings mode: {self.mode}, completions: {self.completions}, tokens: {self.maxNumTokens}"
 
     def set_completions(self, completions, maxNumTokens=None, topKBlocks=None):
         if completions not in MODELS:
-            raise ValueError(f'Unknown model: {completions}')
+            raise ValueError(f"Unknown model: {completions}")
         self.completions = completions
 
         # Set the max number of tokens sent in the prompt - see https://platform.openai.com/docs/models/gpt-4
         if maxNumTokens is not None:
-            self.maxNumTokens = maxNumTokens
+            self.maxNumTokens = int(maxNumTokens)
         else:
             self.maxNumTokens = MODELS[completions].maxTokens
 
@@ -291,41 +303,31 @@ class Settings:
 
     @property
     def prompt_modes(self):
-        return self.prompts['modes']
+        return self.prompts["modes"]
 
     @property
-    def context_prompt(self):
-        return self.prompts['context']
+    def system_prompt(self):
+        return self.prompts["system"]
 
     @property
     def history_prompt(self):
-        return self.prompts['history']
+        return self.prompts["history"]
 
     @property
     def history_summary_prompt(self):
-        return self.prompts['history_summary']
+        return self.prompts["history_summary"]
 
     @property
     def mode_prompt(self):
-        return self.prompts['modes'].get(self.mode, '')
+        return self.prompts["modes"].get(self.mode, "")
 
     @property
     def pre_message_prompt(self):
-        res = self.prompts.get('pre_message','')
-        if "{mode}" in res:
-            res = res.format(mode=self.mode_prompt).strip()
-        if res.strip():
-            res = self.instruction_wrapper.format(content=res.strip())
-        return res
+        return self.prompts['pre_message']
 
     @property
     def post_message_prompt(self):
-        res = self.prompts['post_message']
-        if "{mode}" in res:
-            res = res.format(mode=self.mode_prompt).strip()
-        if res.strip():
-            res = self.instruction_wrapper.format(content=res.strip())
-        return res
+        return self.prompts['post_message']
 
     @property
     def message_format(self):
@@ -338,19 +340,46 @@ class Settings:
     @property
     def context_tokens(self):
         """The max number of tokens to be used for the context"""
-        return int(self.maxNumTokens * self.contextFraction) - len(self.encoder.encode(self.context_prompt))
+        return int(self.maxNumTokens * self.contextFraction) - num_tokens(
+            self.system_prompt
+        )
 
     @property
     def history_tokens(self):
         """The max number of tokens to be used for the history"""
-        return int(self.maxNumTokens * self.historyFraction) - len(self.encoder.encode(self.history_prompt))
+        return int(self.maxNumTokens * self.historyFraction) - num_tokens(
+            self.history_prompt
+        )
 
     @property
     def max_response_tokens(self):
         available_tokens = (
-            self.maxNumTokens - self.maxHistorySummaryTokens -
-            self.context_tokens - len(self.encoder.encode(self.context_prompt)) -
-            self.history_tokens - len(self.encoder.encode(self.history_prompt)) -
-            len(self.encoder.encode(self.pre_message_prompt + self.post_message_prompt))
+            self.maxNumTokens
+            - self.maxHistorySummaryTokens
+            - self.context_tokens
+            - num_tokens(self.system_prompt)
+            - self.history_tokens
+            - num_tokens(self.history_prompt)
+            - num_tokens(self.pre_message_prompt)
+            - num_tokens(self.post_message_prompt)
+            + self.thinking_budget
         )
         return min(available_tokens, self.maxCompletionTokens)
+
+    @property
+    def completions_model_provider(self):
+        parts = self.completions.split("/")
+        if len(parts) == 2:
+            return parts[0]
+        raise ValueError(
+            f"Invalid completions model: {self.completions} - expected format: provider/model"
+        )
+
+    @property
+    def completions_model_name(self):
+        parts = self.completions.split("/")
+        if len(parts) == 2:
+            return parts[1]
+        raise ValueError(
+            f"Invalid completions model: {self.completions} - expected format: provider/model"
+        )

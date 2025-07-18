@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import patch, Mock, call
 
-from langchain_core.messages import HumanMessage, AIMessage
 from stampy_chat.logging import *
+from stampy_chat.citations import Message
 
 
 def test_emit_ignore_internal():
@@ -133,19 +133,26 @@ def test_ChatLogger_is_debug_false(level):
 
 def test_ChatLogger_interaction():
     history = [
-        HumanMessage(content="Die monster. You don’t belong in this world!"),
-        AIMessage(
-            content="It was not by my hand[1] I am once again given flesh. I was called here by humans who wished to pay me tribute."
+        Message(role="user", content="Die monster. You don’t belong in this world!"),
+        Message(
+            role="assistant",
+            content="It was not by my hand[1] I am once again given flesh. I was called here by humans who wished to pay me tribute.",
         ),
-        HumanMessage(
-            content="Tribute!?! You steal men's souls and make them your slaves!"
+        Message(
+            role="user",
+            content="Tribute!?! You steal men's souls and make them your slaves!",
         ),
-        AIMessage(content="Perhaps the same could be said[321] of all religions..."),
-        HumanMessage(
-            content="Your words are as empty as your soul! Mankind ill needs a savior such as you!"
+        Message(
+            role="assistant",
+            content="Perhaps the same could be said[321] of all religions...",
         ),
-        AIMessage(
-            content="What is a man? A[4234] miserable little pile of secrets. But enough talk... Have at you!"
+        Message(
+            role="user",
+            content="Your words are as empty as your soul! Mankind ill needs a savior such as you!",
+        ),
+        Message(
+            role="assistant",
+            content="What is a man? A[4234] miserable little pile of secrets. But enough talk... Have at you!",
         ),
     ]
     blocks = [

@@ -1,7 +1,4 @@
-import dataclasses
 import requests
-import datetime
-import uuid
 import json
 import re
 
@@ -9,7 +6,7 @@ from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
-from stampy_chat.env import FLASK_PORT, LANGCHAIN_API_KEY, LANGCHAIN_PROJECT
+from stampy_chat.env import FLASK_PORT
 from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
@@ -73,7 +70,7 @@ def chat():
         )
 
     if not as_stream:
-        return jsonify(run(None)["text"])
+        return jsonify(run(None)["response"])
 
     return Response(
         stream_with_context(stream(stream_callback(run, formatter))),
@@ -88,7 +85,7 @@ def chat():
 @cross_origin()
 def chat_simplified(param=""):
     res = run_query(None, param, [], Settings())
-    res = jsonify({k: v for k, v in res.items() if k in ["text", "followups"]})
+    res = jsonify({k: v for k, v in res.items() if k in ["response", "followups"]})
     return Response(res, mimetype="application/json")
 
 
@@ -116,32 +113,6 @@ def human(id):
         r'<a href=\"https://aisafety.info/?state=\1\\">',
         r.text,
     )
-
-    if LANGCHAIN_API_KEY:  # add to langsmith
-        run_id = str(uuid.uuid4())
-        requests.post(
-            "https://api.smith.langchain.com/runs",
-            json={
-                "id": run_id,
-                "name": "aisafety.info/question",
-                "run_type": "chain",
-                "start_time": datetime.datetime.utcnow().isoformat(),
-                "session_name": LANGCHAIN_PROJECT,
-                "inputs": {
-                    "text": f"clicked followup '{json.loads(r.text)['data']['title']}': https://stampy.ai/?state={id}"
-                },
-            },
-            headers={"x-api-key": LANGCHAIN_API_KEY},
-        )
-
-        requests.patch(
-            f"https://api.smith.langchain.com/runs/{run_id}",
-            json={
-                "outputs": {"my_output": text},
-                "end_time": datetime.datetime.utcnow().isoformat(),
-            },
-            headers={"x-api-key": LANGCHAIN_API_KEY},
-        )
 
     return Response(text, mimetype="application/json")
 
