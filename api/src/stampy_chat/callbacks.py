@@ -20,6 +20,9 @@ class CallbackHandler:
     def on_citations_retrieved(self, citations: list[Block]) -> None:
         pass
 
+    def on_hyde_done(self, hypothetical_document: str) -> None:
+        pass
+
     def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
         pass
 
@@ -65,6 +68,9 @@ class BroadcastCallbackHandler(CallbackHandler):
     def on_context_fetch_start(self, input_variables: dict[str, str]) -> None:
         self.broadcast({"state": "loading", "phase": "context"})
 
+    def on_hyde_done(self, hypothetical_document: str) -> None:
+        self.broadcast({"state": "enrich", "phase": "context", "content": hypothetical_document})
+
     def on_citations_retrieved(self, citations: list[Block]) -> None:
         self.broadcast({"state": "citations", "citations": citations})
         self.broadcast({"state": "loading", "phase": "prompt"})
@@ -94,10 +100,14 @@ class LoggerCallbackHandler(CallbackHandler):
         self.history = history
         self.context = None
         self.prompted_history = None
+        self.hyde = None
         super().__init__(*args, **kwargs)
 
     def on_history(self, history: list[Message]):
         self.history = history
+
+    def on_hyde_done(self, hypothetical_document: str) -> None:
+        self.hyde = hypothetical_document
 
     def on_citations_retrieved(self, citations: list[Block]) -> None:
         self.context = citations
@@ -106,7 +116,7 @@ class LoggerCallbackHandler(CallbackHandler):
         try:
             logger.interaction(
                 self.session_id,
-                self.query,
+                self.query + (f"\n\n(hyde: {self.hyde})" if self.hyde is not None else ""),
                 response,
                 self.history,
                 pprint.pformat(self.prompted_history), # todo: what is logger.interaction?

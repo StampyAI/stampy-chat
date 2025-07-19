@@ -1,8 +1,8 @@
 from typing import TypedDict, Literal, Generator
 from dataclasses import dataclass
 
-from anthropic import Anthropic
-from openai import OpenAI
+import anthropic
+import openai
 from google import genai
 from stampy_chat.settings import ANTHROPIC, OPENAI, GOOGLE, Settings
 from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY
@@ -29,9 +29,9 @@ def split_system(history: list[Message]) -> list[Message]:
 
 
 def call_anthropic(
-    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0
+    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0, stream: bool = True
 ) -> Generator[LLMChunk, None, None]:
-    client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     params = {}
     if can_think(model, thinking_budget):
@@ -39,14 +39,23 @@ def call_anthropic(
 
     system, history = split_system(history)
 
-    response = client.messages.create(
-        model=model,
-        messages=history,
-        system=system,
-        max_tokens=max_tokens,
-        stream=True,
-        **params,
-    )
+    try:
+        response = client.messages.create(
+            model=model,
+            messages=history,
+            system=system,
+            max_tokens=max_tokens,
+            stream=stream,
+            **params,
+        )
+    except (anthropic.RateLimitError, anthropic.InternalServerError) as e:
+        print("WARNING: falling back to google due to anthropic api error:", e)
+        return call_google(history, model, max_tokens, thinking_budget, stream)
+
+    if stream: return anthropic_stream(response)
+    else:      return response.content[0].text
+
+def anthropic_stream(response):
     for event in response:
         if event.type == "content_block_delta":
             if event.delta.type == "thinking_delta":
@@ -56,9 +65,9 @@ def call_anthropic(
 
 
 def call_openai(
-    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0
+    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0, stream: bool = False
 ) -> Generator[LLMChunk, None, None]:
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
     system, history = split_system(history)
     response = client.responses.create(
         model=model,
@@ -68,6 +77,10 @@ def call_openai(
         reasoning={"effort": "medium"} if thinking_budget else None,
         stream=True,
     )
+    if stream: return openai_stream(response)
+    else:      return response.choices[0].message.content
+
+def openai_stream(response):
     for event in response:
         if event.type == "response.output_text.delta":
             yield LLMChunk(type="response", text=event.delta)
@@ -99,18 +112,29 @@ def call_google(
     config = genai.types.GenerateContentConfig(**config_params)
 
     # Use streaming API
-    response = client.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=config
-    )
+    if stream:
+        response = client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=config
+        )
 
-    # Stream response chunks
-    for chunk in response:
-        if hasattr(chunk, 'text') and chunk.text:
-            yield LLMChunk(type="response", text=chunk.text)
+        def do_stream():
+            for chunk in response:
+                if hasattr(chunk, 'text') and chunk.text:
+                    yield LLMChunk(type="response", text=chunk.text)
+        return do_stream()
+    else:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config
+        )
 
-def query_llm(history: list[Message], settings: Settings) -> Generator[LLMChunk, None, None]:
+        return response.text
+
+
+def query_llm(history: list[Message], settings: Settings, stream: bool = True, max_tokens: int|None=None, thinking_budget: int|None = None) -> Generator[LLMChunk, None, None]:
     provider = settings.completions_model_provider
     if provider == ANTHROPIC:
         func = call_anthropic
@@ -124,6 +148,7 @@ def query_llm(history: list[Message], settings: Settings) -> Generator[LLMChunk,
     return func(
         history,
         settings.completions_model_name,
-        settings.max_response_tokens,
-        settings.thinking_budget,
+        max_tokens if max_tokens is not None else settings.max_response_tokens,
+        thinking_budget if thinking_budget is not None else settings.thinking_budget,
+        stream=stream
     )

@@ -1,5 +1,5 @@
 from stampy_chat.citations import Block, Message
-from stampy_chat.settings import Settings, num_tokens
+from stampy_chat.settings import Settings, num_tokens, ALL_PROMPTS
 from xml.sax.saxutils import escape
 
 def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
@@ -37,7 +37,7 @@ def format_history(history: list[Message], settings: Settings) -> list[Message]:
     return [
         (
             {"role": "user",
-             "content": settings.message_format.format(message=escape(message["contents"]))
+             "content": settings.message_format.format(message=escape(message["contents"]), **ALL_PROMPTS)
              }
             if message["role"] == "user"
             else message
@@ -59,7 +59,7 @@ def validate_history(history: list[Message]):
 
 
 def inject_guidance(
-    query: str, history: list[Message], docs: list[Block], settings: Settings
+    query: str, history: list[Message], docs: list[Block], settings: Settings, 
 ) -> list[Message]:
     history = truncate_history(history, settings.history_tokens)
     history = format_history(history, settings)
@@ -75,20 +75,55 @@ def inject_guidance(
     mode = settings.mode_prompt
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(content=
-                    settings.pre_message_prompt.format(mode=mode, modelname=modelname).strip())
+                    settings.pre_message_prompt.format(mode=mode, modelname=modelname, **ALL_PROMPTS).strip())
         last_parts.append(wrapped)
 
-    last_parts.append(settings.message_format.format(message=escape(query)))
+    last_parts.append(settings.message_format.format(message=escape(query), **ALL_PROMPTS))
 
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(content=
-                    settings.post_message_prompt.format(mode=mode, modelname=modelname).strip())
+                    settings.post_message_prompt.format(mode=mode, modelname=modelname, **ALL_PROMPTS).strip())
         last_parts.append(wrapped)
 
     history.append({"role": "user", "content": "\n\n".join(last_parts)})
     validate_history(history)
 
     return [
-        {"role": "system", "content": settings.system_prompt.format(modelname=modelname)},
-        {"role": "system", "content": settings.history_prompt.format(modelname=modelname)},
+        {"role": "system", "content": settings.system_prompt.format(modelname=modelname, **ALL_PROMPTS)},
+        {"role": "system", "content": settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS)},
+    ] + history
+
+def inject_guidance_hyde(
+    query: str, history: list[Message], settings: Settings, 
+) -> list[Message]:
+    history = truncate_history(history, settings.history_tokens)
+    history = format_history(history, settings)
+
+    mode = ""
+
+    last_parts = []
+    if settings.completions.startswith('google'):
+        modelname = 'Gemini'
+    elif settings.completions.startswith('anthropic'):
+        modelname = 'Claude'
+    elif settings.completions.startswith('openai'):
+        modelname = 'GPT'
+    if settings.hyde_pre_message_prompt:
+        wrapped = settings.instruction_wrapper.format(content=
+                    settings.hyde_pre_message_prompt.format(mode=mode, modelname=modelname, **ALL_PROMPTS).strip())
+        last_parts.append(wrapped)
+
+    last_parts.append(settings.message_format.format(message=escape(query), **ALL_PROMPTS))
+
+    if settings.hyde_post_message_prompt:
+        wrapped = settings.instruction_wrapper.format(content=
+                    settings.hyde_post_message_prompt.format(mode=mode, modelname=modelname, **ALL_PROMPTS).strip())
+        last_parts.append(wrapped)
+
+    history.append({"role": "user", "content": "\n\n".join(last_parts)})
+    validate_history(history)
+
+    return [
+        {"role": "system", "content": settings.hyde_system_prompt.format(modelname=modelname, **ALL_PROMPTS)},
+        {"role": "system", "content": settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS)},
     ] + history

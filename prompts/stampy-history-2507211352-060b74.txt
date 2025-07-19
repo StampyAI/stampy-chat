@@ -1,0 +1,5 @@
+
+
+# History:
+
+Before the public user's latest message, there will be a history of previous questions and answers. The latest sources only apply to the latest question. Any source ids used in previous answers are invalid for later answers, and would need to be referenced by name.

@@ -9,7 +9,7 @@ from stampy_chat.callbacks import (
 from stampy_chat.settings import Settings
 from stampy_chat.llms import query_llm
 from stampy_chat.citations import retrieve_docs, Message
-from stampy_chat.prompts import inject_guidance
+from stampy_chat.prompts import inject_guidance, inject_guidance_hyde
 from stampy_chat.followups import search_followups, Followup
 
 
@@ -35,7 +35,16 @@ def run_query(
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
 
-    docs = retrieve_docs(query, history, settings)
+    retrieval_query = query
+    if settings.enable_hyde:
+        #import pudb; pudb.set_trace()
+        hyde_history = inject_guidance_hyde(query, history, settings)
+        retrieval_query = query_llm(hyde_history, settings, stream=False, max_tokens=settings.hyde_max_tokens, thinking_budget=0)
+        for call in callbacks:
+            call.on_hyde_done(retrieval_query)
+
+    docs = retrieve_docs(retrieval_query, history, settings)
+
     for call in callbacks:
         call.on_citations_retrieved(docs)
 
