@@ -66,23 +66,29 @@ def inject_guidance(
 
     last_parts = []
     last_parts.append(format_blocks(docs))
+    if settings.completions.startswith('google'):
+        modelname = 'Gemini'
+    elif settings.completions.startswith('anthropic'):
+        modelname = 'Claude'
+    elif settings.completions.startswith('openai'):
+        modelname = 'GPT'
     mode = settings.mode_prompt
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(content=
-                    settings.pre_message_prompt.format(mode=mode).strip())
+                    settings.pre_message_prompt.format(mode=mode, modelname=modelname).strip())
         last_parts.append(wrapped)
 
     last_parts.append(settings.message_format.format(message=escape(query)))
 
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(content=
-                    settings.post_message_prompt.format(mode=mode).strip())
+                    settings.post_message_prompt.format(mode=mode, modelname=modelname).strip())
         last_parts.append(wrapped)
 
     history.append({"role": "user", "content": "\n\n".join(last_parts)})
     validate_history(history)
 
     return [
-        {"role": "system", "content": settings.system_prompt},
-        {"role": "system", "content": settings.history_prompt},
+        {"role": "system", "content": settings.system_prompt.format(modelname=modelname)},
+        {"role": "system", "content": settings.history_prompt.format(modelname=modelname)},
     ] + history

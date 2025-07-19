@@ -307,7 +307,7 @@ class Settings:
 
     @property
     def system_prompt(self):
-        return self.prompts["system"]
+        return self.prompts.get("system", self.prompts.get("context"))
 
     @property
     def history_prompt(self):
