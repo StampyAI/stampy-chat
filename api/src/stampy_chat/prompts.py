@@ -1,6 +1,16 @@
+from pathlib import Path
+
 from stampy_chat.citations import Block, Message
-from stampy_chat.settings import Settings, num_tokens, ALL_PROMPTS
+from stampy_chat.settings import Settings, num_tokens
 from xml.sax.saxutils import escape
+
+from stampy_chat import logging
+logger = logging.getLogger(__name__)
+
+logger.info("Loading prompts dir...")
+PROMPTS_DIR = (Path(__file__).absolute().parent.parent.parent.parent/'prompts')
+ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+logger.info("Done loading prompts")
 
 def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
     """Truncate the history to the given number of tokens."""
@@ -72,7 +82,7 @@ def inject_guidance(
         modelname = 'Claude'
     elif settings.completions.startswith('openai'):
         modelname = 'GPT'
-    mode = settings.mode_prompt
+    mode = settings.mode_prompt.format(**ALL_PROMPTS)
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(content=
                     settings.pre_message_prompt.format(mode=mode, modelname=modelname, **ALL_PROMPTS).strip())

@@ -135,15 +135,15 @@ def load_prompts() -> dict[str, str]:
     if not os.path.exists(prompts_dir):
         os.makedirs(prompts_dir, exist_ok=True)
 
-    # First, process settings prompts
-    settings_stat = os.stat(os.path.abspath(settings.__file__))
-    settings_time = datetime.fromtimestamp(settings_stat.st_mtime)
-    time_str = settings_time.strftime("%y%m%d%H%M")
+    ## First, process settings prompts
+    #settings_stat = os.stat(os.path.abspath(settings.__file__))
+    #settings_time = datetime.fromtimestamp(settings_stat.st_mtime)
+    #time_str = settings_time.strftime("%y%m%d%H%M")
 
-    # Load from settings.DEFAULT_PROMPTS (skip non-string values like 'modes')
-    for prompt_name, prompt_content in settings.DEFAULT_PROMPTS.items():
-        if isinstance(prompt_content, str):
-            _process_settings_prompt(prompts_dir, prompt_name.lower(), prompt_content, time_str, prompts)
+    ## Load from settings.DEFAULT_PROMPTS (skip non-string values like 'modes')
+    #for prompt_name, prompt_content in settings.DEFAULT_PROMPTS.items():
+    #    if isinstance(prompt_content, str):
+    #        _process_settings_prompt(prompts_dir, prompt_name.lower(), prompt_content, time_str, prompts)
 
     # Now find all .md and .txt files in the prompts directory
     for pattern_ext in ["*.md", "*.txt"]:
@@ -174,6 +174,7 @@ def load_prompts() -> dict[str, str]:
 
             # Rename the file if the new name is different
             if file_path != new_file_path:
+                print("renaming", file_path, "to", new_file_path)
                 os.rename(file_path, new_file_path)
 
             prompts[key] = content
@@ -299,7 +300,7 @@ def save_csv(data: dict[str, dict[frozendict, str]], file_path: str, all_questio
 def stampy(
     *,
     messages: list[str],
-    system: str = settings.SOURCE_PROMPT,
+    system: str = settings.SYSTEM_PROMPT,
     history_prompt: str = settings.HISTORY_PROMPT,
     history_summary_prompt: str = settings.HISTORY_SUMMARIZE_PROMPT,
     pre_message: str = settings.PRE_MESSAGE_PROMPT,
@@ -701,12 +702,15 @@ repetition_re = r"\s+\(repetition *#?[0-9]+\)\s*$"
 if __name__ == "__main__":
     import sys
     import time
+    args = parser.parse_args()
 
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
+    if args.rw_csv == "test":
         test_csv_functions()
         sys.exit()
+    elif args.rw_csv == "prompts":
+        load_prompts()
+        sys.exit()
 
-    args = parser.parse_args()
     prompts = load_prompts()
     print(f'  Loaded prompts: {len(prompts)}')
 

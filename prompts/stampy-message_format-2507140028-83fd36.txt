@@ -1,3 +1,0 @@
-<from-public-user>
-{{query}}
-</from-public-user>

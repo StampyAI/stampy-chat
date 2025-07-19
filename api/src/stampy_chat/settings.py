@@ -1,5 +1,4 @@
 from collections import namedtuple
-from pathlib import Path
 
 import tiktoken
 
@@ -10,35 +9,34 @@ Model = namedtuple(
     "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher"]
 )
 
-PROMPTS_DIR = (Path(__file__).absolute().parent.parent.parent.parent/'prompts')
-ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
 
+# warning: when changing these prompts, also change useSettings.ts
 SYSTEM_PROMPT = (
 """
+<miri-core-points>
+<entire-source id="LL">
 {yudkowsky-list-of-lethalities-2507132226-e11d43}
+</entire-source>
 
+<entire-source id="TP">
 {miri-the-problem-2507121135-b502d1}
+</entire-source>
 
+<entire-source id="TB">
 {miri-the-briefing-2507132220-44fbe5}
+</entire-source>
 
+<main-points>
 {miri-the-problem-main-points-2507132222-1916a0}
+</main-points>
+</miri-core-points>
 """.strip()
-    # TODO: rephrase to focus this on user queries, mostly trusting sources
-    # TODO: if user has great idea, here's some of where they go
 )
 HISTORY_PROMPT = (
-    "\n\n"
-    "# History:\n\n"
-    "Before the public user's latest message, there will be a history of previous questions and answers. "
-    "The latest sources only apply to the latest question. Any source ids used in previous answers "
-    "are invalid for later answers, and would need to be referenced by name."
+    "{stampy-history-2507211352-060b74}"
 )
 HISTORY_SUMMARIZE_PROMPT = (
-    "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    'Please summarize the following chat history (written after "History:") in one '
-    'sentence so as to put the current questions (the latest <from-public-user/>) in context. '
-    "Please keep things as terse as possible."
-    "\nHistory:"
+    "{stampy-history_summary-2507231056-b048af}"
 )
 
 PRE_MESSAGE_PROMPT = ""
@@ -49,6 +47,8 @@ POST_MESSAGE_PROMPT = """
 {post-message-2507220220-cff788}
 
 {socratic-avoid-bad-questions-harder-2507220153-a11064}
+
+{mode}
 """.strip()
 
 INSTRUCTION_WRAPPER = """
@@ -59,22 +59,9 @@ INSTRUCTION_WRAPPER = """
 
 PROMPT_MODES = {
     "default": "",
-    "concise": (
-        "Answer very concisely, getting to the crux of the matter in as "
-        "few words as possible. Limit your answer to 1-2 sentences.\n\n"
-    ),
-    "rookie": (
-        "This user is new to the field of AI Alignment and Safety - don't "
-        "assume they know any technical terms or jargon. Still give a complete answer "
-        "without patronizing the user, but take any extra time needed to "
-        "explain new concepts or to illustrate your answer with examples. "
-        "Put extra effort into explaining the intuition behind concepts "
-        "rather than just giving a formal definition. Try to give both usual and unusual cross-domain examples of any general concepts.\n\n"
-    ),
-    "discord": (
-        "Your answer will be used in a Discord channel, so please Answer concisely, getting to "
-        "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
-    ),
+    "concise": "{mode-concise-2507231147-db01d9}",
+    "rookie": "{mode-rookie-2507231143-f32d39}",
+    "discord": "{mode-discord-2507231144-ffe1d1}",
 }
 
 MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"

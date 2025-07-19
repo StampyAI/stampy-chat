@@ -230,6 +230,16 @@ export const ChatPrompts = ({
           value={settings?.prompts?.pre_message}
           onChange={updatePrompt("pre_message")}
         />
+      </details>
+      <details open>
+        <summary>Post-message prompt</summary>
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.post_message}
+          onChange={updatePrompt("post_message")}
+        />
+      </details>
+      <details open>
         User mode prompt:
         <TextareaAutosize
           className="border-gray w-full border px-1"
@@ -237,15 +247,15 @@ export const ChatPrompts = ({
           onChange={updatePrompt("modes", settings.mode || "default")}
         />
       </details>
-      <div>
-        <input
-          type="text"
+      <details open>
+        Message format:
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
           value={settings?.prompts?.message_format}
           onChange={updatePrompt("message_format")}
-          style={{ border: '1px solid #ccc', width: 'auto' }}
         />
-        <span>asd {query}</span>
-      </div>
+        <div>{query}</div>
+      </details>
     </div>
   );
 };
