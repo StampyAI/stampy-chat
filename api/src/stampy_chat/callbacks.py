@@ -2,6 +2,7 @@ import threading
 import traceback
 from queue import Queue
 from typing import Any, Callable, Iterator
+import pprint
 
 import mysql.connector.errors
 from sqlalchemy.exc import DatabaseError
@@ -19,7 +20,7 @@ class CallbackHandler:
     def on_citations_retrieved(self, citations: list[Block]) -> None:
         pass
 
-    def on_prompt(self, prompt: str, query: str, history: list[Message]) -> None:
+    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
         pass
 
     def on_llm_start(self) -> Any:
@@ -52,8 +53,8 @@ class BroadcastCallbackHandler(CallbackHandler):
         if self.broadcaster:
             self.broadcaster(value and value)
 
-    def on_prompt(self, prompt: str, query: str, history: list[Message]) -> None:
-        self.broadcast({"state": "prompt", "prompt": prompt})
+    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
+        self.broadcast({"state": "prompt", "promptedHistory": prompt})
 
     def on_response(self, chunk: str) -> None:
         self.broadcast({"state": "streaming", "content": chunk})
@@ -92,7 +93,7 @@ class LoggerCallbackHandler(CallbackHandler):
         self.response = None
         self.history = history
         self.context = None
-        self.prompt = None
+        self.prompted_history = None
         super().__init__(*args, **kwargs)
 
     def on_history(self, history: list[Message]):
@@ -108,14 +109,14 @@ class LoggerCallbackHandler(CallbackHandler):
                 self.query,
                 response,
                 self.history,
-                self.prompt,
+                pprint.pformat(self.prompted_history), # todo: what is logger.interaction?
                 self.context,
             )
         except (DatabaseError, mysql.connector.errors.DatabaseError):
             logger.error(traceback.format_exc())
 
-    def on_prompt(self, prompt: str, query: str, history: list[Message]) -> None:
-        self.prompt = prompt
+    def on_prompt(self, prompted_history: list[Message], query: str, history: list[Message]) -> None:
+        self.prompted_history = prompted_history
 
 
 Callback = Callable[[Any], None]

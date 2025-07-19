@@ -126,8 +126,18 @@ ol {
   padding: 4px;
 }
 
-.prompt-item {
+.prompt-role {
+  white-space: pre-wrap;
   @apply text-sm;
   padding: 8px;
   border-radius: 4px;
+  font-weight: bold;
+  background-color: #eee;
+}
+
+.prompt-line {
+  @apply text-sm;
+  padding: 8px;
+  border-radius: 4px;
+  white-space: pre-wrap;
 }

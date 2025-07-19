@@ -1,9 +1,11 @@
 from typing import TypedDict, Literal, Generator
+from dataclasses import dataclass
 
 from anthropic import Anthropic
 from openai import OpenAI
 from stampy_chat.settings import ANTHROPIC, OPENAI, Settings
 from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY
+from stampy_chat.citations import Message
 
 
 class LLMChunk(TypedDict):
@@ -19,8 +21,14 @@ def can_think(model: str, thinking_budget: int) -> bool:
     ) and thinking_budget >= 1024
 
 
+def split_system(history: list[Message]) -> list[Message]:
+    system = "\n\n".join([x["content"] for x in history if x["role"] == "system"])
+    history = [x for x in history if x["role"] != "system"]
+    return system, history
+
+
 def call_anthropic(
-    prompt: str, model: str, max_tokens: int, thinking_budget: int = 0
+    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0
 ) -> Generator[LLMChunk, None, None]:
     client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -28,9 +36,12 @@ def call_anthropic(
     if can_think(model, thinking_budget):
         params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
+    system, history = split_system(history)
+
     response = client.messages.create(
         model=model,
-        messages=[{"role": "user", "content": prompt}],
+        messages=history,
+        system=system,
         max_tokens=max_tokens,
         stream=True,
         **params,
@@ -44,12 +55,14 @@ def call_anthropic(
 
 
 def call_openai(
-    prompt: str, model: str, max_tokens: int, thinking_budget: int = 0
+    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0
 ) -> Generator[LLMChunk, None, None]:
     client = OpenAI(api_key=OPENAI_API_KEY)
+    system, history = split_system(history)
     response = client.responses.create(
         model=model,
-        input=[{"role": "user", "content": prompt}],
+        input=([{"role": "system", "content": system}] if system else [])
+            + history,
         max_output_tokens=max_tokens,
         reasoning={"effort": "medium"} if thinking_budget else None,
         stream=True,
@@ -59,7 +72,7 @@ def call_openai(
             yield LLMChunk(type="response", text=event.delta)
 
 
-def query_llm(prompt: str, settings: Settings) -> Generator[LLMChunk, None, None]:
+def query_llm(history: list[Message], settings: Settings) -> Generator[LLMChunk, None, None]:
     provider = settings.completions_model_provider
     if provider == ANTHROPIC:
         func = call_anthropic
@@ -69,7 +82,7 @@ def query_llm(prompt: str, settings: Settings) -> Generator[LLMChunk, None, None
         raise ValueError(f"Unknown provider: {provider}")
 
     return func(
-        prompt,
+        history,
         settings.completions_model_name,
         settings.max_response_tokens,
         settings.thinking_budget,

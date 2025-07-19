@@ -1,3 +1,4 @@
+import re
 from typing import Any, Callable, Optional
 
 from stampy_chat.callbacks import (
@@ -8,7 +9,7 @@ from stampy_chat.callbacks import (
 from stampy_chat.settings import Settings
 from stampy_chat.llms import query_llm
 from stampy_chat.citations import retrieve_docs, Message
-from stampy_chat.prompts import construct_prompt
+from stampy_chat.prompts import inject_guidance
 from stampy_chat.followups import search_followups, Followup
 
 
@@ -38,15 +39,15 @@ def run_query(
     for call in callbacks:
         call.on_citations_retrieved(docs)
 
-    prompt = construct_prompt(query, history, docs, settings)
+    prompted_history = inject_guidance(query, history, docs, settings)
     for call in callbacks:
-        call.on_prompt(prompt, query, history)
+        call.on_prompt(prompted_history, query, history)
 
     for call in callbacks:
         call.on_llm_start()
 
     response = ""
-    for chunk in query_llm(prompt, settings):
+    for chunk in query_llm(prompted_history, settings):
         if chunk["type"] == "thinking":
             for call in callbacks:
                 call.on_thinking(chunk["text"])

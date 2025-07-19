@@ -33,7 +33,7 @@ class Block(TypedDict):
 def hyde_enhance(
     prompt: str, history: list[Message], settings: Settings
 ) -> list[Message]:
-    """Enhance the history with Hyde's method."""
+    """prepare a [Hy]pothetical [D]ocument for [E]mbedding."""
     return history
 
 
@@ -93,3 +93,13 @@ def retrieve_docs(
 
 def get_top_k_blocks(query: str, k: int) -> list[Block]:
     return retrieve_docs(query, [], Settings())[:k]
+#+def fix_text(received_text):
+#+    """
+#+    discard the title format received from the vector db
+#+    """
+#+    import re
+#+    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
+#+
+#+
+#-            dict(e.metadata, id=e.page_content, reference=self.make_reference(i))
+#+            dict(e.metadata, id=e.page_content, reference=self.make_reference(i), text=fix_text(e.metadata['text']))

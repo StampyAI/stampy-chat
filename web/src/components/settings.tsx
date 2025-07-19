@@ -195,11 +195,11 @@ export const ChatPrompts = ({
         />
       </details>
       <details open>
-        <summary>Source prompt</summary>
+        <summary>System prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings?.prompts?.context}
-          onChange={updatePrompt("context")}
+          value={settings?.prompts?.system}
+          onChange={updatePrompt("system")}
         />
         <div>(This is where sources will be injected)</div>
       </details>
@@ -224,11 +224,11 @@ export const ChatPrompts = ({
         </details>
       )}
       <details open>
-        <summary>Question prompt</summary>
+        <summary>Pre-message prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings?.prompts?.question}
-          onChange={updatePrompt("question")}
+          value={settings?.prompts?.pre_message}
+          onChange={updatePrompt("pre_message")}
         />
         User mode prompt:
         <TextareaAutosize
@@ -240,8 +240,8 @@ export const ChatPrompts = ({
       <div>
         <input
           type="text"
-          value={settings?.prompts?.question_marker}
-          onChange={updatePrompt("question_marker")}
+          value={settings?.prompts?.message_format}
+          onChange={updatePrompt("message_format")}
           style={{ border: '1px solid #ccc', width: 'auto' }}
         />
         <span>asd {query}</span>
