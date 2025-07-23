@@ -10,48 +10,44 @@ type LLMSettingsParsers = {
   | ((v: object | undefined) => any);
 };
 
+// warning: when changing these prompts, also change settings.py
 const DEFAULT_PROMPTS = {
-  context:
-    "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
-    "Please give a clear and coherent answer to the user's questions. (written after \"Question:\") " +
-    "using the following sources. Each source is labeled with a number. Feel free to " +
-    "use the sources in any order, and try to reference up to 8 sources in your answers.\n\n" +
-    "# Sources\n",
-  history:
-    "\n\n" +
-    "# History:\n\n" +
-    "Before the question (\"Question:\"), there will be a history of previous questions and answers. " +
-    "These sources only apply to the last question. Any sources used in previous answers " +
-    "are invalid.",
-  history_summary:
-    "You are a helpful assistant knowledgeable about AI Alignment and Safety. " +
-    "Please summarize the following chat history (written after \"History:\") in one " +
-    "sentence so as to put the current questions (written after \"Question:\") in context. " +
-    "Please keep things as terse as possible." +
-    "\nHistory:",
-  question:
-    "# Question context:\n\n" +
-    "In your answer, please cite any claims you make back to each source " +
-    "using the format: [1], [2], etc. If you use multiple sources to make a claim " +
-    "cite all of them. For example: \"AGI is concerning [1, 3, 8].\"\n" +
-    "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite " +
-    "them. Don't repeat the question in your answer. \n\n",
-  question_marker: "Question:",
+  system: `
+<miri-core-points>
+<entire-source id="LL">
+{yudkowsky-list-of-lethalities-2507132226-e11d43}
+</entire-source>
+
+<entire-source id="TP">
+{miri-the-problem-2507121135-b502d1}
+</entire-source>
+
+<entire-source id="TB">
+{miri-the-briefing-2507132220-44fbe5}
+</entire-source>
+
+<main-points>
+{miri-the-problem-main-points-2507132222-1916a0}
+</main-points>
+</miri-core-points>
+`,
+  history: "{stampy-history-2507211352-060b74}",
+  history_summary: "{stampy-history_summary-2507231056-b048af}",
+  pre_message: '',
+  post_message: `
+{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}
+
+{post-message-2507220220-cff788}
+
+{socratic-avoid-bad-questions-harder-2507220153-a11064}
+
+{mode}`,
+  message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
-    default: "",
-    discord:
-      "Your answer will be used in a Discord channel, so please Answer concisely, getting to " +
-      "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n",
-    concise:
-      "Answer very concisely, getting to the crux of the matter in as " +
-      "few words as possible. Limit your answer to 1-2 sentences.\n\n",
-    rookie:
-      "This user is new to the field of AI Alignment and Safety - don't " +
-      "assume they know any technical terms or jargon. Still give a complete answer " +
-      "without patronizing the user, but take any extra time needed to " +
-      "explain new concepts or to illustrate your answer with examples. " +
-      "Put extra effort into explaining the intuition behind concepts " +
-      "rather than just giving a formal definition.\n\n",
+    "default": "",
+    "concise": "{mode-concise-2507231147-db01d9}",
+    "rookie": "{mode-rookie-2507231143-f32d39}",
+    "discord": "{mode-discord-2507231144-ffe1d1}",
   },
 };
 interface Model {
@@ -79,6 +75,8 @@ export const MODELS: { [key: string]: Model } = {
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
   "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
   "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "google/gemini-2.5-flash": { maxNumTokens: 250_000, topKBlocks: 50 },
+  "google/gemini-2.5-pro": { maxNumTokens: 250_000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
 
@@ -152,10 +150,10 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  completions: withDefault("gpt-3.5-turbo"),
+  completions: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
-  topKBlocks: withDefault(MODELS["gpt-3.5-turbo"]?.topKBlocks), //  the number of blocks to use as citations
-  maxNumTokens: withDefault(MODELS["gpt-3.5-turbo"]?.maxNumTokens),
+  topKBlocks: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks), //  the number of blocks to use as citations
+  maxNumTokens: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.maxNumTokens),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
