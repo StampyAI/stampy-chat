@@ -19,13 +19,17 @@ requests = "*"
 alembic = "*"
 sqlalchemy = "*"
 mysql-connector-python = "*"
+frozendict = "*"
 anthropic = "*"
 openai = "*"
+google-genai = "*"
 pinecone = "*"
 voyageai = "*"
 
 [dev-packages]
 pytest = "*"
+pytest-cov = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.11"

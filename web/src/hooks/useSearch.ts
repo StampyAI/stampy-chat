@@ -97,7 +97,7 @@ export const extractAnswer = async (
       case "prompt":
         result = {
           ...result,
-          prompt: data.prompt,
+          promptedHistory: data.promptedHistory,
         };
         setCurrent({ phase: "prompt", ...result });
         break;

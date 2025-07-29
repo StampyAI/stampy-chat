@@ -30,7 +30,7 @@ export type AssistantEntry = {
   citations?: Citation[];
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
-  prompt?: string;
+  promptedHistory?: Array<{role: string, content: string}>;
 };
 
 export type ErrorMessage = {
