@@ -1,4 +1,0 @@
-
-<instructions>
-{content}
-</instructions>

@@ -11,8 +11,7 @@ Model = namedtuple(
 
 
 # warning: when changing these prompts, also change useSettings.ts
-SYSTEM_PROMPT = (
-"""
+SYSTEM_PROMPT = """
 <miri-core-points>
 <entire-source id="LL">
 {yudkowsky-list-of-lethalities-2507132226-e11d43}
@@ -31,13 +30,8 @@ SYSTEM_PROMPT = (
 </main-points>
 </miri-core-points>
 """.strip()
-)
-HISTORY_PROMPT = (
-    "{stampy-history-2507211352-060b74}"
-)
-HISTORY_SUMMARIZE_PROMPT = (
-    "{stampy-history_summary-2507231056-b048af}"
-)
+HISTORY_PROMPT = "{stampy-history-2507211352-060b74}"
+HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 
 PRE_MESSAGE_PROMPT = ""
 
@@ -67,14 +61,14 @@ PROMPT_MODES = {
 MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
 
 DEFAULT_PROMPTS = {
-    'system': SYSTEM_PROMPT,
-    'history': HISTORY_PROMPT,
-    'history_summary': HISTORY_SUMMARIZE_PROMPT,
-    'pre_message': PRE_MESSAGE_PROMPT,
-    'post_message': POST_MESSAGE_PROMPT,
-    'pre_message_hyde': '',
-    'post_message_hyde': '',
-    'modes': PROMPT_MODES,
+    "system": SYSTEM_PROMPT,
+    "history": HISTORY_PROMPT,
+    "history_summary": HISTORY_SUMMARIZE_PROMPT,
+    "pre_message": PRE_MESSAGE_PROMPT,
+    "post_message": POST_MESSAGE_PROMPT,
+    "pre_message_hyde": "",
+    "post_message_hyde": "",
+    "modes": PROMPT_MODES,
     "message_format": MESSAGE_FORMAT,
     "instruction_wrapper": INSTRUCTION_WRAPPER,
 }
@@ -101,8 +95,8 @@ MODELS = {
     "anthropic/claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-opus-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-sonnet-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
-#    "anthropic/claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
-#    "anthropic/claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+    #    "anthropic/claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+    #    "anthropic/claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
     "anthropic/claude-3-7-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
     "google/gemini-2.5-flash": Model(250_000, 50, 4096, GOOGLE),
     "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
@@ -137,8 +131,7 @@ class Settings:
     ) -> None:
         self.prompts = prompts
         self.mode = mode
-        #import pudb; pudb.set_trace()
-        assert not any('hyde' in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
+        assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
         if self.mode_prompt is None:
             raise ValueError("Invalid mode: " + mode)
 
@@ -203,6 +196,16 @@ class Settings:
         self.maxCompletionTokens = MODELS[completions].maxCompletionTokens
 
     @property
+    def completions_provider(self):
+        if self.completions.startswith("google"):
+            return "Gemini"
+        elif self.completions.startswith("anthropic"):
+            return "Claude"
+        elif self.completions.startswith("openai"):
+            return "GPT"
+        raise ValueError(f"Unknown provider for completions model: {self.completions}")
+
+    @property
     def prompt_modes(self):
         return self.prompts["modes"]
 
@@ -224,31 +227,31 @@ class Settings:
 
     @property
     def pre_message_prompt(self):
-        return self.prompts['pre_message']
+        return self.prompts["pre_message"]
 
     @property
     def post_message_prompt(self):
-        return self.prompts['post_message']
+        return self.prompts["post_message"]
 
     @property
     def hyde_system_prompt(self):
-        return self.prompts.get('hyde_pre_message', self.system_prompt)
+        return self.prompts.get("hyde_pre_message", self.system_prompt)
 
     @property
     def hyde_pre_message_prompt(self):
-        return self.prompts['hyde_pre_message']
+        return self.prompts["hyde_pre_message"]
 
     @property
     def hyde_post_message_prompt(self):
-        return self.prompts['hyde_post_message']
+        return self.prompts["hyde_post_message"]
 
     @property
     def message_format(self):
-        return self.prompts.get('message_format', MESSAGE_FORMAT)
+        return self.prompts.get("message_format", MESSAGE_FORMAT)
 
     @property
     def instruction_wrapper(self):
-        return self.prompts.get('instruction_wrapper', INSTRUCTION_WRAPPER)
+        return self.prompts.get("instruction_wrapper", INSTRUCTION_WRAPPER)
 
     @property
     def context_tokens(self):

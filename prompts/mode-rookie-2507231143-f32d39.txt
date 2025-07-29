@@ -1,3 +1,0 @@
-Note: This user has indicated they are new to the field of AI Alignment and Safety - don't assume they know any technical terms or jargon. Still give a complete answer without patronizing the user, but take any extra time needed to explain new concepts or to illustrate your answer with examples. Put extra effort into explaining the intuition behind concepts rather than just giving a formal definition. Try to give both usual and unusual/cross-discipline examples of any general concepts; some examples of a concept should try to not have anything in common besides the concept. Still be technically specific and test claims against defeaters.
-
-

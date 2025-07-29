@@ -1,2 +1,0 @@
-You are a helpful assistant knowledgeable about AI Alignment and Safety. Please summarize the following chat history (written after "History:") in one sentence so as to put the current questions (in <from-public-user/>) in context. Please keep things as terse as possible.
-History:

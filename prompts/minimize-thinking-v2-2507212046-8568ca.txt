@@ -1,6 +1,0 @@
-After self-reminder to avoid confabulation, immediately follow up with "Request requires further thinking: [yes/some/no]". If no, immediately end thinking, to reduce user-visible latency-to-first-token. If some, finish thinking after 100 words. This isn't part of the user's request, so don't put in main response.
-
-think telegraphic speech.
-keep min draft per step.
-< 7 words per step.
-covers area faster, room for more steps.

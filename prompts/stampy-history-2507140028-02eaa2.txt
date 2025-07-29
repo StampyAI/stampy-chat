@@ -1,5 +1,0 @@
-
-
-# History:
-
-Before the user's message, there will be a history of previous questions and answers. These sources only apply to the last question. Any sources used in previous answers are invalid.

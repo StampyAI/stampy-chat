@@ -1,5 +1,0 @@
-
-
-# History:
-
-Before the question ("Question:"), there will be a history of previous questions and answers. These sources only apply to the last question. Any sources used in previous answers are invalid.
