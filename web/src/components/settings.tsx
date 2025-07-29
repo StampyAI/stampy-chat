@@ -3,7 +3,13 @@ import TextareaAutosize from "react-textarea-autosize";
 
 import type { Parseable, LLMSettings, Entry, Mode } from "../types";
 import { MODELS, ENCODERS } from "../hooks/useSettings";
-import { SectionHeader, NumberInput, Slider, Checkbox, Select } from "../components/html";
+import {
+  SectionHeader,
+  NumberInput,
+  Slider,
+  Checkbox,
+  Select,
+} from "../components/html";
 
 type ChatSettingsUpdate = [path: string[], value: any];
 type ChatSettingsParams = {
@@ -23,13 +29,12 @@ function Details({ children, defaultOpen = true, ...props }: DetailsProps) {
     <details
       {...props}
       open={isOpen}
-      onToggle={(e) => setIsOpen(e.target.open)}
+      onToggle={(e) => setIsOpen((e.target as HTMLDetailsElement).open)}
     >
       {children}
     </details>
   );
 }
-
 
 export const ChatSettings = ({
   settings,
@@ -176,13 +181,15 @@ export const ChatSettings = ({
         max="10"
         updater={updateNum("filters.miri_confidence")}
       />
-      <label htmlFor="filters.miri_distance" className="col-span-2">MIRI distance</label>
+      <label htmlFor="filters.miri_distance" className="col-span-2">
+        MIRI distance
+      </label>
       <Select
-        value={settings.filters?.miri_distance || ""}
+        value={settings.filters?.miri_distance[0] || ""}
         name="filters.miri_distance"
         updater={(event: ChangeEvent) => {
           const value = (event.target as HTMLInputElement).value;
-          const dist = value === '-' ? undefined : [value]; 
+          const dist = value === "-" ? undefined : [value];
           changeVal("filters.miri_distance", dist);
         }}
         options={["-", "core", "wider"]}

@@ -25,7 +25,7 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           const regex = new RegExp(keys.join("|"), "gim");
           setGlossary({ g: glossary, r: regex });
         });
-  }, []);
+  }, [glossary]);
 
   return (
     <GlossaryContext.Provider value={glossary}>

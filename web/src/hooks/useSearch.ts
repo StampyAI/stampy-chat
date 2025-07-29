@@ -55,12 +55,12 @@ export async function* iterateData(res: Response) {
 }
 
 const makeEntry = () =>
-({
-  role: "assistant",
-  content: "",
-  citations: [],
-  citationsMap: new Map(),
-} as AssistantEntry);
+  ({
+    role: "assistant",
+    content: "",
+    citations: [],
+    citationsMap: new Map(),
+  } as AssistantEntry);
 
 export const extractAnswer = async (
   res: Response,

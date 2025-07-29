@@ -134,7 +134,9 @@ export const Checkbox = ({
       name={field}
       className="col-span-2"
       value={value}
-      onChange={(event: ChangeEvent) => updater((event.target as HTMLInputElement).checked)}
+      onChange={(event: ChangeEvent) =>
+        updater((event.target as HTMLInputElement).checked)
+      }
       type="checkbox"
     />
   </>
@@ -151,11 +153,11 @@ export const Select = ({
   options: string[];
   updater: (v: any) => any;
 }) => (
-    <select name={name} value={value} onChange={updater} className="col-span-2">
-      {options.map((option: string) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
+  <select name={name} value={value} onChange={updater} className="col-span-2">
+    {options.map((option: string) => (
+      <option key={option} value={option}>
+        {option}
+      </option>
+    ))}
+  </select>
 );
