@@ -33,7 +33,7 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
       <summary>Full prompt</summary>
       <div className="prompt-container">{entry.promptedHistory?.map(entry =>
         <div className="prompt-block">
-          <div className="prompt-role">{"\n\n"}{roles[entry.role]}:</div>
+          <div className="prompt-role">{"\n\n"}{roles[entry.role as keyof typeof roles]}:</div>
           <div className="prompt-line">{entry.content}</div>
         </div>
       )}</div>
