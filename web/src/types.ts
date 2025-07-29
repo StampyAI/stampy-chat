@@ -30,7 +30,7 @@ export type AssistantEntry = {
   citations?: Citation[];
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
-  promptedHistory?: Array<{role: string, content: string}>;
+  promptedHistory?: Array<{ role: string, content: string }>;
 };
 
 export type ErrorMessage = {
@@ -71,3 +71,10 @@ export type LLMSettings = {
 };
 
 export type Parseable = string | number | undefined;
+
+export type Distance = "core" | "wider";
+export type SearchFilters = {
+  miri_confidence?: number;
+  miri_distance?: Distance[];
+  needs_tech?: boolean | null;
+};

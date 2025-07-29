@@ -3,7 +3,7 @@ import TextareaAutosize from "react-textarea-autosize";
 
 import type { Parseable, LLMSettings, Entry, Mode } from "../types";
 import { MODELS, ENCODERS } from "../hooks/useSettings";
-import { SectionHeader, NumberInput, Slider } from "../components/html";
+import { SectionHeader, NumberInput, Slider, Checkbox, Select } from "../components/html";
 
 type ChatSettingsUpdate = [path: string[], value: any];
 type ChatSettingsParams = {
@@ -75,11 +75,10 @@ export const ChatSettings = ({
       <label htmlFor="completions-model" className="col-span-2">
         Completions model:
       </label>
-      <select
+      <Select
         name="completions-model"
-        className="col-span-2"
-        value={settings.completions}
-        onChange={(event: ChangeEvent) => {
+        value={settings.completions || ""}
+        updater={(event: ChangeEvent) => {
           const value = (event.target as HTMLInputElement).value;
           const { maxNumTokens, topKBlocks } =
             MODELS[value as keyof typeof MODELS] || {};
@@ -101,29 +100,18 @@ export const ChatSettings = ({
           }
           changeVal("completions", value);
         }}
-      >
-        {Object.keys(MODELS).map((name) => (
-          <option value={name} key={name}>
-            {name}
-          </option>
-        ))}
-      </select>
+        options={Object.keys(MODELS)}
+      />
 
       <label htmlFor="encoder" className="col-span-2">
         Encoder:
       </label>
-      <select
+      <Select
         name="encoder"
-        className="col-span-2"
-        value={settings.encoder}
-        onChange={update("encoder")}
-      >
-        {ENCODERS.map((name) => (
-          <option value={name} key={name}>
-            {name}
-          </option>
-        ))}
-      </select>
+        value={settings.encoder || ""}
+        updater={update("encoder")}
+        options={ENCODERS}
+      />
 
       <SectionHeader text="Token options" />
       <NumberInput
@@ -178,6 +166,32 @@ export const ChatSettings = ({
         field="historyFraction"
         label="Approximate fraction of num_tokens to use for history text before truncating"
         updater={updateTokenFraction("historyFraction")}
+      />
+      <SectionHeader text="Search filters" />
+      <NumberInput
+        value={settings.filters?.miri_confidence || 0}
+        field="filters.miri_confidence"
+        label="MIRI confidence"
+        min="0"
+        max="10"
+        updater={updateNum("filters.miri_confidence")}
+      />
+      <label htmlFor="filters.miri_distance" className="col-span-2">MIRI distance</label>
+      <Select
+        value={settings.filters?.miri_distance || ""}
+        name="filters.miri_distance"
+        updater={(event: ChangeEvent) => {
+          const value = (event.target as HTMLInputElement).value;
+          const dist = value === '-' ? undefined : [value]; 
+          changeVal("filters.miri_distance", dist);
+        }}
+        options={["-", "core", "wider"]}
+      />
+      <Checkbox
+        value={settings.filters?.needs_tech}
+        field="filters.needs_tech"
+        label="Needs tech"
+        updater={(checked: boolean) => changeVal("filters.needs_tech", checked)}
       />
     </div>
   );

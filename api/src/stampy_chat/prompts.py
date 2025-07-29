@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 logger.info("Loading prompts dir...")
 PROMPTS_DIR = Path(__file__).absolute().parent.parent.parent.parent / "prompts"
-ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+if PROMPTS_DIR.exists():
+    ALL_PROMPTS = {
+        x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()
+    }
+else:
+    ALL_PROMPTS = {}
 logger.info("Done loading prompts")
 
 

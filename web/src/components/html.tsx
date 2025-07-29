@@ -119,3 +119,43 @@ export const Slider = ({
     />
   </>
 );
+
+export const Checkbox = ({
+  field,
+  value,
+  label = "",
+  updater,
+}: InputFields) => (
+  <>
+    <label htmlFor={field} className="col-span-2">
+      {label}:
+    </label>
+    <input
+      name={field}
+      className="col-span-2"
+      value={value}
+      onChange={(event: ChangeEvent) => updater((event.target as HTMLInputElement).checked)}
+      type="checkbox"
+    />
+  </>
+);
+
+export const Select = ({
+  name,
+  value,
+  options,
+  updater,
+}: {
+  name: string;
+  value: string;
+  options: string[];
+  updater: (v: any) => any;
+}) => (
+    <select name={name} value={value} onChange={updater} className="col-span-2">
+      {options.map((option: string) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+);

@@ -1,6 +1,5 @@
 from collections import namedtuple
-
-import tiktoken
+from typing import Any, Literal, TypedDict
 
 from stampy_chat.env import COMPLETIONS_MODEL
 
@@ -8,6 +7,21 @@ from stampy_chat.env import COMPLETIONS_MODEL
 Model = namedtuple(
     "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher"]
 )
+
+Mode = Literal["default", "concise", "rookie", "discord"]
+
+
+class Prompts(TypedDict):
+    system: str
+    history: str
+    history_summary: str
+    pre_message: str
+    post_message: str
+    hyde_pre_message: str
+    hyde_post_message: str
+    modes: dict[Mode, str]
+    message_format: str
+    instruction_wrapper: str
 
 
 # warning: when changing these prompts, also change useSettings.ts
@@ -72,6 +86,22 @@ DEFAULT_PROMPTS = {
     "message_format": MESSAGE_FORMAT,
     "instruction_wrapper": INSTRUCTION_WRAPPER,
 }
+
+MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
+
+DEFAULT_PROMPTS = Prompts(
+    system=SYSTEM_PROMPT,
+    history=HISTORY_PROMPT,
+    history_summary=HISTORY_SUMMARIZE_PROMPT,
+    pre_message=PRE_MESSAGE_PROMPT,
+    post_message=POST_MESSAGE_PROMPT,
+    hyde_pre_message="",
+    hyde_post_message="",
+    modes=PROMPT_MODES,
+    message_format=MESSAGE_FORMAT,
+    instruction_wrapper=INSTRUCTION_WRAPPER,
+)
+
 OPENAI = "openai"
 ANTHROPIC = "anthropic"
 GOOGLE = "google"
@@ -102,6 +132,12 @@ MODELS = {
     "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
 }
 
+DEFAULT_MIRI_FILTERS = {
+    "miri_confidence": 4,
+    "miri_distance": [],
+    "needs_tech": None,
+}
+
 
 def num_tokens(text, chars_per_token=4):
     """Calculate the number of tokens in a string."""
@@ -113,8 +149,8 @@ class Settings:
 
     def __init__(
         self,
-        prompts=DEFAULT_PROMPTS,
-        mode="default",
+        prompts: Prompts = DEFAULT_PROMPTS,
+        mode: Mode = "default",
         completions=COMPLETIONS_MODEL,
         topKBlocks=None,
         maxNumTokens=None,
@@ -127,10 +163,11 @@ class Settings:
         hyde_max_tokens=100,
         historyFraction=0.25,
         contextFraction=0.5,
+        filters=DEFAULT_MIRI_FILTERS,
         **_kwargs,
     ) -> None:
-        self.prompts = prompts
-        self.mode = mode
+        self.prompts: Prompts = prompts
+        self.mode: Mode = mode
         assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
         if self.mode_prompt is None:
             raise ValueError("Invalid mode: " + mode)
@@ -162,6 +199,8 @@ class Settings:
         """the number of tokens to leave as a buffer for thinking"""
 
         self.hyde_max_tokens = hyde_max_tokens
+
+        self.filters = filters
 
         if (
             self.context_tokens + self.history_tokens
@@ -206,7 +245,7 @@ class Settings:
         raise ValueError(f"Unknown provider for completions model: {self.completions}")
 
     @property
-    def prompt_modes(self):
+    def prompt_modes(self) -> dict[Mode, str]:
         return self.prompts["modes"]
 
     @property
@@ -222,8 +261,8 @@ class Settings:
         return self.prompts["history_summary"]
 
     @property
-    def mode_prompt(self):
-        return self.prompts["modes"].get(self.mode, "")
+    def mode_prompt(self) -> str:
+        return self.prompt_modes.get(self.mode, "")
 
     @property
     def pre_message_prompt(self):
@@ -299,3 +338,14 @@ class Settings:
         raise ValueError(
             f"Invalid completions model: {self.completions} - expected format: provider/model"
         )
+
+    @property
+    def miri_filters(self) -> dict[str, Any]:
+        filters = {}
+        if confidence := self.filters.get("miri_confidence"):
+            filters["miri_confidence"] = {"$gte": confidence}
+        if distance := self.filters.get("miri_distance"):
+            filters["miri_distance"] = {"$in": distance}
+        if needs_tech := self.filters.get("needs_tech"):
+            filters["needs_tech"] = needs_tech
+        return filters
