@@ -1,5 +1,4 @@
-from typing import TypedDict, Literal, Generator
-from dataclasses import dataclass
+from typing import TypedDict, Literal, Generator, Sequence
 
 import anthropic
 import openai
@@ -14,7 +13,7 @@ class LLMChunk(TypedDict):
     text: str
 
 
-def can_think(model: str, thinking_budget: int) -> bool:
+def can_think_anthropic(model: str, thinking_budget: int) -> bool:
     return (
         model.startswith("claude-sonnet-3.7")
         or model.startswith("claude-sonnet-4")
@@ -22,19 +21,29 @@ def can_think(model: str, thinking_budget: int) -> bool:
     ) and thinking_budget >= 1024
 
 
-def split_system(history: list[Message]) -> list[Message]:
+def can_think_openai(model: str, thinking_budget: int) -> bool:
+    return not (model.startswith("gpt-4o") or model.startswith("gpt-4.1-")) and bool(
+        thinking_budget
+    )
+
+
+def split_system(history: Sequence[Message]) -> tuple[str, list[Message]]:
     system = "\n\n".join([x["content"] for x in history if x["role"] == "system"])
     history = [x for x in history if x["role"] != "system"]
     return system, history
 
 
 def call_anthropic(
-    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0, stream: bool = True
+    history: Sequence[Message],
+    model: str,
+    max_tokens: int,
+    thinking_budget: int = 0,
+    stream: bool = True,
 ) -> Generator[LLMChunk, None, None]:
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     params = {}
-    if can_think(model, thinking_budget):
+    if can_think_anthropic(model, thinking_budget):
         params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
     system, history = split_system(history)
@@ -52,8 +61,11 @@ def call_anthropic(
         print("WARNING: falling back to google due to anthropic api error:", e)
         return call_google(history, model, max_tokens, thinking_budget, stream)
 
-    if stream: return anthropic_stream(response)
-    else:      return response.content[0].text
+    if stream:
+        return anthropic_stream(response)
+    else:
+        return response.content[0].text
+
 
 def anthropic_stream(response):
     for event in response:
@@ -65,20 +77,31 @@ def anthropic_stream(response):
 
 
 def call_openai(
-    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0, stream: bool = False
+    history: Sequence[Message],
+    model: str,
+    max_tokens: int,
+    thinking_budget: int = 0,
+    stream: bool = False,
 ) -> Generator[LLMChunk, None, None]:
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     system, history = split_system(history)
+    params = {}
+    if can_think_openai(model, thinking_budget):
+        params["reasoning"] = {"effort": "medium"}
+
     response = client.responses.create(
         model=model,
-        input=([{"role": "system", "content": system}] if system else [])
-            + history,
+        instructions=system,
+        input=history,
         max_output_tokens=max_tokens,
-        reasoning={"effort": "medium"} if thinking_budget else None,
         stream=True,
+        **params,
     )
-    if stream: return openai_stream(response)
-    else:      return response.choices[0].message.content
+    if stream:
+        return openai_stream(response)
+    else:
+        return response.choices[0].message.content
+
 
 def openai_stream(response):
     for event in response:
@@ -87,11 +110,15 @@ def openai_stream(response):
 
 
 def call_google(
-    history: list[Message], model: str, max_tokens: int, thinking_budget: int = 0
+    history: Sequence[Message],
+    model: str,
+    max_tokens: int,
+    thinking_budget: int = 0,
+    stream: bool = False,
 ) -> Generator[LLMChunk, None, None]:
     client = genai.Client(api_key=GOOGLE_API_KEY)
     system, history = split_system(history)
-    
+
     # Convert to Gemini's Content format
     contents = []
     for msg in history:
@@ -114,27 +141,30 @@ def call_google(
     # Use streaming API
     if stream:
         response = client.models.generate_content_stream(
-            model=model,
-            contents=contents,
-            config=config
+            model=model, contents=contents, config=config
         )
 
         def do_stream():
             for chunk in response:
-                if hasattr(chunk, 'text') and chunk.text:
+                if hasattr(chunk, "text") and chunk.text:
                     yield LLMChunk(type="response", text=chunk.text)
+
         return do_stream()
     else:
         response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=config
+            model=model, contents=contents, config=config
         )
 
         return response.text
 
 
-def query_llm(history: list[Message], settings: Settings, stream: bool = True, max_tokens: int|None=None, thinking_budget: int|None = None) -> Generator[LLMChunk, None, None]:
+def query_llm(
+    history: Sequence[Message],
+    settings: Settings,
+    stream: bool = True,
+    max_tokens: int | None = None,
+    thinking_budget: int | None = None,
+) -> Generator[LLMChunk, None, None]:
     provider = settings.completions_model_provider
     if provider == ANTHROPIC:
         func = call_anthropic
@@ -150,5 +180,5 @@ def query_llm(history: list[Message], settings: Settings, stream: bool = True, m
         settings.completions_model_name,
         max_tokens if max_tokens is not None else settings.max_response_tokens,
         thinking_budget if thinking_budget is not None else settings.thinking_budget,
-        stream=stream
+        stream=stream,
     )

@@ -63,9 +63,7 @@ def clean_block(reference: int, block) -> Block:
     )
 
 
-def retrieve_docs(
-    query: str, history: list[Message], settings: Settings
-) -> list[Block]:
+def retrieve_docs(query: str, settings: Settings) -> list[Block]:
     """Retrieve the documents for the query."""
     pc = Pinecone(
         api_key=PINECONE_API_KEY,
@@ -80,9 +78,10 @@ def retrieve_docs(
         metric="cosine",
         include_metadata=True,
         namespaces=[PINECONE_NAMESPACE],
+        filter=settings.miri_filters,
     )
     return [clean_block(i, r.metadata) for i, r in enumerate(results.matches, 1)]
 
 
 def get_top_k_blocks(query: str, k: int) -> list[Block]:
-    return retrieve_docs(query, [], Settings())[:k]
+    return retrieve_docs(query, Settings())[:k]

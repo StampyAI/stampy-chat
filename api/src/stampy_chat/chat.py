@@ -37,13 +37,18 @@ def run_query(
 
     retrieval_query = query
     if settings.enable_hyde:
-        #import pudb; pudb.set_trace()
         hyde_history = inject_guidance_hyde(query, history, settings)
-        retrieval_query = query_llm(hyde_history, settings, stream=False, max_tokens=settings.hyde_max_tokens, thinking_budget=0)
+        retrieval_query = query_llm(
+            hyde_history,
+            settings,
+            stream=False,
+            max_tokens=settings.hyde_max_tokens,
+            thinking_budget=0,
+        )
         for call in callbacks:
             call.on_hyde_done(retrieval_query)
 
-    docs = retrieve_docs(retrieval_query, history, settings)
+    docs = retrieve_docs(retrieval_query, settings)
 
     for call in callbacks:
         call.on_citations_retrieved(docs)

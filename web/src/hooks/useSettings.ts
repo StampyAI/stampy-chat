@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useState, useEffect, useCallback } from "react";
 
-import type { CurrentSearch, Mode, Entry, LLMSettings } from "../types";
+import type { Mode, LLMSettings, SearchFilters } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
@@ -79,6 +79,11 @@ export const MODELS: { [key: string]: Model } = {
   "google/gemini-2.5-pro": { maxNumTokens: 250_000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
+export const DEFAULT_FILTERS: SearchFilters = {
+  miri_confidence: 4,
+  miri_distance: [],
+  needs_tech: false,
+};
 
 /** Update the given `obj` so that it has `val` at the given path.
  *
@@ -136,6 +141,21 @@ const withDefault = (defaultVal: any) => {
   } else if (typeof defaultVal === "number") {
     return (v: string | undefined): number =>
       v !== undefined ? parseFloat(v) : defaultVal;
+  } else if (typeof defaultVal === "boolean") {
+    return (v: string | undefined): boolean =>
+      v !== undefined ? v === "true" : defaultVal;
+  } else if (Array.isArray(defaultVal)) {
+    return (v: any[] | undefined): any[] => {
+      if (v === undefined) {
+        return defaultVal
+      } else if (Array.isArray(v)) {
+        return v
+      } else if (typeof v === "string") {
+        return (v as string).split(",").map((x) => x.trim())
+      } else {
+        return v
+      }
+    }
   } else if (typeof defaultVal === "object") {
     const parsers = Object.entries(defaultVal).reduce(
       (parsers, [key, val]) => updateIn(parsers, [key], withDefault(val)),
@@ -159,6 +179,7 @@ const SETTINGS_PARSERS = {
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
   historyFraction: withDefault(0.25), //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: withDefault(0.5), //  the (approximate) fraction of num_tokens to use for context text before truncating
+  filters: withDefault(DEFAULT_FILTERS),
 };
 
 export const makeSettings = (overrides: LLMSettings) =>
@@ -189,11 +210,6 @@ const randomSettings = () => {
     tokensBuffer: randomInt(10, 200),
     maxHistory: randomInt(1, 20),
   });
-};
-
-type ChatSettingsParams = {
-  settings: LLMSettings;
-  changeSetting: (path: string[], value: any) => void;
 };
 
 type SettingsUpdatePair = [path: string[], val: any];
