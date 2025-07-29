@@ -1,5 +1,18 @@
+from pathlib import Path
+from typing import Sequence
+
 from stampy_chat.citations import Block, Message
 from stampy_chat.settings import Settings, num_tokens
+from xml.sax.saxutils import escape
+
+from stampy_chat import logging
+
+logger = logging.getLogger(__name__)
+
+logger.info("Loading prompts dir...")
+PROMPTS_DIR = Path(__file__).absolute().parent.parent.parent.parent / "prompts"
+ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+logger.info("Done loading prompts")
 
 
 def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
@@ -18,34 +31,144 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
             return truncated
 
         truncated = [item] + truncated
+    if len(truncated) and truncated[0].get("role") != "assistant":
+        truncated = truncated[1:]
     return truncated
 
 
 def format_block(block: Block) -> str:
-    return f"\n\n[{block.get('reference')}] {block['title']} {', '.join(block['authors'])} - {block['date_published']} {block['text']}\n\n"
+    return f'<source-fragment id={block.get("reference")} title="{block.get("title")}" authors="{", ".join(block["authors"])}" timestamp="{block["date_published"]}">\n...\n{block["text"]}\n...\n</source-fragment>'
 
 
 def format_blocks(blocks: list[Block]) -> str:
     return "\n\n".join([format_block(block) for block in blocks])
 
 
-def format_history(history: list[Message], settings: Settings) -> str:
+def format_history(history: list[Message], settings: Settings) -> list[Message]:
+    return [
+        (
+            {
+                "role": "user",
+                "content": settings.message_format.format(
+                    message=escape(message["contents"]), **ALL_PROMPTS
+                ),
+            }
+            if message["role"] == "user"
+            else message
+        )
+        for message in history
+    ]
+
+
+def validate_history(history: list[Message]):
+    # todo: something besides runtimeerror? it's a clientside mistake, need to return an api error
+    if not len(history):
+        raise RuntimeError("history can't be empty")
+    if history[0]["role"] != "user":
+        raise RuntimeError("history[0] should be user message")
+    if history[-1]["role"] != "user":
+        raise RuntimeError("history[-1] should be user message")
+    last_role = None
+    for msg in history:
+        if msg["role"] not in ["user", "assistant"]:
+            raise RuntimeError("user and assistant only please")
+        if msg["role"] == last_role:
+            raise RuntimeError("alternating role, please")
+        last_role = msg["role"]
+
+
+def inject_guidance(
+    query: str,
+    history: list[Message],
+    docs: list[Block],
+    settings: Settings,
+) -> Sequence[Message]:
     history = truncate_history(history, settings.history_tokens)
-    return "\n\n".join([format_message(message) for message in history])
+    history = format_history(history, settings)
+
+    last_parts = []
+    last_parts.append(format_blocks(docs))
+    modelname = settings.completions_provider
+    mode = settings.mode_prompt.format(**ALL_PROMPTS)
+    if settings.pre_message_prompt:
+        wrapped = settings.instruction_wrapper.format(
+            content=settings.pre_message_prompt.format(
+                mode=mode, modelname=modelname, **ALL_PROMPTS
+            ).strip()
+        )
+        last_parts.append(wrapped)
+
+    last_parts.append(
+        settings.message_format.format(message=escape(query), **ALL_PROMPTS)
+    )
+
+    if settings.post_message_prompt:
+        wrapped = settings.instruction_wrapper.format(
+            content=settings.post_message_prompt.format(
+                mode=mode, modelname=modelname, **ALL_PROMPTS
+            ).strip()
+        )
+        last_parts.append(wrapped)
+
+    history.append(Message(role="user", content="\n\n".join(last_parts)))
+    validate_history(history)
+
+    return [
+        Message(
+            role="system",
+            content=settings.system_prompt.format(modelname=modelname, **ALL_PROMPTS),
+        ),
+        Message(
+            role="system",
+            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+        ),
+    ] + history
 
 
-def format_message(message: Message) -> str:
-    return f"{message['role']}: {message['content']}"
+def inject_guidance_hyde(
+    query: str,
+    history: list[Message],
+    settings: Settings,
+) -> Sequence[Message]:
+    history = truncate_history(history, settings.history_tokens)
+    history = format_history(history, settings)
 
+    mode = ""
 
-def construct_prompt(
-    query: str, history: list[Message], docs: list[Block], settings: Settings
-) -> str:
-    return f"""
-    {settings.context_prompt}
-    {format_blocks(docs)}
-    {settings.history_prompt}
-    {format_history(history, settings)}
-    {settings.question_prompt}
-    {query}
-    """
+    last_parts = []
+    modelname = settings.completions_provider
+    if settings.hyde_pre_message_prompt:
+        wrapped = settings.instruction_wrapper.format(
+            content=settings.hyde_pre_message_prompt.format(
+                mode=mode, modelname=modelname, **ALL_PROMPTS
+            ).strip()
+        )
+        last_parts.append(wrapped)
+
+    last_parts.append(
+        settings.message_format.format(message=escape(query), **ALL_PROMPTS)
+    )
+
+    if settings.hyde_post_message_prompt:
+        wrapped = settings.instruction_wrapper.format(
+            content=settings.hyde_post_message_prompt.format(
+                mode=mode, modelname=modelname, **ALL_PROMPTS
+            ).strip()
+        )
+        last_parts.append(wrapped)
+
+    history.append(Message(role="user", content="\n\n".join(last_parts)))
+    validate_history(history)
+
+    return [
+        Message(
+            role="system",
+            content=settings.hyde_system_prompt.format(
+                modelname=modelname, **ALL_PROMPTS
+            ),
+        ),
+        Message(
+            role="system",
+            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+        ),
+    ] + history

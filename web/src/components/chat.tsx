@@ -47,9 +47,9 @@ export const ChatResponse = ({
     case "history":
       return <p>Loading: Processing history...</p>;
     case "context":
-      return <p>Loading: Creating context...</p>;
+      return <p>Loading: Preparing context...</p>;
     case "prompt":
-      return <p>Loading: Creating prompt...</p>;
+      return <p>Loading: Preparing prompt...</p>;
     case "llm":
       return <p>Loading: Waiting for LLM...</p>;
     case "streaming":

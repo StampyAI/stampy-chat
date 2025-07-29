@@ -1,4 +1,4 @@
-import { ChangeEvent } from "react";
+import { ChangeEvent, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 
 import type { Parseable, LLMSettings, Entry, Mode } from "../types";
@@ -10,6 +10,26 @@ type ChatSettingsParams = {
   settings: LLMSettings;
   changeSettings: (...v: ChatSettingsUpdate[]) => void;
 };
+
+type DetailsProps = {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+} & React.DetailsHTMLAttributes<HTMLDetailsElement>;
+
+function Details({ children, defaultOpen = true, ...props }: DetailsProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <details
+      {...props}
+      open={isOpen}
+      onToggle={(e) => setIsOpen(e.target.open)}
+    >
+      {children}
+    </details>
+  );
+}
+
 
 export const ChatSettings = ({
   settings,
@@ -186,32 +206,32 @@ export const ChatPrompts = ({
 
   return (
     <div className="chat-prompts mx-5 w-[400px] flex-none border-2 p-5 outline-black">
-      <details>
+      <Details>
         <summary>History summary prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
           value={settings?.prompts?.history_summary}
           onChange={updatePrompt("history_summary")}
         />
-      </details>
-      <details open>
-        <summary>Source prompt</summary>
+      </Details>
+      <Details>
+        <summary>System prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings?.prompts?.context}
-          onChange={updatePrompt("context")}
+          value={settings?.prompts?.system}
+          onChange={updatePrompt("system")}
         />
         <div>(This is where sources will be injected)</div>
-      </details>
+      </Details>
       {history.length > 0 && (
-        <details open>
+        <Details>
           <summary>History prompt</summary>
           <TextareaAutosize
             className="border-gray w-full border px-1"
             value={settings?.prompts?.history}
             onChange={updatePrompt("history")}
           />
-          <details>
+          <Details>
             <summary>History</summary>
             {history
               .slice(Math.max(0, history.length - (settings.maxHistory || 0)))
@@ -220,32 +240,42 @@ export const ChatPrompts = ({
                   {entry.content}
                 </div>
               ))}
-          </details>
-        </details>
+          </Details>
+        </Details>
       )}
-      <details open>
-        <summary>Question prompt</summary>
+      <Details>
+        <summary>Pre-message prompt</summary>
         <TextareaAutosize
           className="border-gray w-full border px-1"
-          value={settings?.prompts?.question}
-          onChange={updatePrompt("question")}
+          value={settings?.prompts?.pre_message}
+          onChange={updatePrompt("pre_message")}
         />
+      </Details>
+      <Details>
+        <summary>Post-message prompt</summary>
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.post_message}
+          onChange={updatePrompt("post_message")}
+        />
+      </Details>
+      <Details>
         User mode prompt:
         <TextareaAutosize
           className="border-gray w-full border px-1"
           value={settings?.prompts?.modes[settings.mode || "default"]}
           onChange={updatePrompt("modes", settings.mode || "default")}
         />
-      </details>
-      <div>
-        <input
-          type="text"
-          value={settings?.prompts?.question_marker}
-          onChange={updatePrompt("question_marker")}
-          style={{ border: '1px solid #ccc', width: 'auto' }}
+      </Details>
+      <Details>
+        Message format:
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.message_format}
+          onChange={updatePrompt("message_format")}
         />
-        <span>asd {query}</span>
-      </div>
+        <div>{query}</div>
+      </Details>
     </div>
   );
 };

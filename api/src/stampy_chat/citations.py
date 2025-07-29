@@ -30,13 +30,6 @@ class Block(TypedDict):
     text: str
 
 
-def hyde_enhance(
-    prompt: str, history: list[Message], settings: Settings
-) -> list[Message]:
-    """Enhance the history with Hyde's method."""
-    return history
-
-
 def embed_query(query: str, settings: Settings) -> list[float] | list[int]:
     """Embed the query."""
     voyageai_client = voyageai.Client(api_key=VOYAGEAI_API_KEY)

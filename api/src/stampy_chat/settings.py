@@ -1,4 +1,5 @@
 from collections import namedtuple
+
 import tiktoken
 
 from stampy_chat.env import COMPLETIONS_MODEL
@@ -9,66 +10,71 @@ Model = namedtuple(
 )
 
 
-SOURCE_PROMPT = (
-    "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    'Please give a clear and coherent answer to the user\'s questions. (written after "Question:") '
-    "using the following sources. Each source is labeled with a number. Feel free to "
-    "use the sources in any order, and try to reference up to 8 sources in your answers.\n\n"
-    "# Sources\n"
-)
-HISTORY_PROMPT = (
-    "\n\n"
-    "# History:\n\n"
-    'Before the question ("Question:"), there will be a history of previous questions and answers. '
-    "These sources only apply to the last question. Any sources used in previous answers "
-    "are invalid."
-)
-HISTORY_SUMMARIZE_PROMPT = (
-    "You are a helpful assistant knowledgeable about AI Alignment and Safety. "
-    'Please summarize the following chat history (written after "History:") in one '
-    'sentence so as to put the current questions (written after "Question:") in context. '
-    "Please keep things as terse as possible."
-    "\nHistory:"
-)
+# warning: when changing these prompts, also change useSettings.ts
+SYSTEM_PROMPT = """
+<miri-core-points>
+<entire-source id="LL">
+{yudkowsky-list-of-lethalities-2507132226-e11d43}
+</entire-source>
 
-QUESTION_PROMPT = (
-    "# Question context:\n\n"
-    "In your answer, please cite any claims you make back to each source "
-    "using the format: [1], [2], etc. If you use multiple sources to make a claim "
-    'cite all of them. For example: "AGI is concerning [1, 3, 8]."\n'
-    "Don't explicitly mention the sources unless it impacts the flow of your answer - just cite "
-    "them. Don't repeat the question in your answer. \n\n"
-)
+<entire-source id="TP">
+{miri-the-problem-2507121135-b502d1}
+</entire-source>
+
+<entire-source id="TB">
+{miri-the-briefing-2507132220-44fbe5}
+</entire-source>
+
+<main-points>
+{miri-the-problem-main-points-2507132222-1916a0}
+</main-points>
+</miri-core-points>
+""".strip()
+HISTORY_PROMPT = "{stampy-history-2507211352-060b74}"
+HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
+
+PRE_MESSAGE_PROMPT = ""
+
+POST_MESSAGE_PROMPT = """
+{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}
+
+{post-message-2507220220-cff788}
+
+{socratic-avoid-bad-questions-harder-2507220153-a11064}
+
+{mode}
+""".strip()
+
+INSTRUCTION_WRAPPER = """
+<instructions>
+{content}
+</instructions>
+""".strip()
+
 PROMPT_MODES = {
     "default": "",
-    "concise": (
-        "Answer very concisely, getting to the crux of the matter in as "
-        "few words as possible. Limit your answer to 1-2 sentences.\n\n"
-    ),
-    "rookie": (
-        "This user is new to the field of AI Alignment and Safety - don't "
-        "assume they know any technical terms or jargon. Still give a complete answer "
-        "without patronizing the user, but take any extra time needed to "
-        "explain new concepts or to illustrate your answer with examples. "
-        "Put extra effort into explaining the intuition behind concepts "
-        "rather than just giving a formal definition.\n\n"
-    ),
-    "discord": (
-        "Your answer will be used in a Discord channel, so please Answer concisely, getting to "
-        "the crux of the matter in as few words as possible. Limit your answer to 1-2 paragraphs.\n\n"
-    ),
+    "concise": "{mode-concise-2507231147-db01d9}",
+    "rookie": "{mode-rookie-2507231143-f32d39}",
+    "discord": "{mode-discord-2507231144-ffe1d1}",
 }
-QUESTION_MARKER = "Question:"
+
+MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
+
 DEFAULT_PROMPTS = {
-    "context": SOURCE_PROMPT,
+    "system": SYSTEM_PROMPT,
     "history": HISTORY_PROMPT,
     "history_summary": HISTORY_SUMMARIZE_PROMPT,
-    "question": QUESTION_PROMPT,
+    "pre_message": PRE_MESSAGE_PROMPT,
+    "post_message": POST_MESSAGE_PROMPT,
+    "pre_message_hyde": "",
+    "post_message_hyde": "",
     "modes": PROMPT_MODES,
-    "question_marker": QUESTION_MARKER,
+    "message_format": MESSAGE_FORMAT,
+    "instruction_wrapper": INSTRUCTION_WRAPPER,
 }
 OPENAI = "openai"
 ANTHROPIC = "anthropic"
+GOOGLE = "google"
 MODELS = {
     "openai/gpt-3.5-turbo": Model(4097, 10, 4096, OPENAI),
     "openai/gpt-3.5-turbo-16k": Model(16385, 30, 4096, OPENAI),
@@ -89,7 +95,11 @@ MODELS = {
     "anthropic/claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-opus-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-sonnet-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
+    #    "anthropic/claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
+    #    "anthropic/claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
     "anthropic/claude-3-7-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
+    "google/gemini-2.5-flash": Model(250_000, 50, 4096, GOOGLE),
+    "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
 }
 
 
@@ -108,17 +118,20 @@ class Settings:
         completions=COMPLETIONS_MODEL,
         topKBlocks=None,
         maxNumTokens=None,
+        enable_hyde=False,
         min_response_tokens=10,
-        thinking_budget=0,
+        thinking_budget=2048,
         tokensBuffer=100,
         maxHistory=10,
         maxHistorySummaryTokens=200,
+        hyde_max_tokens=100,
         historyFraction=0.25,
         contextFraction=0.5,
         **_kwargs,
     ) -> None:
         self.prompts = prompts
         self.mode = mode
+        assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
         if self.mode_prompt is None:
             raise ValueError("Invalid mode: " + mode)
 
@@ -144,6 +157,11 @@ class Settings:
 
         self.thinking_budget = thinking_budget
         """the number of tokens to leave as a buffer for thinking"""
+
+        self.enable_hyde = enable_hyde
+        """the number of tokens to leave as a buffer for thinking"""
+
+        self.hyde_max_tokens = hyde_max_tokens
 
         if (
             self.context_tokens + self.history_tokens
@@ -178,12 +196,22 @@ class Settings:
         self.maxCompletionTokens = MODELS[completions].maxCompletionTokens
 
     @property
+    def completions_provider(self):
+        if self.completions.startswith("google"):
+            return "Gemini"
+        elif self.completions.startswith("anthropic"):
+            return "Claude"
+        elif self.completions.startswith("openai"):
+            return "GPT"
+        raise ValueError(f"Unknown provider for completions model: {self.completions}")
+
+    @property
     def prompt_modes(self):
         return self.prompts["modes"]
 
     @property
-    def context_prompt(self):
-        return self.prompts["context"]
+    def system_prompt(self):
+        return self.prompts.get("system", self.prompts.get("context"))
 
     @property
     def history_prompt(self):
@@ -198,18 +226,38 @@ class Settings:
         return self.prompts["modes"].get(self.mode, "")
 
     @property
-    def question_prompt(self):
-        return self.prompts["question"] + self.mode_prompt
+    def pre_message_prompt(self):
+        return self.prompts["pre_message"]
 
     @property
-    def question_marker(self):
-        return self.prompts.get("question_marker", QUESTION_MARKER)
+    def post_message_prompt(self):
+        return self.prompts["post_message"]
+
+    @property
+    def hyde_system_prompt(self):
+        return self.prompts.get("hyde_pre_message", self.system_prompt)
+
+    @property
+    def hyde_pre_message_prompt(self):
+        return self.prompts["hyde_pre_message"]
+
+    @property
+    def hyde_post_message_prompt(self):
+        return self.prompts["hyde_post_message"]
+
+    @property
+    def message_format(self):
+        return self.prompts.get("message_format", MESSAGE_FORMAT)
+
+    @property
+    def instruction_wrapper(self):
+        return self.prompts.get("instruction_wrapper", INSTRUCTION_WRAPPER)
 
     @property
     def context_tokens(self):
         """The max number of tokens to be used for the context"""
         return int(self.maxNumTokens * self.contextFraction) - num_tokens(
-            self.context_prompt
+            self.system_prompt
         )
 
     @property
@@ -225,10 +273,11 @@ class Settings:
             self.maxNumTokens
             - self.maxHistorySummaryTokens
             - self.context_tokens
-            - num_tokens(self.context_prompt)
+            - num_tokens(self.system_prompt)
             - self.history_tokens
             - num_tokens(self.history_prompt)
-            - num_tokens(self.question_prompt)
+            - num_tokens(self.pre_message_prompt)
+            - num_tokens(self.post_message_prompt)
             + self.thinking_budget
         )
         return min(available_tokens, self.maxCompletionTokens)
