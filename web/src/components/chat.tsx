@@ -8,15 +8,16 @@ import {
 import { initialQuestions } from "../settings";
 
 import type {
-  CurrentSearch, Entry, LLMSettings,
+  CurrentSearch,
+  Entry,
+  LLMSettings,
   Followup,
-  SearchResult
+  SearchResult,
 } from "../types";
 import useCitations from "../hooks/useCitations";
 import { SearchBox } from "../components/searchbox";
 import { AssistantEntry } from "../components/assistant";
 import { Entry as EntryTag } from "../components/entry";
-
 
 // smooth-scroll to the bottom of the window if we're already less than 10% a screen away
 // note: finicky interaction with "smooth" - maybe fix later.

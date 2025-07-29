@@ -3,10 +3,10 @@ import { GlossarySpan } from "./glossary";
 import type { AssistantEntry as AssistantType } from "../types";
 
 const roles = {
-    assistant: 'Assistant',
-    user: 'User',
-    system: 'System'
-}
+  assistant: "Assistant",
+  user: "User",
+  system: "System",
+};
 
 export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
   entry,
@@ -31,12 +31,17 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
     </ul>
     <details className="prompt">
       <summary>Full prompt</summary>
-      <div className="prompt-container">{entry.promptedHistory?.map(entry =>
-        <div className="prompt-block">
-          <div className="prompt-role">{"\n\n"}{roles[entry.role as keyof typeof roles]}:</div>
-          <div className="prompt-line">{entry.content}</div>
-        </div>
-      )}</div>
+      <div className="prompt-container">
+        {entry.promptedHistory?.map((entry, i) => (
+          <div className="prompt-block" key={i}>
+            <div className="prompt-role">
+              {"\n\n"}
+              {roles[entry.role as keyof typeof roles]}:
+            </div>
+            <div className="prompt-line">{entry.content}</div>
+          </div>
+        ))}
+      </div>
     </details>
   </div>
 );

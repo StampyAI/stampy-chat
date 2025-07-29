@@ -13,10 +13,10 @@ export const formatCitations: (text: string) => string = (text) => {
 
     (block: string) =>
       block
-        .split(',')
+        .split(",")
         .map((x) => x.trim())
-        .join('][')
-  )
+        .join("][")
+  );
 
   // transform all things that look like [(1), (2), (3)] into [(1)][(2)][(3)]
   response = response.replace(
@@ -24,40 +24,49 @@ export const formatCitations: (text: string) => string = (text) => {
 
     (block: string) =>
       block
-        .split(',')
+        .split(",")
         .map((x) => x.trim())
-        .join('][')
-  )
+        .join("][")
+  );
 
   // transform all things that look like [(3)] into [3]
-  response = response.replace(/\[\((\d+)\)\]/g, (_match: string, x: string) => `[${x}]`)
+  response = response.replace(
+    /\[\((\d+)\)\]/g,
+    (_match: string, x: string) => `[${x}]`
+  );
 
   // transform all things that look like [ 12 ] into [12]
-  response = response.replace(/\[\s*(\d+)\s*\]/g, (_match: string, x: string) => `[${x}]`)
-  return response
-}
+  response = response.replace(
+    /\[\s*(\d+)\s*\]/g,
+    (_match: string, x: string) => `[${x}]`
+  );
+  return response;
+};
 
-export const findCitations: (text: string, citations: Citation[]) => Map<string, Citation> = (
-  text,
-  citations
-) => {
+export const findCitations: (
+  text: string,
+  citations: Citation[]
+) => Map<string, Citation> = (text, citations) => {
   // figure out what citations are in the response, and map them appropriately
-  const cite_map = new Map<string, Citation>()
-  const byRef = citations.reduce((acc, c) => ({...acc, [c.reference]: c}), {}) as {
-    [k: string]: Citation
-  }
-  let index = 1
-  const refs = [...text.matchAll(/\[(\d+)\]/g)]
+  const cite_map = new Map<string, Citation>();
+  const byRef = citations.reduce(
+    (acc, c) => ({ ...acc, [c.reference]: c }),
+    {}
+  ) as {
+    [k: string]: Citation;
+  };
+  let index = 1;
+  const refs = [...text.matchAll(/\[(\d+)\]/g)];
   refs.forEach(([_, num]) => {
-    if (!num || cite_map.has(num)) return
-    const citation = byRef[num as keyof typeof byRef]
-    if (!citation) return
+    if (!num || cite_map.has(num)) return;
+    const citation = byRef[num as keyof typeof byRef];
+    if (!citation) return;
 
-    cite_map.set(num, {...citation, index: index++})
-  })
+    cite_map.set(num, { ...citation, index: index++ });
+  });
 
-  return cite_map
-}
+  return cite_map;
+};
 
 export const ShowCitation: React.FC<{ citation: Citation }> = ({
   citation,

@@ -5,9 +5,10 @@ import type { Mode, LLMSettings, SearchFilters } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
-  | ((v: number | undefined) => any)
-  | ((v: string | undefined) => any)
-  | ((v: object | undefined) => any);
+    | ((v: number | undefined) => any)
+    | ((v: string | undefined) => any)
+    | ((v: object | undefined) => any)
+    | ((v: any[] | undefined) => any);
 };
 
 // warning: when changing these prompts, also change settings.py
@@ -33,7 +34,7 @@ const DEFAULT_PROMPTS = {
 `,
   history: "{stampy-history-2507211352-060b74}",
   history_summary: "{stampy-history_summary-2507231056-b048af}",
-  pre_message: '',
+  pre_message: "",
   post_message: `
 {detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}
 
@@ -44,10 +45,10 @@ const DEFAULT_PROMPTS = {
 {mode}`,
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
-    "default": "",
-    "concise": "{mode-concise-2507231147-db01d9}",
-    "rookie": "{mode-rookie-2507231143-f32d39}",
-    "discord": "{mode-discord-2507231144-ffe1d1}",
+    default: "",
+    concise: "{mode-concise-2507231147-db01d9}",
+    rookie: "{mode-rookie-2507231143-f32d39}",
+    discord: "{mode-discord-2507231144-ffe1d1}",
   },
 };
 interface Model {
@@ -69,12 +70,27 @@ export const MODELS: { [key: string]: Model } = {
   "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
   "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 50 },
   "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
-  "anthropic/claude-3-5-sonnet-20240620": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "anthropic/claude-3-5-sonnet-20241022": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "anthropic/claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-3-5-sonnet-20240620": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
+  "anthropic/claude-3-5-sonnet-20241022": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
+  "anthropic/claude-3-5-sonnet-latest": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-sonnet-4-20250514": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
+  "anthropic/claude-3-7-sonnet-latest": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
   "google/gemini-2.5-flash": { maxNumTokens: 250_000, topKBlocks: 50 },
   "google/gemini-2.5-pro": { maxNumTokens: 250_000, topKBlocks: 50 },
 };
@@ -147,15 +163,15 @@ const withDefault = (defaultVal: any) => {
   } else if (Array.isArray(defaultVal)) {
     return (v: any[] | undefined): any[] => {
       if (v === undefined) {
-        return defaultVal
+        return defaultVal;
       } else if (Array.isArray(v)) {
-        return v
+        return v;
       } else if (typeof v === "string") {
-        return (v as string).split(",").map((x) => x.trim())
+        return (v as string).split(",").map((x) => x.trim());
       } else {
-        return v
+        return v;
       }
-    }
+    };
   } else if (typeof defaultVal === "object") {
     const parsers = Object.entries(defaultVal).reduce(
       (parsers, [key, val]) => updateIn(parsers, [key], withDefault(val)),
@@ -172,8 +188,12 @@ const SETTINGS_PARSERS = {
   mode: (v: string | undefined) => (v || "default") as Mode,
   completions: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
-  topKBlocks: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks), //  the number of blocks to use as citations
-  maxNumTokens: withDefault(MODELS["anthropic/claude-sonnet-4-20250514"]?.maxNumTokens),
+  topKBlocks: withDefault(
+    MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks
+  ), //  the number of blocks to use as citations
+  maxNumTokens: withDefault(
+    MODELS["anthropic/claude-sonnet-4-20250514"]?.maxNumTokens
+  ),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
