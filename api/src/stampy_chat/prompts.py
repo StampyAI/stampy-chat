@@ -36,7 +36,7 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
             return truncated
 
         truncated = [item] + truncated
-    if len(truncated) and truncated[0].get("role") != "assistant":
+    if len(truncated) and truncated[0].get("role") == "assistant":
         truncated = truncated[1:]
     return truncated
 
@@ -55,7 +55,7 @@ def format_history(history: list[Message], settings: Settings) -> list[Message]:
             {
                 "role": "user",
                 "content": settings.message_format.format(
-                    message=escape(message["contents"]), **ALL_PROMPTS
+                    message=escape(message["content"]), **ALL_PROMPTS
                 ),
             }
             if message["role"] == "user"
