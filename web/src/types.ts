@@ -67,6 +67,8 @@ export type LLMSettings = {
   maxHistory?: number;
   historyFraction?: number;
   contextFraction?: number;
+  enable_hyde?: boolean;
+  thinking_budget?: number;
   [key: string]: any;
 };
 

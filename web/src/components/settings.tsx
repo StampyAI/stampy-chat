@@ -143,6 +143,26 @@ export const ChatSettings = ({
         max={settings.maxNumTokens}
         updater={updateNum("maxHistorySummaryTokens")}
       />
+      <Checkbox
+          value={settings?.enable_hyde}
+          field="enable_hyde"
+          label="Enable Hyde"
+          updater={(checked: boolean) => changeSettings([["enable_hyde"], checked])}
+      />
+      <NumberInput
+        field="thinking_budget"
+        value={settings.thinking_budget}
+        label="Max tokens for thinking. 0 or >=1024"
+        min="0"
+        max={settings.maxNumTokens}
+        updater={updateNum("thinking_budget")}
+      />
+      <Checkbox
+          value={settings?.thinking_budget >= 1024}
+          field="enable_thinking"
+          label="Enable Thinking"
+          updater={(checked: boolean) => changeSettings([["thinking_budget"], checked ? 1024 : 0])}
+      />
 
       <SectionHeader text="Prompt options" />
       <NumberInput
@@ -271,6 +291,24 @@ export const ChatPrompts = ({
           value={settings?.prompts?.pre_message}
           onChange={updatePrompt("pre_message")}
         />
+      </Details>
+      <Details>
+        <Details>
+          <summary>Hyde pre-message prompt</summary>
+          <TextareaAutosize
+            className="border-gray w-full border px-1"
+            value={settings?.prompts?.hyde_pre_message}
+            onChange={updatePrompt("hyde_pre_message")}
+          />
+        </Details>
+        <Details>
+          <summary>Hyde post-message prompt</summary>
+          <TextareaAutosize
+            className="border-gray w-full border px-1"
+            value={settings?.prompts?.hyde_post_message}
+            onChange={updatePrompt("hyde_post_message")}
+          />
+        </Details>
       </Details>
       <Details>
         <summary>Post-message prompt</summary>
