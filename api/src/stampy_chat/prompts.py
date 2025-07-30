@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Sequence
+import datetime
 
 from stampy_chat.citations import Block, Message
 from stampy_chat.settings import Settings, num_tokens
@@ -92,13 +93,16 @@ def inject_guidance(
 
     last_parts = []
     last_parts.append(format_blocks(docs))
-    modelname = settings.completions_provider
-    mode = settings.mode_prompt.format(**ALL_PROMPTS)
+    vals = dict(
+        modelname=settings.completions_provider,
+        date=datetime.datetime.now().strftime("%B %d, %Y")
+    )
+    mode = settings.mode_prompt.format(**vals, **ALL_PROMPTS).format(**vals)
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.pre_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -109,8 +113,8 @@ def inject_guidance(
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.post_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -120,11 +124,11 @@ def inject_guidance(
     return [
         Message(
             role="system",
-            content=settings.system_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.system_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.history_prompt.format(**vals, **ALL_PROMPTS),
         ),
     ] + history
 
@@ -140,12 +144,15 @@ def inject_guidance_hyde(
     mode = ""
 
     last_parts = []
-    modelname = settings.completions_provider
+    vals = dict(
+        modelname=settings.completions_provider,
+        date=datetime.datetime.now().strftime("%B %d, %Y")
+    )
     if settings.hyde_pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_pre_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -156,8 +163,8 @@ def inject_guidance_hyde(
     if settings.hyde_post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_post_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -168,11 +175,11 @@ def inject_guidance_hyde(
         Message(
             role="system",
             content=settings.hyde_system_prompt.format(
-                modelname=modelname, **ALL_PROMPTS
-            ),
+                **vals, **ALL_PROMPTS
+            ).format(**vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.history_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
         ),
     ] + history
