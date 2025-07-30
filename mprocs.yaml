@@ -1,0 +1,25 @@
+# run multiple dev servers in parallel
+# run with:
+# cargo install mprocs || npm install -g mprocs || yay mprocs
+# mprocs
+procs:
+  api:
+    shell: cd api && pipenv run python main.py
+    env:
+      FLASK_ENV: development
+    autostart: true
+    autorestart: true
+  
+  web:
+    shell: cd web && npm run dev
+    autostart: true
+    autorestart: true
+
+# Optional: specify shell to use
+shell: bash
+
+# Optional: hide keybindings pane at bottom
+hide_keymap_window: false
+
+# Optional: increase scrollback buffer
+scrollback: 50000
