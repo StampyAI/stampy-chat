@@ -10,13 +10,12 @@ from stampy_chat import logging
 logger = logging.getLogger(__name__)
 
 logger.info("Loading prompts dir...")
-PROMPTS_DIR = Path(__file__).absolute().parent.parent.parent.parent / "prompts"
-if PROMPTS_DIR.exists():
-    ALL_PROMPTS = {
-        x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()
-    }
-else:
-    ALL_PROMPTS = {}
+try:
+    PROMPTS_DIR = (Path(__file__).absolute().parent.parent.parent.parent/'prompts')
+    ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+except FileNotFoundError:
+    logger.error("Cannot start stampy with no prompts! please restore the prompts/ directory.")
+    raise SystemExit(1)
 logger.info("Done loading prompts")
 
 
