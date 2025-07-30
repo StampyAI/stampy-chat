@@ -31,6 +31,9 @@ export type AssistantEntry = {
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
   promptedHistory?: Array<{ role: string; content: string }>;
+  timings?: Array<{ time: number; name: string }>;
+  hydeResult?: string;
+  settings?: LLMSettings;
 };
 
 export type ErrorMessage = {
