@@ -42,7 +42,7 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
 
 
 def format_block(block: Block) -> str:
-    return f'<source-fragment id={block.get("reference")} title="{block.get("title")}" authors="{", ".join(block["authors"])}" timestamp="{block["date_published"]}">\n...\n{block["text"]}\n...\n</source-fragment>'
+    return f'<result-fragment id={block.get("reference")} title="{block.get("title")}" authors="{", ".join(block["authors"])}" timestamp="{block["date_published"]}">\n...\n{block["text"]}\n...\n</result-fragment>'
 
 
 def format_blocks(blocks: list[Block]) -> str:
