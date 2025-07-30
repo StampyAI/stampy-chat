@@ -1,4 +1,5 @@
 from typing import TypedDict, Literal
+import re
 
 from stampy_chat.settings import Settings
 from pinecone import Pinecone
@@ -59,7 +60,7 @@ def clean_block(reference: int, block) -> Block:
         title=block["title"],
         url=block["url"],
         tags=block.get("tags"),
-        text=block["text"],
+        text=fix_text(block["text"]),
     )
 
 
@@ -85,3 +86,10 @@ def retrieve_docs(query: str, settings: Settings) -> list[Block]:
 
 def get_top_k_blocks(query: str, k: int) -> list[Block]:
     return retrieve_docs(query, Settings())[:k]
+
+def fix_text(received_text: str|None) -> str|None:
+    """
+    discard the title format received from the vector db.
+    """
+    if received_text is None: return None
+    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
