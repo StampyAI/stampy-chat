@@ -258,7 +258,7 @@ export default function useSettings() {
     return router.replace({
       pathname: router.pathname,
       query: { ...router.query, ...vals },
-    });
+    }, undefined, { scroll: false });
   };
 
   const changeSetting = (path: string[], value: any) => {
