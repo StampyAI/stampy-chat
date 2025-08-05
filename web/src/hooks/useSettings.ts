@@ -36,7 +36,7 @@ const DEFAULT_PROMPTS = {
   history_summary: "{stampy-history_summary-2507231056-b048af}",
   pre_message: "",
   post_message: `
-{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}
+{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
 
 {post-message-2507220220-cff788}
 
@@ -45,7 +45,7 @@ const DEFAULT_PROMPTS = {
 {mode}`,
   hyde_pre_message: "",
   hyde_post_message:
-    "{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}\n\n{hyde_post_message-2507222109-597ed2}",
+    "{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}\n\n{hyde_post_message-2507222109-597ed2}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",

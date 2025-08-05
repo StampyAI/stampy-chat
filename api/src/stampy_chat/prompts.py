@@ -32,7 +32,7 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
         if item.get("role") in ["deleted", "error"]:
             continue
 
-        all_tokens += num_tokens(content)
+        all_tokens += num_tokens(item.get('content', ''))
         if all_tokens > max_tokens:
             return truncated
 

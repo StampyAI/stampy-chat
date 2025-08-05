@@ -50,13 +50,19 @@ HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 PRE_MESSAGE_PROMPT = ""
 
 POST_MESSAGE_PROMPT = """
-{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}
+{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
 
 {post-message-2507220220-cff788}
 
 {socratic-avoid-bad-questions-harder-2507220153-a11064}
 
 {mode}
+""".strip()
+
+HYDE_POST_MESSAGE_PROMPT = """
+{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+
+{hyde_post_message-2507222109-597ed2}
 """.strip()
 
 INSTRUCTION_WRAPPER = """
@@ -74,19 +80,6 @@ PROMPT_MODES = {
 
 MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
 
-DEFAULT_PROMPTS = {
-    "system": SYSTEM_PROMPT,
-    "history": HISTORY_PROMPT,
-    "history_summary": HISTORY_SUMMARIZE_PROMPT,
-    "pre_message": PRE_MESSAGE_PROMPT,
-    "post_message": POST_MESSAGE_PROMPT,
-    "pre_message_hyde": "",
-    "post_message_hyde": "",
-    "modes": PROMPT_MODES,
-    "message_format": MESSAGE_FORMAT,
-    "instruction_wrapper": INSTRUCTION_WRAPPER,
-}
-
 MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
 
 DEFAULT_PROMPTS = Prompts(
@@ -96,7 +89,7 @@ DEFAULT_PROMPTS = Prompts(
     pre_message=PRE_MESSAGE_PROMPT,
     post_message=POST_MESSAGE_PROMPT,
     hyde_pre_message="",
-    hyde_post_message="",
+    hyde_post_message=HYDE_POST_MESSAGE_PROMPT,
     modes=PROMPT_MODES,
     message_format=MESSAGE_FORMAT,
     instruction_wrapper=INSTRUCTION_WRAPPER,
