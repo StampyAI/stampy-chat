@@ -28,9 +28,6 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
         if item.get("role") in ["deleted", "error"]:
             continue
 
-        if not (content := item.get("content")):
-            continue
-
         all_tokens += num_tokens(content)
         if all_tokens > max_tokens:
             return truncated
@@ -70,15 +67,15 @@ def validate_history(history: list[Message]):
     if not len(history):
         raise RuntimeError("history can't be empty")
     if history[0]["role"] != "user":
-        raise RuntimeError("history[0] should be user message")
+        raise RuntimeError("history[0] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
     if history[-1]["role"] != "user":
-        raise RuntimeError("history[-1] should be user message")
+        raise RuntimeError(f"history[-1] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
     last_role = None
     for msg in history:
         if msg["role"] not in ["user", "assistant"]:
-            raise RuntimeError("user and assistant only please")
+            raise RuntimeError(f"user and assistant only please, got {msg['role']}}")
         if msg["role"] == last_role:
-            raise RuntimeError("alternating role, please")
+            raise RuntimeError("alternating role, please, got {msg['role']} twice in a row")
         last_role = msg["role"]
 
 
