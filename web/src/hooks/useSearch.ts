@@ -71,6 +71,7 @@ export const extractAnswer = async (
   var result: AssistantEntry = makeEntry();
   var followups: Followup[] = [];
   const startTime = Date.now();
+  var thinkingCount = 0;
   
   const addTiming = (name: string) => {
     if (!result.timings) result.timings = [];
@@ -98,9 +99,7 @@ export const extractAnswer = async (
       case "streaming":
         // incrementally build up the response
         const content = formatCitations((result?.content || "") + data.content);
-        if ((result?.content || "").length === 0) {
-          addTiming("first content");
-        }
+        addTiming("content");
         result = {
           ...result,
           content,
@@ -137,6 +136,8 @@ export const extractAnswer = async (
         break;
       case "thinking":
         addTiming("thinking");
+        thinkingCount++;
+        setCurrent({ phase: "llm", thinkingCount, ...result });
         break;
       case "done":
         addTiming("done");

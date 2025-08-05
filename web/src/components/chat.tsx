@@ -33,6 +33,11 @@ function scroll30() {
 const randomQuestion = () =>
   initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
 
+const getSpinner = (thinkingCount: number = 0) => {
+  const spinnerFrames = [".--", "..-", "...", "-..", "--.", "---", "*--", "**-", "***", ".**", "..*", "*..", "-*.", ".-*", "*.-", "-*.", "--*", "---"];
+  return spinnerFrames[thinkingCount % spinnerFrames.length];
+};
+
 export const ChatResponse = ({
   current,
   defaultElem,
@@ -43,6 +48,8 @@ export const ChatResponse = ({
   switch (current?.phase) {
     case "started":
       return <p>Loading: Sending query...</p>;
+    case "enrich":
+      return <p>Loading: Refined your query...</p>;
     case "semantic":
       return <p>Loading: Performing semantic search...</p>;
     case "history":
@@ -50,9 +57,9 @@ export const ChatResponse = ({
     case "context":
       return <p>Loading: Preparing context...</p>;
     case "prompt":
-      return <p>Loading: Preparing prompt...</p>;
+      return <p>Loading: Preparing context...</p>;
     case "llm":
-      return <p>Loading: Waiting for LLM...</p>;
+      return <p>Loading: Thinking (usually 10s-30s){getSpinner(current.thinkingCount)}</p>;
     case "streaming":
       return <AssistantEntry entry={current} />;
     case "followups":

@@ -53,7 +53,7 @@ export type SearchResult = {
   followups?: Followup[] | ((f: Followup[]) => Followup[]);
   result: Entry;
 };
-export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
+export type CurrentSearch = (AssistantEntry & { phase?: string; thinkingCount?: number }) | undefined;
 
 export type Mode = "rookie" | "concise" | "default" | "discord";
 
