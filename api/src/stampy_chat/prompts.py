@@ -12,10 +12,14 @@ logger = logging.getLogger(__name__)
 
 logger.info("Loading prompts dir...")
 try:
-    PROMPTS_DIR = (Path(__file__).absolute().parent.parent.parent.parent/'prompts')
-    ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+    PROMPTS_DIR = Path(__file__).absolute().parent.parent.parent.parent / "prompts"
+    ALL_PROMPTS = {
+        x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()
+    }
 except FileNotFoundError:
-    logger.error("Cannot start stampy with no prompts! please restore the prompts/ directory.")
+    logger.error(
+        "Cannot start stampy with no prompts! please restore the prompts/ directory."
+    )
     raise SystemExit(1)
 logger.info("Done loading prompts")
 
@@ -67,15 +71,21 @@ def validate_history(history: list[Message]):
     if not len(history):
         raise RuntimeError("history can't be empty")
     if history[0]["role"] != "user":
-        raise RuntimeError("history[0] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
+        raise RuntimeError(
+            "history[0] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}"
+        )
     if history[-1]["role"] != "user":
-        raise RuntimeError(f"history[-1] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
+        raise RuntimeError(
+            f"history[-1] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}"
+        )
     last_role = None
     for msg in history:
         if msg["role"] not in ["user", "assistant"]:
-            raise RuntimeError(f"user and assistant only please, got {msg['role']}}")
+            raise RuntimeError(f"user and assistant only please, got {msg['role']}")
         if msg["role"] == last_role:
-            raise RuntimeError("alternating role, please, got {msg['role']} twice in a row")
+            raise RuntimeError(
+                "alternating role, please, got {msg['role']} twice in a row"
+            )
         last_role = msg["role"]
 
 
@@ -92,14 +102,14 @@ def inject_guidance(
     last_parts.append(format_blocks(docs))
     vals = dict(
         modelname=settings.completions_provider,
-        date=datetime.datetime.now().strftime("%B %d, %Y")
+        date=datetime.datetime.now().strftime("%B %d, %Y"),
     )
     mode = settings.mode_prompt.format(**vals, **ALL_PROMPTS).format(**vals)
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
-            content=settings.pre_message_prompt.format(
-                mode=mode, **vals, **ALL_PROMPTS
-            ).format(**vals).strip()
+            content=settings.pre_message_prompt.format(mode=mode, **vals, **ALL_PROMPTS)
+            .format(**vals)
+            .strip()
         )
         last_parts.append(wrapped)
 
@@ -111,7 +121,9 @@ def inject_guidance(
         wrapped = settings.instruction_wrapper.format(
             content=settings.post_message_prompt.format(
                 mode=mode, **vals, **ALL_PROMPTS
-            ).format(**vals).strip()
+            )
+            .format(**vals)
+            .strip()
         )
         last_parts.append(wrapped)
 
@@ -143,13 +155,15 @@ def inject_guidance_hyde(
     last_parts = []
     vals = dict(
         modelname=settings.completions_provider,
-        date=datetime.datetime.now().strftime("%B %d, %Y")
+        date=datetime.datetime.now().strftime("%B %d, %Y"),
     )
     if settings.hyde_pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_pre_message_prompt.format(
                 mode=mode, **vals, **ALL_PROMPTS
-            ).format(**vals).strip()
+            )
+            .format(**vals)
+            .strip()
         )
         last_parts.append(wrapped)
 
@@ -161,7 +175,9 @@ def inject_guidance_hyde(
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_post_message_prompt.format(
                 mode=mode, **vals, **ALL_PROMPTS
-            ).format(**vals).strip()
+            )
+            .format(**vals)
+            .strip()
         )
         last_parts.append(wrapped)
 
@@ -171,12 +187,14 @@ def inject_guidance_hyde(
     return [
         Message(
             role="system",
-            content=settings.hyde_system_prompt.format(
-                **vals, **ALL_PROMPTS
-            ).format(**vals),
+            content=settings.hyde_system_prompt.format(**vals, **ALL_PROMPTS).format(
+                **vals
+            ),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
+            content=settings.history_prompt.format(**vals, **ALL_PROMPTS).format(
+                **vals
+            ),
         ),
     ] + history

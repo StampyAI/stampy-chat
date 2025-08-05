@@ -44,7 +44,8 @@ const DEFAULT_PROMPTS = {
 
 {mode}`,
   hyde_pre_message: "",
-  hyde_post_message: "{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}\n\n{hyde_post_message-2507222109-597ed2}",
+  hyde_post_message:
+    "{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}\n\n{hyde_post_message-2507222109-597ed2}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
@@ -255,10 +256,14 @@ export default function useSettings() {
         query: { ...router.query, ...vals },
       }
     );
-    return router.replace({
-      pathname: router.pathname,
-      query: { ...router.query, ...vals },
-    }, undefined, { scroll: false });
+    return router.replace(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, ...vals },
+      },
+      undefined,
+      { scroll: false }
+    );
   };
 
   const changeSetting = (path: string[], value: any) => {

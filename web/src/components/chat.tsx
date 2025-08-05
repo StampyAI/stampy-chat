@@ -34,7 +34,26 @@ const randomQuestion = () =>
   initialQuestions[Math.floor(Math.random() * initialQuestions.length)] || "";
 
 const getSpinner = (thinkingCount: number = 0) => {
-  const spinnerFrames = [".--", "..-", "...", "-..", "--.", "---", "*--", "**-", "***", ".**", "..*", "*..", "-*.", ".-*", "*.-", "-*.", "--*", "---"];
+  const spinnerFrames = [
+    ".--",
+    "..-",
+    "...",
+    "-..",
+    "--.",
+    "---",
+    "*--",
+    "**-",
+    "***",
+    ".**",
+    "..*",
+    "*..",
+    "-*.",
+    ".-*",
+    "*.-",
+    "-*.",
+    "--*",
+    "---",
+  ];
   return spinnerFrames[thinkingCount % spinnerFrames.length];
 };
 
@@ -59,7 +78,11 @@ export const ChatResponse = ({
     case "prompt":
       return <p>Loading: Preparing context...</p>;
     case "llm":
-      return <p>Loading: Thinking (usually 10s-30s){getSpinner(current.thinkingCount)}</p>;
+      return (
+        <p>
+          Loading: Thinking (usually 10s-30s){getSpinner(current.thinkingCount)}
+        </p>
+      );
     case "streaming":
       return <AssistantEntry entry={current} />;
     case "followups":

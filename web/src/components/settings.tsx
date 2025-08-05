@@ -144,10 +144,12 @@ export const ChatSettings = ({
         updater={updateNum("maxHistorySummaryTokens")}
       />
       <Checkbox
-          value={settings?.enable_hyde}
-          field="enable_hyde"
-          label="Enable Hyde"
-          updater={(checked: boolean) => changeSettings([["enable_hyde"], checked])}
+        checked={settings?.enable_hyde || false}
+        field="enable_hyde"
+        label="Enable Hyde"
+        updater={(checked: boolean) =>
+          changeSettings([["enable_hyde"], checked])
+        }
       />
       <NumberInput
         field="thinking_budget"
@@ -158,10 +160,15 @@ export const ChatSettings = ({
         updater={updateNum("thinking_budget")}
       />
       <Checkbox
-          value={settings?.thinking_budget >= 1024}
-          field="enable_thinking"
-          label="Enable Thinking"
-          updater={(checked: boolean) => changeSettings([["thinking_budget"], checked ? 1024 : 0])}
+        checked={
+          (settings?.thinking_budget && settings.thinking_budget >= 1024) ||
+          false
+        }
+        field="enable_thinking"
+        label="Enable Thinking"
+        updater={(checked: boolean) =>
+          changeSettings([["thinking_budget"], checked ? 1024 : 0])
+        }
       />
 
       <SectionHeader text="Prompt options" />
@@ -200,25 +207,6 @@ export const ChatSettings = ({
         min="0"
         max="10"
         updater={updateNum("filters.miri_confidence")}
-      />
-      <label htmlFor="filters.miri_distance" className="col-span-2">
-        MIRI distance
-      </label>
-      <Select
-        value={settings.filters?.miri_distance[0] || ""}
-        name="filters.miri_distance"
-        updater={(event: ChangeEvent) => {
-          const value = (event.target as HTMLInputElement).value;
-          const dist = value === "-" ? undefined : [value];
-          changeVal("filters.miri_distance", dist);
-        }}
-        options={["-", "core", "wider"]}
-      />
-      <Checkbox
-        value={settings.filters?.needs_tech}
-        field="filters.needs_tech"
-        label="Needs tech"
-        updater={(checked: boolean) => changeVal("filters.needs_tech", checked)}
       />
     </div>
   );

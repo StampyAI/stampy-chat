@@ -44,21 +44,23 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
             </div>
           </div>
         )}
-        
+
         {entry.hydeResult && (
           <div className="prompt-section">
             <h4>Hyde Result</h4>
             <div className="hyde-result">{entry.hydeResult}</div>
           </div>
         )}
-        
+
         {entry.settings && (
           <div className="prompt-section">
             <h4>Settings</h4>
-            <pre className="settings-json">{JSON.stringify(entry.settings, null, 2)}</pre>
+            <pre className="settings-json">
+              {JSON.stringify(entry.settings, null, 2)}
+            </pre>
           </div>
         )}
-        
+
         <div className="prompt-section">
           <h4>Full Prompt</h4>
           {entry.promptedHistory?.map((entry, i) => (

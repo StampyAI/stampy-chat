@@ -51,7 +51,7 @@ const between =
     max: Parseable,
     parser: NumberParser,
     updater: (v: any) => any,
-    cacher: (v: any) => any,
+    cacher: (v: any) => any
   ) =>
   (event: ChangeEvent) => {
     let num = parser((event.target as HTMLInputElement).value);
@@ -82,18 +82,21 @@ export const NumberInput = ({
   parser = (v) => parseInt(v as string, 10),
 }: InputFields) => {
   const [internalValue, setInternalValue] = useState(null);
-  return <>
-    <label htmlFor={field} className="col-span-3 inline-block">
-      {label}{internalValue !== null ? " (invalid input)" : ""}:{" "}
-    </label>
-    <input
-      name={field}
-      value={internalValue !== null ? internalValue : value}
-      className="w-20"
-      onChange={between(min, max, parser, updater, setInternalValue)}
-      type="number"
-    />
-  </>
+  return (
+    <>
+      <label htmlFor={field} className="col-span-3 inline-block">
+        {label}
+        {internalValue !== null ? " (invalid input)" : ""}:{" "}
+      </label>
+      <input
+        name={field}
+        value={internalValue !== null ? internalValue : value}
+        className="w-20"
+        onChange={between(min, max, parser, updater, setInternalValue)}
+        type="number"
+      />
+    </>
+  );
 };
 
 export const Slider = ({
@@ -115,7 +118,7 @@ export const Slider = ({
       name={field}
       className="col-span-2"
       value={value}
-      onChange={between(min, max, parser, updater, x => null)}
+      onChange={between(min, max, parser, updater, (x) => null)}
       type="range"
       min={min}
       max={max}
@@ -126,10 +129,10 @@ export const Slider = ({
 
 export const Checkbox = ({
   field,
-  value,
+  checked,
   label = "",
   updater,
-}: InputFields) => (
+}: InputFields & { checked: boolean }) => (
   <>
     <label htmlFor={field} className="col-span-2">
       {label}:
@@ -137,7 +140,7 @@ export const Checkbox = ({
     <input
       name={field}
       className="col-span-2"
-      value={value}
+      checked={checked}
       onChange={(event: ChangeEvent) =>
         updater((event.target as HTMLInputElement).checked)
       }

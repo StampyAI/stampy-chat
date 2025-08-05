@@ -72,12 +72,12 @@ export const extractAnswer = async (
   var followups: Followup[] = [];
   const startTime = Date.now();
   var thinkingCount = 0;
-  
+
   const addTiming = (name: string) => {
     if (!result.timings) result.timings = [];
     result.timings.push({ time: Date.now() - startTime, name });
   };
-  
+
   if (settings) {
     result.settings = settings;
   }
