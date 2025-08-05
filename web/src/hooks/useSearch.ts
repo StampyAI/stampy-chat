@@ -60,14 +60,27 @@ const makeEntry = () =>
     content: "",
     citations: [],
     citationsMap: new Map(),
+    timings: [],
   } as AssistantEntry);
 
 export const extractAnswer = async (
   res: Response,
-  setCurrent: (e: CurrentSearch) => void
+  setCurrent: (e: CurrentSearch) => void,
+  settings?: LLMSettings
 ): Promise<SearchResult> => {
   var result: AssistantEntry = makeEntry();
   var followups: Followup[] = [];
+  const startTime = Date.now();
+  var thinkingCount = 0;
+  
+  const addTiming = (name: string) => {
+    if (!result.timings) result.timings = [];
+    result.timings.push({ time: Date.now() - startTime, name });
+  };
+  
+  if (settings) {
+    result.settings = settings;
+  }
   for await (var data of iterateData(res)) {
     switch (data.state) {
       case "loading":
@@ -75,6 +88,7 @@ export const extractAnswer = async (
         break;
 
       case "citations":
+        addTiming("got citations");
         result = {
           ...result,
           citations: data?.citations || result?.citations || [],
@@ -85,6 +99,7 @@ export const extractAnswer = async (
       case "streaming":
         // incrementally build up the response
         const content = formatCitations((result?.content || "") + data.content);
+        addTiming("content");
         result = {
           ...result,
           content,
@@ -95,6 +110,7 @@ export const extractAnswer = async (
         break;
 
       case "prompt":
+        addTiming("got prompt");
         result = {
           ...result,
           promptedHistory: data.promptedHistory,
@@ -103,11 +119,28 @@ export const extractAnswer = async (
         break;
 
       case "followups":
+        addTiming("followups");
         // add any potential followup questions
         followups = data.followups.map((value: any) => value as Followup);
         console.log("followups", followups);
         break;
       case "done":
+        break;
+      case "enrich":
+        addTiming("got hyde");
+        result = {
+          ...result,
+          hydeResult: data.content,
+        };
+        setCurrent({ phase: "enrich", ...result });
+        break;
+      case "thinking":
+        addTiming("thinking");
+        thinkingCount++;
+        setCurrent({ phase: "llm", thinkingCount, ...result });
+        break;
+      case "done":
+        addTiming("done");
         break;
       case "error":
         throw data.error;
@@ -153,7 +186,7 @@ export const queryLLM = async (
   }
 
   try {
-    return await extractAnswer(res, setCurrent);
+    return await extractAnswer(res, setCurrent, settings);
   } catch (e) {
     if ((e as Error)?.name === "AbortError") {
       return { result: { role: "error", content: "aborted" } };

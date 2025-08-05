@@ -43,6 +43,8 @@ const DEFAULT_PROMPTS = {
 {socratic-avoid-bad-questions-harder-2507220153-a11064}
 
 {mode}`,
+  hyde_pre_message: "",
+  hyde_post_message: "{detailed-cautious-epistem-safetyinfo-v5-2507220231-d00b79}\n\n{hyde_post_message-2507222109-597ed2}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
@@ -199,6 +201,8 @@ const SETTINGS_PARSERS = {
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
   historyFraction: withDefault(0.25), //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: withDefault(0.5), //  the (approximate) fraction of num_tokens to use for context text before truncating
+  enable_hyde: withDefault(false), //  whether to enable hyde functionality
+  thinking_budget: withDefault(0), // 0 or >=1024
   filters: withDefault(DEFAULT_FILTERS),
 };
 
@@ -254,7 +258,7 @@ export default function useSettings() {
     return router.replace({
       pathname: router.pathname,
       query: { ...router.query, ...vals },
-    });
+    }, undefined, { scroll: false });
   };
 
   const changeSetting = (path: string[], value: any) => {

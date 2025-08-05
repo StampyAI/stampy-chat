@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Sequence
+import datetime
 
 from stampy_chat.citations import Block, Message
 from stampy_chat.settings import Settings, num_tokens
@@ -10,13 +11,12 @@ from stampy_chat import logging
 logger = logging.getLogger(__name__)
 
 logger.info("Loading prompts dir...")
-PROMPTS_DIR = Path(__file__).absolute().parent.parent.parent.parent / "prompts"
-if PROMPTS_DIR.exists():
-    ALL_PROMPTS = {
-        x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()
-    }
-else:
-    ALL_PROMPTS = {}
+try:
+    PROMPTS_DIR = (Path(__file__).absolute().parent.parent.parent.parent/'prompts')
+    ALL_PROMPTS = {x.name.rsplit(".", 1)[0]: x.read_text() for x in PROMPTS_DIR.iterdir()}
+except FileNotFoundError:
+    logger.error("Cannot start stampy with no prompts! please restore the prompts/ directory.")
+    raise SystemExit(1)
 logger.info("Done loading prompts")
 
 
@@ -26,9 +26,6 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
     all_tokens = 0
     for item in history[::-1]:
         if item.get("role") in ["deleted", "error"]:
-            continue
-
-        if not (content := item.get("content")):
             continue
 
         all_tokens += num_tokens(content)
@@ -42,7 +39,7 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
 
 
 def format_block(block: Block) -> str:
-    return f'<source-fragment id={block.get("reference")} title="{block.get("title")}" authors="{", ".join(block["authors"])}" timestamp="{block["date_published"]}">\n...\n{block["text"]}\n...\n</source-fragment>'
+    return f'<result-fragment id={block.get("reference")} title="{block.get("title")}" authors="{", ".join(block["authors"])}" timestamp="{block["date_published"]}">\n...\n{block["text"]}\n...\n</result-fragment>'
 
 
 def format_blocks(blocks: list[Block]) -> str:
@@ -70,15 +67,15 @@ def validate_history(history: list[Message]):
     if not len(history):
         raise RuntimeError("history can't be empty")
     if history[0]["role"] != "user":
-        raise RuntimeError("history[0] should be user message")
+        raise RuntimeError("history[0] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
     if history[-1]["role"] != "user":
-        raise RuntimeError("history[-1] should be user message")
+        raise RuntimeError(f"history[-1] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}")
     last_role = None
     for msg in history:
         if msg["role"] not in ["user", "assistant"]:
-            raise RuntimeError("user and assistant only please")
+            raise RuntimeError(f"user and assistant only please, got {msg['role']}}")
         if msg["role"] == last_role:
-            raise RuntimeError("alternating role, please")
+            raise RuntimeError("alternating role, please, got {msg['role']} twice in a row")
         last_role = msg["role"]
 
 
@@ -93,13 +90,16 @@ def inject_guidance(
 
     last_parts = []
     last_parts.append(format_blocks(docs))
-    modelname = settings.completions_provider
-    mode = settings.mode_prompt.format(**ALL_PROMPTS)
+    vals = dict(
+        modelname=settings.completions_provider,
+        date=datetime.datetime.now().strftime("%B %d, %Y")
+    )
+    mode = settings.mode_prompt.format(**vals, **ALL_PROMPTS).format(**vals)
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.pre_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -110,8 +110,8 @@ def inject_guidance(
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.post_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -121,11 +121,11 @@ def inject_guidance(
     return [
         Message(
             role="system",
-            content=settings.system_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.system_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.history_prompt.format(**vals, **ALL_PROMPTS),
         ),
     ] + history
 
@@ -141,12 +141,15 @@ def inject_guidance_hyde(
     mode = ""
 
     last_parts = []
-    modelname = settings.completions_provider
+    vals = dict(
+        modelname=settings.completions_provider,
+        date=datetime.datetime.now().strftime("%B %d, %Y")
+    )
     if settings.hyde_pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_pre_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -157,8 +160,8 @@ def inject_guidance_hyde(
     if settings.hyde_post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
             content=settings.hyde_post_message_prompt.format(
-                mode=mode, modelname=modelname, **ALL_PROMPTS
-            ).strip()
+                mode=mode, **vals, **ALL_PROMPTS
+            ).format(**vals).strip()
         )
         last_parts.append(wrapped)
 
@@ -169,11 +172,11 @@ def inject_guidance_hyde(
         Message(
             role="system",
             content=settings.hyde_system_prompt.format(
-                modelname=modelname, **ALL_PROMPTS
-            ),
+                **vals, **ALL_PROMPTS
+            ).format(**vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(modelname=modelname, **ALL_PROMPTS),
+            content=settings.history_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
         ),
     ] + history

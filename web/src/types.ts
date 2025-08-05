@@ -31,6 +31,9 @@ export type AssistantEntry = {
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
   promptedHistory?: Array<{ role: string; content: string }>;
+  timings?: Array<{ time: number; name: string }>;
+  hydeResult?: string;
+  settings?: LLMSettings;
 };
 
 export type ErrorMessage = {
@@ -50,7 +53,7 @@ export type SearchResult = {
   followups?: Followup[] | ((f: Followup[]) => Followup[]);
   result: Entry;
 };
-export type CurrentSearch = (AssistantEntry & { phase?: string }) | undefined;
+export type CurrentSearch = (AssistantEntry & { phase?: string; thinkingCount?: number }) | undefined;
 
 export type Mode = "rookie" | "concise" | "default" | "discord";
 
@@ -67,6 +70,8 @@ export type LLMSettings = {
   maxHistory?: number;
   historyFraction?: number;
   contextFraction?: number;
+  enable_hyde?: boolean;
+  thinking_budget?: number;
   [key: string]: any;
 };
 

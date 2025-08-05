@@ -1,4 +1,4 @@
-import { ChangeEvent } from "react";
+import { ChangeEvent, useState } from "react";
 import type { Parseable } from "../types";
 
 // const Colours = ["blue", "cyan", "teal", "green", "amber"].map(
@@ -50,17 +50,20 @@ const between =
     min: Parseable,
     max: Parseable,
     parser: NumberParser,
-    updater: (v: any) => any
+    updater: (v: any) => any,
+    cacher: (v: any) => any,
   ) =>
   (event: ChangeEvent) => {
     let num = parser((event.target as HTMLInputElement).value);
     if (isNaN(num)) {
+      cacher((event.target as HTMLInputElement).value);
       return;
     } else if (min !== undefined && num < parser(min)) {
       num = parser(min);
     } else if (max !== undefined && num > parser(max)) {
       num = parser(max);
     }
+    cacher(null);
     updater(num);
   };
 
@@ -77,20 +80,21 @@ export const NumberInput = ({
   updater,
   // this cast is just to satisfy typescript - it can handle numbers, strings and undefined just fine
   parser = (v) => parseInt(v as string, 10),
-}: InputFields) => (
-  <>
+}: InputFields) => {
+  const [internalValue, setInternalValue] = useState(null);
+  return <>
     <label htmlFor={field} className="col-span-3 inline-block">
-      {label}:{" "}
+      {label}{internalValue !== null ? " (invalid input)" : ""}:{" "}
     </label>
     <input
       name={field}
-      value={value}
+      value={internalValue !== null ? internalValue : value}
       className="w-20"
-      onChange={between(min, max, parser, updater)}
+      onChange={between(min, max, parser, updater, setInternalValue)}
       type="number"
     />
   </>
-);
+};
 
 export const Slider = ({
   field,
@@ -111,7 +115,7 @@ export const Slider = ({
       name={field}
       className="col-span-2"
       value={value}
-      onChange={between(min, max, parser, updater)}
+      onChange={between(min, max, parser, updater, x => null)}
       type="range"
       min={min}
       max={max}
