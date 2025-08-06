@@ -1,23 +1,43 @@
-import re
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+
+def parse_package_spec(name, spec):
+    """Parse a package specification into name and version."""
+    if isinstance(spec, str):
+        # Simple version string like "==1.1.2" or "*"
+        if spec == "*":
+            return f"{name}\n"
+        else:
+            return f"{name}{spec}\n"
+    elif isinstance(spec, dict):
+        # Complex specification with version and/or extras
+        version = spec.get("version", "*")
+        extras = spec.get("extras", [])
+        
+        # Format extras for requirements.txt
+        if extras:
+            extras_str = f"[{','.join(extras)}]"
+        else:
+            extras_str = ""
+        
+        if version == "*":
+            return f"{name}{extras_str}\n"
+        else:
+            return f"{name}{extras_str}{version}\n"
+    else:
+        # Fallback for any other format
+        return f"{name}\n"
 
 
 if __name__ == "__main__":
-    header = re.compile("\[\[?(?P<header>[a-zA-Z]*)\]?]")
-    package = re.compile("""^(?P<library>[a-z-_0-9A-Z]+)\s?=\s?"(?P<version>(?:[=><~]=[0-9.rcbetalph-]+)|\*)"$""")
-    in_packages = False
+    with open("Pipfile", "rb") as f:
+        pipfile_data = tomllib.load(f)
+    
     with open("output-requirements.txt", "w") as output:
-        with open("Pipfile", "r") as f:
-            for line in f:
-                match = header.match(line)
-                if match:
-                    in_packages = match.groupdict()["header"] == "packages"
-                    continue
-                if not in_packages:
-                    continue
-                match = package.match(line)
-                if match:
-                    depend = match.groupdict()
-                    if depend["version"] != "*":
-                        output.write(f"{depend['library']}{depend['version']}\n")
-                    else:
-                        output.write(f"{depend['library']}\n")
+        # Process packages section
+        packages = pipfile_data.get("packages", {})
+        for name, spec in packages.items():
+            output.write(parse_package_spec(name, spec))
