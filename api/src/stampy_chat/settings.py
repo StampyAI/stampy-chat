@@ -80,8 +80,6 @@ PROMPT_MODES = {
 
 MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
 
-MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
-
 DEFAULT_PROMPTS = Prompts(
     system=SYSTEM_PROMPT,
     history=HISTORY_PROMPT,
