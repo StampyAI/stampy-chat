@@ -14,6 +14,10 @@ procs:
     shell: cd web && npm run dev
     autostart: true
     autorestart: true
+  ui:
+    shell: 'if [ -e ../stampy-ui ]; then cd ../stampy-ui && npm run dev; elif [ -e stampy-ui ]; then cd stampy-ui && npm run dev; fi'
+    autostart: true
+    autorestart: true
 
 # Optional: specify shell to use
 shell: bash
