@@ -148,7 +148,6 @@ src/dataset_tests.ipynb
 src/ARD_LangChain_QA_Chat.ipynb
 src/dataset/data/ARD.db
 settings.local.json
-#/prompts/
 stampy-ui/
 /question_grids/
 
