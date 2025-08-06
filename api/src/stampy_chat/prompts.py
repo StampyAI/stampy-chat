@@ -104,12 +104,12 @@ def inject_guidance(
         modelname=settings.completions_provider,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
     )
-    mode = settings.mode_prompt.format(**vals, **ALL_PROMPTS).format(**vals)
+    vals['mode'] = format_prompts(settings.mode_prompt, vals)
     if settings.pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
-            content=settings.pre_message_prompt.format(mode=mode, **vals, **ALL_PROMPTS)
-            .format(**vals)
-            .strip()
+            content=format_prompts(
+                settings.pre_message_prompt, vals
+            ).strip()
         )
         last_parts.append(wrapped)
 
@@ -119,11 +119,9 @@ def inject_guidance(
 
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
-            content=settings.post_message_prompt.format(
-                mode=mode, **vals, **ALL_PROMPTS
-            )
-            .format(**vals)
-            .strip()
+            content=format_prompts(
+                settings.post_message_prompt, vals
+            ).strip()
         )
         last_parts.append(wrapped)
 
@@ -133,11 +131,11 @@ def inject_guidance(
     return [
         Message(
             role="system",
-            content=settings.system_prompt.format(**vals, **ALL_PROMPTS).format(**vals),
+            content=format_prompts(settings.system_prompt, vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(**vals, **ALL_PROMPTS),
+            content=format_prompts(settings.history_prompt, vals),
         ),
     ] + history
 
@@ -150,20 +148,17 @@ def inject_guidance_hyde(
     history = truncate_history(history, settings.history_tokens)
     history = format_history(history, settings)
 
-    mode = ""
-
     last_parts = []
     vals = dict(
         modelname=settings.completions_provider,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
+        mode=""
     )
     if settings.hyde_pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
-            content=settings.hyde_pre_message_prompt.format(
-                mode=mode, **vals, **ALL_PROMPTS
-            )
-            .format(**vals)
-            .strip()
+            content=format_prompts(
+                settings.hyde_pre_message_prompt, vals
+            ).strip()
         )
         last_parts.append(wrapped)
 
@@ -173,11 +168,9 @@ def inject_guidance_hyde(
 
     if settings.hyde_post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
-            content=settings.hyde_post_message_prompt.format(
-                mode=mode, **vals, **ALL_PROMPTS
-            )
-            .format(**vals)
-            .strip()
+            content=format_prompts(
+                settings.hyde_post_message_prompt, vals
+            ).strip()
         )
         last_parts.append(wrapped)
 
@@ -187,14 +180,34 @@ def inject_guidance_hyde(
     return [
         Message(
             role="system",
-            content=settings.hyde_system_prompt.format(**vals, **ALL_PROMPTS).format(
-                **vals
-            ),
+            content=format_prompts(settings.hyde_system_prompt, vals),
         ),
         Message(
             role="system",
-            content=settings.history_prompt.format(**vals, **ALL_PROMPTS).format(
-                **vals
-            ),
+            content=format_prompts(settings.history_prompt, vals),
         ),
     ] + history
+
+
+def format_prompts(template: str, vals: dict) -> str:
+    return template.format(**vals, **ALL_PROMPTS).format(**vals)
+
+
+def inline_all_templates(prompts: dict) -> dict:
+    "implements the inline all templates button in the ui"
+    vals = dict( # don't format these
+        modelname='{modelname}',
+        date='{date}',
+        mode='{mode}',
+        message='{message}'
+    )
+    
+    inlined = {}
+    for key, value in prompts.items():
+        if isinstance(value, str):
+            inlined[key] = format_prompts(value, vals)
+        elif isinstance(value, dict):
+            inlined[key] = inline_all_templates(value)
+        else:
+            inlined[key] = value
+    return inlined

@@ -11,6 +11,7 @@ from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
 from stampy_chat.citations import get_top_k_blocks
+from stampy_chat.prompts import inline_all_templates
 from stampy_chat.db.session import make_session
 from stampy_chat.db.models import Rating
 from stampy_chat.citations import Message
@@ -177,6 +178,17 @@ def ratings():
         s.commit()
 
     return jsonify({"status": "ok"})
+
+
+@app.route("/inline-prompts", methods=["POST"])
+@cross_origin()
+def inline_prompts():
+    settings = request.json.get("settings", {})
+    prompts = settings.get("prompts", {})
+    
+    inlined_prompts = inline_all_templates(prompts)
+    
+    return jsonify(inlined_prompts)
 
 
 if __name__ == "__main__":

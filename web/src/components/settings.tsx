@@ -2,6 +2,7 @@ import { ChangeEvent, useState } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 
 import type { Parseable, LLMSettings, Entry, Mode } from "../types";
+import { API_URL } from "../settings";
 import { MODELS, ENCODERS } from "../hooks/useSettings";
 import {
   SectionHeader,
@@ -233,8 +234,49 @@ export const ChatPrompts = ({
         (event.target as HTMLInputElement).value,
       ]);
 
+  const inlineAllTemplates = async () => {
+    try {
+      const response = await fetch(API_URL + "/inline-prompts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ settings }),
+      });
+      if (response.ok) {
+        const inlinedPrompts = await response.json();
+
+        // Call changeSettings recursively for each prompt field
+        const updates: [string[], any][] = [];
+
+        const addUpdates = (obj: any, path: string[] = ["prompts"]) => {
+          Object.entries(obj).forEach(([key, value]) => {
+            const currentPath = [...path, key];
+            if (
+              typeof value === "object" &&
+              value !== null &&
+              !Array.isArray(value)
+            ) {
+              addUpdates(value, currentPath);
+            } else {
+              updates.push([currentPath, value]);
+            }
+          });
+        };
+
+        addUpdates(inlinedPrompts);
+        changeSettings(...updates);
+      }
+    } catch (error) {
+      console.error("Failed to inline templates:", error);
+    }
+  };
+
   return (
     <div className="chat-prompts mx-5 w-[400px] flex-none border-2 p-5 outline-black">
+      <button onClick={inlineAllTemplates} className="mb-4 px-4">
+        Inline All Templates
+      </button>
       <Details>
         <summary>History summary prompt</summary>
         <TextareaAutosize
@@ -253,13 +295,15 @@ export const ChatPrompts = ({
         <div>(This is where sources will be injected)</div>
       </Details>
       {history.length > 0 && (
-        <Details>
-          <summary>History prompt</summary>
-          <TextareaAutosize
-            className="border-gray w-full border px-1"
-            value={settings?.prompts?.history}
-            onChange={updatePrompt("history")}
-          />
+        <>
+          <Details>
+            <summary>History prompt</summary>
+            <TextareaAutosize
+              className="border-gray w-full border px-1"
+              value={settings?.prompts?.history}
+              onChange={updatePrompt("history")}
+            />
+          </Details>
           <Details>
             <summary>History</summary>
             {history
@@ -270,7 +314,7 @@ export const ChatPrompts = ({
                 </div>
               ))}
           </Details>
-        </Details>
+        </>
       )}
       <Details>
         <summary>Pre-message prompt</summary>
@@ -281,22 +325,20 @@ export const ChatPrompts = ({
         />
       </Details>
       <Details>
-        <Details>
-          <summary>Hyde pre-message prompt</summary>
-          <TextareaAutosize
-            className="border-gray w-full border px-1"
-            value={settings?.prompts?.hyde_pre_message}
-            onChange={updatePrompt("hyde_pre_message")}
-          />
-        </Details>
-        <Details>
-          <summary>Hyde post-message prompt</summary>
-          <TextareaAutosize
-            className="border-gray w-full border px-1"
-            value={settings?.prompts?.hyde_post_message}
-            onChange={updatePrompt("hyde_post_message")}
-          />
-        </Details>
+        <summary>Hyde pre-message prompt</summary>
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.hyde_pre_message}
+          onChange={updatePrompt("hyde_pre_message")}
+        />
+      </Details>
+      <Details>
+        <summary>Hyde post-message prompt</summary>
+        <TextareaAutosize
+          className="border-gray w-full border px-1"
+          value={settings?.prompts?.hyde_post_message}
+          onChange={updatePrompt("hyde_post_message")}
+        />
       </Details>
       <Details>
         <summary>Post-message prompt</summary>
