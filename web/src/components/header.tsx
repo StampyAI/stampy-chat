@@ -12,7 +12,7 @@ const Header: React.FC<{ page: Page }> = ({ page }) => {
         <Link href="/semantic">Show Sources</Link>
       </span>
     ) : (
-      <span className="flex flex-1 flex-col justify-start text-right font-semibold">
+      <span className="flex flex-col justify-start text-right font-semibold">
         <Link href="/">Go Chat</Link>
       </span>
     );
