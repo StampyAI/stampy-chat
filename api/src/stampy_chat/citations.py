@@ -113,4 +113,4 @@ def fix_text(received_text: str|None) -> str|None:
     discard the title format received from the vector db.
     """
     if received_text is None: return None
-    return re.sub(r'^ *###(?:.(?!=###\n))*###\n+"""((?:(?:.|\n)(?!="""))*)"""', r'\1', received_text)
+    return re.sub(r'^ *###(?:.(?!=###\n))*###\s+"""|"""\s*$', '', received_text).strip()
