@@ -1,5 +1,6 @@
 from typing import TypedDict, Literal
 import re
+import urllib.parse
 
 from stampy_chat.settings import Settings
 from pinecone import Pinecone
@@ -52,16 +53,36 @@ def clean_block(reference: int, block) -> Block:
     if not authors and block.get("author"):
         authors = [block.get("author")]
 
+    text = fix_text(block["text"])
+
+    url_with_frag = set_text_fragment(block["url"], text)
+
     return Block(
         reference=str(reference),
         id=block_id,
         date_published=date_published,
         authors=authors,
         title=block["title"],
-        url=block["url"],
+        url=url_with_frag,
         tags=block.get("tags"),
-        text=fix_text(block["text"]),
+        text=text,
     )
+
+
+def set_text_fragment(url, text, max_length=24):
+    parsed = urllib.parse.urlparse(url)
+    quoted_text = urllib.parse.quote(text, safe='')
+    words = text.split()
+
+    if len(words) <= max_length:
+        fragment = f":~:text={quoted_text}"
+    else:
+        # Split into start/end for long text
+        text_start = ' '.join(words[:max_length//2])
+        text_end = ' '.join(words[-max_length//2:])
+        fragment = f":~:text={urllib.parse.quote(text_start, safe='')},{urllib.parse.quote(text_end, safe='')}"
+
+    return urllib.parse.urlunparse(parsed._replace(fragment=fragment))
 
 
 def retrieve_docs(query: str, settings: Settings) -> list[Block]:
