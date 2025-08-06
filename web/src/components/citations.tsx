@@ -149,7 +149,7 @@ export const CitationsBlock: React.FC<{
   citations: Map<string, Citation>;
   textRenderer: (t: string) => any;
 }> = ({ text, citations, textRenderer }) => {
-  const regex = /\[([a-z]+)\]/g;
+  const regex = /\[([a-z0-9]+)\]/g;
   return (
     <div className="text-section">
       {text.split(regex).map((part, i) => {
