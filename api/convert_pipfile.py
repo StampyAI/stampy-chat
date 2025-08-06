@@ -40,4 +40,15 @@ if __name__ == "__main__":
         # Process packages section
         packages = pipfile_data.get("packages", {})
         for name, spec in packages.items():
-            output.write(parse_package_spec(name, spec))
+            if isinstance(spec, dict) and (spec.get("editable") or spec.get("path")):
+                continue  # Skip local packages
+            result = parse_package_spec(name, spec)
+            if result:
+                output.write(result)
+        
+        # Process dev-packages section
+        dev_packages = pipfile_data.get("dev-packages", {})
+        for name, spec in dev_packages.items():
+            result = parse_package_spec(name, spec)
+            if result:
+                output.write(result)
