@@ -120,7 +120,11 @@ export const updateIn = (
   } else if (!rest || rest.length == 0) {
     obj[head] = val;
   } else {
-    if (obj[head] === undefined) {
+    if (
+      obj[head] === undefined ||
+      typeof obj[head] !== "object" ||
+      obj[head] === null
+    ) {
       obj[head] = {};
     }
     updateIn(obj[head], rest, val);
