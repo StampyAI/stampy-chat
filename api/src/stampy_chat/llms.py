@@ -125,6 +125,8 @@ def call_google(
         # Map assistant to model for Gemini
         role = "model" if msg["role"] == "assistant" else msg["role"]
         contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+    if "2.5-pro" in model:
+        thinking_budget = max(thinking_budget or 0, 128)
 
     # Build config parameters
     config_params = {
