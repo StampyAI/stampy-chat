@@ -32,12 +32,12 @@ def truncate_history(history: list[Message], max_tokens: int) -> list[Message]:
         if item.get("role") in ["deleted", "error"]:
             continue
 
-        all_tokens += num_tokens(item.get('content', ''))
+        all_tokens += num_tokens(item.get("content", ""))
         if all_tokens > max_tokens:
             return truncated
 
         truncated = [item] + truncated
-    if len(truncated) and truncated[0].get("role") == "assistant":
+    if truncated and truncated[0].get("role") == "assistant":
         truncated = truncated[1:]
     return truncated
 
@@ -67,26 +67,26 @@ def format_history(history: list[Message], settings: Settings) -> list[Message]:
 
 
 def validate_history(history: list[Message]):
-    # todo: something besides runtimeerror? it's a clientside mistake, need to return an api error
-    if not len(history):
-        raise RuntimeError("history can't be empty")
+    if not history:
+        raise ValueError("history can't be empty")
+
     if history[0]["role"] != "user":
-        raise RuntimeError(
+        raise ValueError(
             "history[0] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}"
         )
     if history[-1]["role"] != "user":
-        raise RuntimeError(
+        raise ValueError(
             f"history[-1] should be user message, but instead I see {''.join(x.get('role', '?')[0] for x in history)}"
         )
-    last_role = None
-    for msg in history:
-        if msg["role"] not in ["user", "assistant"]:
-            raise RuntimeError(f"user and assistant only please, got {msg['role']}")
-        if msg["role"] == last_role:
-            raise RuntimeError(
-                "alternating role, please, got {msg['role']} twice in a row"
-            )
-        last_role = msg["role"]
+
+    roles = [x.get("role") for x in history]
+    if extra_roles := (set(roles) - {"user", "assistant"}):
+        raise ValueError(f"user and assistant only please, got {extra_roles}")
+
+    if any(a == b for a, b in zip(history, history[1:])):
+        raise ValueError(
+            f"alternating role, please, got same role multiple times in a row: {roles}"
+        )
 
 
 def inject_guidance(
