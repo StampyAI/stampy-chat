@@ -1,7 +1,7 @@
 import threading
 import traceback
 from queue import Queue
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, Sequence
 import pprint
 
 import mysql.connector.errors
@@ -23,7 +23,9 @@ class CallbackHandler:
     def on_hyde_done(self, hypothetical_document: str) -> None:
         pass
 
-    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
+    def on_prompt(
+        self, prompt: Sequence[Message], query: str, history: list[Message]
+    ) -> None:
         pass
 
     def on_llm_start(self) -> Any:
@@ -56,7 +58,9 @@ class BroadcastCallbackHandler(CallbackHandler):
         if self.broadcaster:
             self.broadcaster(value and value)
 
-    def on_prompt(self, prompt: list[Message], query: str, history: list[Message]) -> None:
+    def on_prompt(
+        self, prompt: list[Message], query: str, history: list[Message]
+    ) -> None:
         self.broadcast({"state": "prompt", "promptedHistory": prompt})
 
     def on_response(self, chunk: str) -> None:
@@ -69,7 +73,9 @@ class BroadcastCallbackHandler(CallbackHandler):
         self.broadcast({"state": "loading", "phase": "context"})
 
     def on_hyde_done(self, hypothetical_document: str) -> None:
-        self.broadcast({"state": "enrich", "phase": "context", "content": hypothetical_document})
+        self.broadcast(
+            {"state": "enrich", "phase": "context", "content": hypothetical_document}
+        )
 
     def on_citations_retrieved(self, citations: list[Block]) -> None:
         self.broadcast({"state": "citations", "citations": citations})
@@ -116,16 +122,21 @@ class LoggerCallbackHandler(CallbackHandler):
         try:
             logger.interaction(
                 self.session_id,
-                self.query + (f"\n\n(hyde: {self.hyde})" if self.hyde is not None else ""),
+                self.query
+                + (f"\n\n(hyde: {self.hyde})" if self.hyde is not None else ""),
                 response,
                 self.history,
-                pprint.pformat(self.prompted_history), # todo: what is logger.interaction?
+                pprint.pformat(
+                    self.prompted_history
+                ),  # todo: what is logger.interaction?
                 self.context,
             )
         except (DatabaseError, mysql.connector.errors.DatabaseError):
             logger.error(traceback.format_exc())
 
-    def on_prompt(self, prompted_history: list[Message], query: str, history: list[Message]) -> None:
+    def on_prompt(
+        self, prompted_history: list[Message], query: str, history: list[Message]
+    ) -> None:
         self.prompted_history = prompted_history
 
 

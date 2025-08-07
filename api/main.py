@@ -13,6 +13,7 @@ from stampy_chat.callbacks import stream_callback
 from stampy_chat.citations import get_top_k_blocks
 from stampy_chat.db.session import make_session
 from stampy_chat.db.models import Rating
+from stampy_chat.citations import Message
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -45,6 +46,18 @@ def semantic():
 # ------------------------------------ chat ------------------------------------
 
 
+def clean_history(history: list[Message]) -> list[Message]:
+    messages: list[Message] = []
+    for message in history:
+        role = message.get("role")
+        content = message.get("content")
+        if messages and (last := messages[-1]) and last.get("role") == role:
+            last["content"] = last["content"] + "\n\n" + content
+        else:
+            messages.append(Message(role=role, content=content))
+    return messages
+
+
 @app.route("/chat", methods=["POST"])
 @cross_origin()
 def chat():
@@ -58,6 +71,8 @@ def chat():
     if query is None and history:
         query = history[-1].get("content")
         history = history[:-1]
+
+    history = clean_history(history)
 
     def formatter(item):
         if isinstance(item, Exception):

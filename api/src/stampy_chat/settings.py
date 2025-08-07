@@ -71,7 +71,7 @@ INSTRUCTION_WRAPPER = """
 </instructions>
 """.strip()
 
-PROMPT_MODES = {
+PROMPT_MODES: dict[Mode, str] = {
     "default": "",
     "concise": "{mode-concise-2507231147-db01d9}",
     "rookie": "{mode-rookie-2507231143-f32d39}",

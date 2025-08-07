@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from stampy_chat.callbacks import (
     BroadcastCallbackHandler,
@@ -38,12 +38,15 @@ def run_query(
     retrieval_query = query
     if settings.enable_hyde:
         hyde_history = inject_guidance_hyde(query, history, settings)
-        retrieval_query = query_llm(
-            hyde_history,
-            settings,
-            stream=False,
-            max_tokens=settings.hyde_max_tokens,
-            thinking_budget=0,
+        retrieval_query = cast(
+            str,
+            query_llm(
+                hyde_history,
+                settings,
+                stream=False,
+                max_tokens=settings.hyde_max_tokens,
+                thinking_budget=0,
+            ),
         )
         for call in callbacks:
             call.on_hyde_done(retrieval_query)
@@ -62,13 +65,14 @@ def run_query(
 
     response = ""
     for chunk in query_llm(prompted_history, settings):
-        if chunk["type"] == "thinking":
+        chunk_type, text = chunk.get("type"), chunk.get("text")
+        if chunk_type == "thinking":
             for call in callbacks:
-                call.on_thinking(chunk["text"])
-        elif chunk["type"] == "response":
-            response += chunk["text"]
+                call.on_thinking(text)
+        elif chunk_type == "response":
+            response += text
             for call in callbacks:
-                call.on_response(chunk["text"])
+                call.on_response(text)
 
     for call in callbacks:
         call.on_llm_end(response)
