@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS, cross_origin
 
 from stampy_chat import logging
-from stampy_chat.env import FLASK_PORT
+from stampy_chat.env import FLASK_PORT, SENTRY_API_DSN
 from stampy_chat.settings import Settings
 from stampy_chat.chat import run_query
 from stampy_chat.callbacks import stream_callback
@@ -17,6 +17,18 @@ from stampy_chat.citations import Message
 
 
 # ---------------------------------- web setup ---------------------------------
+
+if SENTRY_API_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.pure_eval import PureEvalIntegration
+    sentry_sdk.init(
+        dsn=SENTRY_API_DSN,
+        # Add data like request headers and IP for users,
+        traces_sample_rate=1.0,
+        integrations=[
+            PureEvalIntegration(),
+        ],
+    )
 
 app = Flask(__name__)
 cors = CORS(app)
@@ -133,6 +145,11 @@ def human(id):
 
 
 # ------------------------------------------------------------------------------
+
+@app.route("/test-error", methods=["GET"])
+@cross_origin()
+def test_error():
+    return 1/0
 
 
 @app.route("/ratings", methods=["POST"])

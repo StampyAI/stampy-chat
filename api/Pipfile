@@ -25,6 +25,7 @@ openai = "*"
 google-genai = "*"
 pinecone = "*"
 voyageai = "*"
+sentry-sdk = {version = "*", extras = ["flask", "pure_eval"]}
 
 [dev-packages]
 pytest = "*"
