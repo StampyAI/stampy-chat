@@ -35,24 +35,23 @@ const randomQuestion = () =>
 
 const getSpinner = (thinkingCount: number = 0) => {
   const spinnerFrames = [
-    ".--",
-    "..-",
-    "...",
-    "-..",
-    "--.",
-    "---",
-    "*--",
-    "**-",
-    "***",
-    ".**",
-    "..*",
-    "*..",
-    "-*.",
-    ".-*",
-    "*.-",
-    "-*.",
-    "--*",
-    "---",
+    " ...",
+    " -..",
+    " .-.",
+    " ..-",
+    " ...",
+    " ..-",
+    " .-.",
+    " -..",
+    " ...",
+    " -..",
+    " --.",
+    " .--",
+    " ..-",
+    " ...",
+    " -..",
+    " .-.",
+    " ..-",
   ];
   return spinnerFrames[thinkingCount % spinnerFrames.length];
 };
@@ -60,9 +59,11 @@ const getSpinner = (thinkingCount: number = 0) => {
 export const ChatResponse = ({
   current,
   defaultElem,
+  onRequestQuickAnswer,
 }: {
   current: CurrentSearch;
   defaultElem?: any;
+  onRequestQuickAnswer?: () => void;
 }) => {
   switch (current?.phase) {
     case "started":
@@ -79,9 +80,33 @@ export const ChatResponse = ({
       return <p>Loading: Preparing context...</p>;
     case "llm":
       return (
-        <p>
-          Loading: Thinking (usually 10s-30s){getSpinner(current.thinkingCount)}
-        </p>
+        <div>
+          <p>
+            {current.thinkingCount && current.thinkingCount > 0 ? (
+              <>
+                Loading: Thinking (usually 10s-30s)
+                {getSpinner(current.thinkingCount)}
+              </>
+            ) : (
+              <>Loading...</>
+            )}
+          </p>
+          {current.thinkingCount &&
+            current.thinkingCount > 0 &&
+            onRequestQuickAnswer && (
+              <p>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onRequestQuickAnswer();
+                  }}
+                >
+                  Get a quick answer
+                </a>
+              </p>
+            )}
+        </div>
       );
     case "streaming":
       return <AssistantEntry entry={current} />;
@@ -134,6 +159,10 @@ const Chat = ({
   const [current, setCurrent] = useState<CurrentSearch>();
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [controller, setController] = useState(() => new AbortController());
+  const [isSearching, setIsSearching] = useState(false);
+  const [onRequestQuickAnswer, setOnRequestQuickAnswer] = useState<
+    (() => void) | undefined
+  >(undefined);
   const { citations, setEntryCitations } = useCitations();
 
   const updateCurrent = (current: CurrentSearch) => {
@@ -169,24 +198,56 @@ const Chat = ({
       return f(newController, ...args);
     };
 
-  const search = async (controller: AbortController, query: string) => {
+  const search = async (
+    controller: AbortController,
+    query: string,
+    overrideSettings?: LLMSettings
+  ) => {
     // clear the query box, append to entries
     setFollowups([]);
+    setIsSearching(true);
 
     const history = makeHistory(query, entries);
 
-    const result = await queryLLM(
-      settings,
+    let quickAnswerRequested = false;
+
+    setOnRequestQuickAnswer(() => () => {
+      quickAnswerRequested = true;
+      controller.abort();
+    });
+
+    // First attempt with original settings
+    let result = await queryLLM(
+      { ...settings, ...overrideSettings },
       history,
       updateCurrent,
       sessionId,
       controller
     );
 
+    // If aborted and quick answer was requested, retry without thinking
+    if (result.result.content === "aborted" && quickAnswerRequested) {
+      const newController = new AbortController();
+      setController(newController);
+
+      setOnRequestQuickAnswer(undefined);
+
+      // Retry with thinking disabled
+      result = await queryLLM(
+        { ...settings, ...overrideSettings, thinking_budget: 0 },
+        history,
+        updateCurrent,
+        sessionId,
+        newController
+      );
+    }
+
     if (result.result.content !== "aborted") {
       addResult(query, result);
     }
     setCurrent(undefined);
+    setIsSearching(false);
+    setOnRequestQuickAnswer(undefined);
   };
 
   const fetchFollowup = async (
@@ -244,10 +305,15 @@ const Chat = ({
           setQuery(v);
           onQuery && onQuery(v);
         }}
-        abortSearch={() => controller.abort()}
+        abortSearch={() => {
+          controller.abort();
+          setIsSearching(false);
+        }}
+        loading={isSearching}
       />
       <ChatResponse
         current={current}
+        onRequestQuickAnswer={onRequestQuickAnswer}
         defaultElem={
           <button onClick={() => setEntries([])}>Clear history</button>
         }

@@ -10,9 +10,8 @@ const SearchBoxInternal: React.FC<{
   search: (query: string) => void;
   abortSearch: () => void;
   onQuery: (q: string) => any;
-}> = ({ query, search, onQuery, abortSearch }) => {
-  const [loading, setLoading] = useState(false);
-
+  loading?: boolean;
+}> = ({ query, search, onQuery, abortSearch, loading = false }) => {
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -28,17 +27,13 @@ const SearchBoxInternal: React.FC<{
     inputRef.current.selectionEnd = inputRef.current.textLength;
   }, []);
 
-  const runSearch = (query: string) => async () => {
+  const runSearch = (query: string) => () => {
     if (loading || query.trim() === "") return;
-
-    setLoading(true);
-    await search(query);
-    setLoading(false);
+    search(query);
   };
 
   const cancelSearch = () => {
     abortSearch();
-    setLoading(false);
   };
 
   return (
