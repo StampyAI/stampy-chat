@@ -1,5 +1,9 @@
 import re
+import functools
+import dataclasses
 from typing import Any, Callable, Optional, cast
+
+from frozendict import frozendict
 
 from stampy_chat.callbacks import (
     BroadcastCallbackHandler,
@@ -11,6 +15,24 @@ from stampy_chat.llms import query_llm
 from stampy_chat.citations import retrieve_docs, Message
 from stampy_chat.prompts import inject_guidance, inject_guidance_hyde
 from stampy_chat.followups import search_followups, Followup
+
+@functools.lru_cache(maxsize=128)
+def generate_hyde(query: str, history: frozendict, settings: Settings) -> str:
+    hyde_history = inject_guidance_hyde(query, list(history), settings)
+    return cast(
+        str,
+        query_llm(
+            hyde_history,
+            settings,
+            stream=False,
+            max_tokens=settings.hyde_max_tokens,
+            thinking_budget=0,
+        ),
+    )
+
+@functools.lru_cache(maxsize=128)
+def retrieve_docs_cached(query: str, settings: Settings):
+    return retrieve_docs(query, settings)
 
 
 def run_query(
@@ -35,24 +57,17 @@ def run_query(
     if callback:
         callbacks += [BroadcastCallbackHandler(callback)]
 
+    # Convert history to frozendict for caching
+    frozen_history = tuple(frozendict(m) for m in history)
+    docs_settings = dataclasses.replace(settings, thinking_budget=0)
+
     retrieval_query = query
     if settings.enable_hyde:
-        hyde_history = inject_guidance_hyde(query, history, settings)
-        retrieval_query = cast(
-            str,
-            query_llm(
-                hyde_history,
-                settings,
-                stream=False,
-                max_tokens=settings.hyde_max_tokens,
-                thinking_budget=0,
-            ),
-        )
+        retrieval_query = generate_hyde(query, frozen_history, docs_settings)
         for call in callbacks:
             call.on_hyde_done(retrieval_query)
 
-    docs = retrieve_docs(retrieval_query, settings)
-
+    docs = retrieve_docs_cached(retrieval_query, docs_settings)
     for call in callbacks:
         call.on_citations_retrieved(docs)
 
