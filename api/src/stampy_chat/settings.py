@@ -1,7 +1,9 @@
 from collections import namedtuple
 from typing import Any, Literal, TypedDict
+from dataclasses import dataclass
 
 from stampy_chat.env import COMPLETIONS_MODEL
+from frozendict import frozendict, deepfreeze
 
 
 Model = namedtuple(
@@ -135,8 +137,26 @@ def num_tokens(text, chars_per_token=4):
     return len(text) // chars_per_token
 
 
+@dataclass(frozen=True)
 class Settings:
     encoders = {}
+    
+    prompts: frozendict = frozendict(DEFAULT_PROMPTS)
+    mode: Mode = "default"
+    completions: str = COMPLETIONS_MODEL
+    topKBlocks: int = None
+    maxNumTokens: int = None
+    maxCompletionTokens: int = None
+    enable_hyde: bool = False
+    min_response_tokens: int = 10
+    thinking_budget: int = 2048
+    tokensBuffer: int = 100
+    maxHistory: int = 10
+    maxHistorySummaryTokens: int = 200
+    hyde_max_tokens: int = 100
+    historyFraction: float = 0.25
+    contextFraction: float = 0.5
+    filters: frozendict = frozendict(DEFAULT_MIRI_FILTERS)
 
     def __init__(
         self,
@@ -156,74 +176,85 @@ class Settings:
         contextFraction=0.5,
         filters=DEFAULT_MIRI_FILTERS,
         **_kwargs,
-    ) -> None:
-        self.prompts: Prompts = prompts
-        self.mode: Mode = mode
+    ):
         assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
-        if self.mode_prompt is None:
+        
+        # Freeze prompts and filters to ensure immutability
+        frozen_prompts = deepfreeze(prompts)
+        frozen_filters = deepfreeze(filters)
+        
+        # Validate mode
+        if frozen_prompts.get("modes", {}).get(mode) is None and mode != "default":
             raise ValueError("Invalid mode: " + mode)
 
-        self.set_completions(completions, maxNumTokens, topKBlocks)
+        # Determine model-specific settings
+        if completions not in MODELS:
+            raise ValueError(f"Unknown model: {completions}")
+        
+        if maxNumTokens is None:
+            maxNumTokens = MODELS[completions].maxTokens
+        if topKBlocks is None:
+            topKBlocks = MODELS[completions].topKBlocks
+        maxCompletionTokens = MODELS[completions].maxCompletionTokens
 
-        self.tokensBuffer = tokensBuffer
-        """the number of tokens to leave as a buffer when calculating remaining tokens"""
+        # Set all fields using object.__setattr__ for frozen dataclass
+        object.__setattr__(self, 'prompts', frozen_prompts)
+        object.__setattr__(self, 'mode', mode)
+        object.__setattr__(self, 'completions', completions)
+        object.__setattr__(self, 'topKBlocks', topKBlocks)
+        object.__setattr__(self, 'maxNumTokens', maxNumTokens)
+        object.__setattr__(self, 'maxCompletionTokens', maxCompletionTokens)
+        object.__setattr__(self, 'enable_hyde', enable_hyde)
+        object.__setattr__(self, 'min_response_tokens', min_response_tokens)
+        object.__setattr__(self, 'thinking_budget', thinking_budget)
+        object.__setattr__(self, 'tokensBuffer', tokensBuffer)
+        object.__setattr__(self, 'maxHistory', maxHistory)
+        object.__setattr__(self, 'maxHistorySummaryTokens', maxHistorySummaryTokens)
+        object.__setattr__(self, 'hyde_max_tokens', hyde_max_tokens)
+        object.__setattr__(self, 'historyFraction', historyFraction)
+        object.__setattr__(self, 'contextFraction', contextFraction)
+        object.__setattr__(self, 'filters', frozen_filters)
 
-        self.maxHistory = maxHistory
-        """the max number of previous interactions to use as the history"""
-
-        self.maxHistorySummaryTokens = maxHistorySummaryTokens
-        """the max number of tokens to be used on the history summary"""
-
-        self.historyFraction = historyFraction
-        """the (approximate) fraction of num_tokens to use for history text before truncating"""
-
-        self.contextFraction = contextFraction
-        """the (approximate) fraction of num_tokens to use for context text before truncating"""
-
-        self.min_response_tokens = min_response_tokens
-        """the minimum of tokens that must be left for the response"""
-
-        self.thinking_budget = thinking_budget
-        """the number of tokens to leave as a buffer for thinking"""
-
-        self.enable_hyde = enable_hyde
-        """the number of tokens to leave as a buffer for thinking"""
-
-        self.hyde_max_tokens = hyde_max_tokens
-
-        self.filters = filters
-
-        if (
-            self.context_tokens + self.history_tokens
-            > self.maxNumTokens - self.min_response_tokens
-        ):
+        # Validate token allocation
+        context_tokens = int(maxNumTokens * contextFraction) - num_tokens(frozen_prompts.get("system", ""))
+        history_tokens = int(maxNumTokens * historyFraction) - num_tokens(frozen_prompts.get("history", ""))
+        
+        if context_tokens + history_tokens > maxNumTokens - min_response_tokens:
             raise ValueError(
                 "The context and history fractions are too large, please lower them: "
-                f"max context tokens: {self.context_tokens}, max history tokens: {self.history_tokens}, "
-                f"max total tokens: {self.maxNumTokens}, minimum reponse tokens {self.min_response_tokens}"
+                f"max context tokens: {context_tokens}, max history tokens: {history_tokens}, "
+                f"max total tokens: {maxNumTokens}, minimum response tokens {min_response_tokens}"
             )
 
     def __repr__(self) -> str:
         return f"<Settings mode: {self.mode}, completions: {self.completions}, tokens: {self.maxNumTokens}"
 
-    def set_completions(self, completions, maxNumTokens=None, topKBlocks=None):
-        if completions not in MODELS:
-            raise ValueError(f"Unknown model: {completions}")
-        self.completions = completions
+    def __hash__(self) -> int:
+        def freeze_deep(obj):
+            if isinstance(obj, dict):
+                return frozendict({k: freeze_deep(v) for k, v in obj.items()})
+            elif isinstance(obj, list):
+                return tuple(freeze_deep(item) for item in obj)
+            return obj
+        
+        return hash((
+            freeze_deep(self.prompts),
+            self.mode,
+            self.completions,
+            self.maxNumTokens,
+            self.topKBlocks,
+            self.tokensBuffer,
+            self.maxHistory,
+            self.maxHistorySummaryTokens,
+            self.historyFraction,
+            self.contextFraction,
+            self.min_response_tokens,
+            self.thinking_budget,
+            self.enable_hyde,
+            self.hyde_max_tokens,
+            freeze_deep(self.filters),
+        ))
 
-        # Set the max number of tokens sent in the prompt - see https://platform.openai.com/docs/models/gpt-4
-        if maxNumTokens is not None:
-            self.maxNumTokens = int(maxNumTokens)
-        else:
-            self.maxNumTokens = MODELS[completions].maxTokens
-
-        # Set the max number of blocks used as citations
-        if topKBlocks is not None:
-            self.topKBlocks = topKBlocks
-        else:
-            self.topKBlocks = MODELS[completions].topKBlocks
-
-        self.maxCompletionTokens = MODELS[completions].maxCompletionTokens
 
     @property
     def completions_provider(self):
