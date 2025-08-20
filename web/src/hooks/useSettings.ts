@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import type { Mode, LLMSettings, SearchFilters } from "../types";
 
@@ -246,29 +246,38 @@ type SettingsUpdatePair = [path: string[], val: any];
 function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
   const [urlLoaded, setUrlLoaded] = useState(false);
   const router = useRouter();
+  const debouncingEnabled = useRef(false);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const pendingUpdates = useRef<{ [key: string]: any }>({});
+  const lastChangeTime = useRef<number>(Date.now());
 
   useEffect(() => {
     if (!router.isReady) return;
     if (urlLoaded) return;
 
     onLoad(router);
+    debouncingEnabled.current = true;
     setUrlLoaded(true);
     // eslint-disable-next-line
-  }, [router].concat(deps));
+  }, [router, debouncingEnabled].concat(deps));
 
-  const updateInUrl = useCallback(
-    (vals: { [key: string]: any }) => {
-      console.log(
-        "updating settings",
-        router.isReady,
-        router.pathname,
-        router.query,
-        vals,
-        {
-          pathname: router.pathname,
-          query: { ...router.query, ...vals },
-        }
-      );
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+      pendingUpdates.current = {};
+    };
+  }, []);
+
+  const updateInUrl = useCallback((vals: { [key: string]: any }) => {
+    if (!router.isReady) {
+      return;
+    }
+
+    if (!debouncingEnabled.current) {
+      // Before onLoad, apply immediately
       return router.replace(
         {
           pathname: router.pathname,
@@ -277,9 +286,54 @@ function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
         undefined,
         { scroll: false }
       );
-    },
-    [router]
-  );
+    }
+
+    // Accumulate pending updates
+    pendingUpdates.current = { ...pendingUpdates.current, ...vals };
+    const now = Date.now();
+    const timeSinceLastChange = now - lastChangeTime.current;
+
+    // Clear any existing timeout
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = null;
+    }
+
+    // If it's been more than 2.5 seconds since last change, apply immediately
+    if (timeSinceLastChange > 2500) {
+      lastChangeTime.current = now;
+      const updatesToApply = { ...pendingUpdates.current };
+      pendingUpdates.current = {};
+
+      return router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, ...updatesToApply },
+        },
+        undefined,
+        { scroll: false }
+      );
+    } else {
+      // Update last change time and set timeout for final update
+      lastChangeTime.current = now;
+
+      debounceTimeout.current = setTimeout(() => {
+        const updatesToApply = { ...pendingUpdates.current };
+        pendingUpdates.current = {};
+        debounceTimeout.current = null;
+        lastChangeTime.current = 0;
+
+        router.replace(
+          {
+            pathname: router.pathname,
+            query: { ...router.query, ...updatesToApply },
+          },
+          undefined,
+          { scroll: false }
+        );
+      }, 5000);
+    }
+  }, [router]);
 
   return updateInUrl;
 }
