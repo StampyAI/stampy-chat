@@ -243,32 +243,62 @@ const randomSettings = () => {
 
 type SettingsUpdatePair = [path: string[], val: any];
 
-export default function useSettings() {
-  const [settingsLoaded, setLoaded] = useState(false);
-  const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
+function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
+  const [urlLoaded, setUrlLoaded] = useState(false);
   const router = useRouter();
 
-  const updateInUrl = (vals: { [key: string]: any }) => {
-    console.log(
-      "updating settings",
-      router.isReady,
-      router.pathname,
-      router.query,
-      vals,
-      {
-        pathname: router.pathname,
-        query: { ...router.query, ...vals },
-      }
-    );
-    return router.replace(
-      {
-        pathname: router.pathname,
-        query: { ...router.query, ...vals },
-      },
-      undefined,
-      { scroll: false }
-    );
-  };
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (urlLoaded) return;
+
+    onLoad(router);
+    setUrlLoaded(true);
+    // eslint-disable-next-line
+  }, [router].concat(deps));
+
+  const updateInUrl = useCallback(
+    (vals: { [key: string]: any }) => {
+      console.log(
+        "updating settings",
+        router.isReady,
+        router.pathname,
+        router.query,
+        vals,
+        {
+          pathname: router.pathname,
+          query: { ...router.query, ...vals },
+        }
+      );
+      return router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...router.query, ...vals },
+        },
+        undefined,
+        { scroll: false }
+      );
+    },
+    [router]
+  );
+
+  return updateInUrl;
+}
+
+export default function useSettings() {
+  const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  const updateInUrl = useUrlSettings(
+    (router) => {
+      const mode = (router?.query?.mode ||
+        localStorage.getItem("chat_mode") ||
+        "default") as Mode;
+      const newSettings = makeSettings({ ...router.query, mode, });
+      updateSettings(newSettings);
+      setSettingsLoaded(true);
+    },
+    [updateSettings, setSettingsLoaded]
+  );
 
   const changeSetting = (path: string[], value: any) => {
     updateInUrl({ [path.join(".")]: value });
@@ -296,16 +326,6 @@ export default function useSettings() {
       localStorage.setItem("chat_mode", mode);
     }
   };
-
-  useEffect(() => {
-    if (!router.isReady) return;
-
-    const mode = (router?.query?.mode ||
-      localStorage.getItem("chat_mode") ||
-      "default") as Mode;
-    updateSettings(makeSettings({ ...router.query, mode }));
-    setLoaded(router.isReady);
-  }, [router]);
 
   const randomize = useCallback(() => updateSettings(randomSettings()), []);
 
