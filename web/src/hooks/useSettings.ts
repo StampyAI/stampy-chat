@@ -243,7 +243,31 @@ const randomSettings = () => {
 
 type SettingsUpdatePair = [path: string[], val: any];
 
-function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
+// Parse hash string into object
+const parseHash = (hash: string): { [key: string]: any } => {
+  if (!hash || hash === "#") return {};
+  const cleanHash = hash.startsWith("#") ? hash.slice(1) : hash;
+  const params = new URLSearchParams(cleanHash);
+  const result: { [key: string]: any } = {};
+  params.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+};
+
+// Serialize object to hash string
+const serializeToHash = (obj: { [key: string]: any }): string => {
+  const params = new URLSearchParams();
+  Object.entries(obj).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== "") {
+      params.set(key, String(val));
+    }
+  });
+  const str = params.toString();
+  return str ? "#" + str : "";
+};
+
+function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
   const [urlLoaded, setUrlLoaded] = useState(false);
   const router = useRouter();
   const debouncingEnabled = useRef(false);
@@ -255,7 +279,29 @@ function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
     if (!router.isReady) return;
     if (urlLoaded) return;
 
-    onLoad(router);
+    // Parse both query and hash
+    const hashData = parseHash(router.asPath.split("#")[1] || "");
+    const queryData = router.query;
+
+    // Merge query into hash (query takes precedence for migration)
+    const mergedData = { ...hashData, ...queryData };
+
+    // If there was data in query, migrate it to hash and clear query
+    if (Object.keys(queryData).length > 0) {
+      const newHash = serializeToHash(mergedData);
+      // Clear query params and set hash
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: {},
+          hash: newHash,
+        },
+        undefined,
+        { scroll: false }
+      );
+    }
+
+    onLoad(mergedData);
     debouncingEnabled.current = true;
     setUrlLoaded(true);
     // eslint-disable-next-line
@@ -276,12 +322,18 @@ function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
       return;
     }
 
+    // Read current hash data
+    const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+
     if (!debouncingEnabled.current) {
       // Before onLoad, apply immediately
+      const newHashData = { ...currentHashData, ...vals };
+      const newHash = serializeToHash(newHashData);
       return router.replace(
         {
           pathname: router.pathname,
-          query: { ...router.query, ...vals },
+          query: {},
+          hash: newHash,
         },
         undefined,
         { scroll: false }
@@ -305,10 +357,23 @@ function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
       const updatesToApply = { ...pendingUpdates.current };
       pendingUpdates.current = {};
 
+      const newHashData = { ...currentHashData, ...updatesToApply };
+      const newHash = serializeToHash(newHashData);
+
+      console.log(
+        "updating settings to hash",
+        router.isReady,
+        router.pathname,
+        updatesToApply,
+        newHashData,
+        newHash
+      );
+
       return router.replace(
         {
           pathname: router.pathname,
-          query: { ...router.query, ...updatesToApply },
+          query: {},
+          hash: newHash,
         },
         undefined,
         { scroll: false }
@@ -323,10 +388,15 @@ function useUrlSettings(onLoad: (router: any) => void, deps: any[]) {
         debounceTimeout.current = null;
         lastChangeTime.current = 0;
 
+        const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+        const newHashData = { ...currentHashData, ...updatesToApply };
+        const newHash = serializeToHash(newHashData);
+
         router.replace(
           {
             pathname: router.pathname,
-            query: { ...router.query, ...updatesToApply },
+            query: {},
+            hash: newHash,
           },
           undefined,
           { scroll: false }
@@ -343,11 +413,11 @@ export default function useSettings() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const updateInUrl = useUrlSettings(
-    (router) => {
-      const mode = (router?.query?.mode ||
+    (data) => {
+      const mode = (data?.mode ||
         localStorage.getItem("chat_mode") ||
         "default") as Mode;
-      const newSettings = makeSettings({ ...router.query, mode, });
+      const newSettings = makeSettings({ ...data, mode });
       updateSettings(newSettings);
       setSettingsLoaded(true);
     },
