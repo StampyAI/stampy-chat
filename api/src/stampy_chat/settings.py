@@ -52,7 +52,7 @@ HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 PRE_MESSAGE_PROMPT = ""
 
 POST_MESSAGE_PROMPT = """
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-2508241916-cdc305}
 
 {post-message-2507220220-cff788}
 
@@ -62,7 +62,7 @@ POST_MESSAGE_PROMPT = """
 """.strip()
 
 HYDE_POST_MESSAGE_PROMPT = """
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-hyde-2508241917-fba3ad}
 
 {hyde_post_message-2507222109-597ed2}
 """.strip()

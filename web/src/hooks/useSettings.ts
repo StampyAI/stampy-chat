@@ -36,7 +36,7 @@ const DEFAULT_PROMPTS = {
   history_summary: "{stampy-history_summary-2507231056-b048af}",
   pre_message: "",
   post_message: `
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-2508241916-cdc305}
 
 {post-message-2507220220-cff788}
 
@@ -45,7 +45,7 @@ const DEFAULT_PROMPTS = {
 {mode}`,
   hyde_pre_message: "",
   hyde_post_message:
-    "{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}\n\n{hyde_post_message-2507222109-597ed2}",
+    "{detailed-cautious-epistem-safetyinfo-v7-hyde-2508241917-fba3ad}\n\n{hyde_post_message-2507222109-597ed2}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
@@ -291,11 +291,7 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
       const newHash = serializeToHash(mergedData);
       // Clear query params and set hash
       router.replace(
-        {
-          pathname: router.pathname,
-          query: {},
-          hash: newHash,
-        },
+        router.pathname + newHash,
         undefined,
         { scroll: false }
       );
@@ -330,11 +326,7 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
       const newHashData = { ...currentHashData, ...vals };
       const newHash = serializeToHash(newHashData);
       return router.replace(
-        {
-          pathname: router.pathname,
-          query: {},
-          hash: newHash,
-        },
+        router.pathname + newHash,
         undefined,
         { scroll: false }
       );
@@ -370,11 +362,7 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
       );
 
       return router.replace(
-        {
-          pathname: router.pathname,
-          query: {},
-          hash: newHash,
-        },
+        router.pathname + newHash,
         undefined,
         { scroll: false }
       );
@@ -393,11 +381,7 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
         const newHash = serializeToHash(newHashData);
 
         router.replace(
-          {
-            pathname: router.pathname,
-            query: {},
-            hash: newHash,
-          },
+          router.pathname + newHash,
           undefined,
           { scroll: false }
         );
