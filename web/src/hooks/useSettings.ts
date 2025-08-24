@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import type { Mode, LLMSettings, SearchFilters } from "../types";
 
@@ -36,7 +36,7 @@ const DEFAULT_PROMPTS = {
   history_summary: "{stampy-history_summary-2507231056-b048af}",
   pre_message: "",
   post_message: `
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-2508241916-cdc305}
 
 {post-message-2507220220-cff788}
 
@@ -45,7 +45,7 @@ const DEFAULT_PROMPTS = {
 {mode}`,
   hyde_pre_message: "",
   hyde_post_message:
-    "{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}\n\n{hyde_post_message-2507222109-597ed2}",
+    "{detailed-cautious-epistem-safetyinfo-v7-hyde-2508241917-fba3ad}\n\n{hyde_post_message-2507222109-597ed2}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
@@ -72,6 +72,9 @@ export const MODELS: { [key: string]: Model } = {
   "openai/gpt-4.1-nano": { maxNumTokens: 128000, topKBlocks: 50 },
   "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
   "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5-chat-latest": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5-2025-08-07": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5": { maxNumTokens: 128000, topKBlocks: 50 },
   "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "anthropic/claude-3-5-sonnet-20240620": {
     maxNumTokens: 200_000,
@@ -86,6 +89,7 @@ export const MODELS: { [key: string]: Model } = {
     topKBlocks: 50,
   },
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-opus-4-1-20250805": { maxNumTokens: 200_000, topKBlocks: 50 },
   "anthropic/claude-sonnet-4-20250514": {
     maxNumTokens: 200_000,
     topKBlocks: 50,
@@ -243,32 +247,170 @@ const randomSettings = () => {
 
 type SettingsUpdatePair = [path: string[], val: any];
 
-export default function useSettings() {
-  const [settingsLoaded, setLoaded] = useState(false);
-  const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
-  const router = useRouter();
+// Parse hash string into object
+const parseHash = (hash: string): { [key: string]: any } => {
+  if (!hash || hash === "#") return {};
+  const cleanHash = hash.startsWith("#") ? hash.slice(1) : hash;
+  const params = new URLSearchParams(cleanHash);
+  const result: { [key: string]: any } = {};
+  params.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+};
 
-  const updateInUrl = (vals: { [key: string]: any }) => {
-    console.log(
-      "updating settings",
-      router.isReady,
-      router.pathname,
-      router.query,
-      vals,
-      {
-        pathname: router.pathname,
-        query: { ...router.query, ...vals },
+// Serialize object to hash string
+const serializeToHash = (obj: { [key: string]: any }): string => {
+  const params = new URLSearchParams();
+  Object.entries(obj).forEach(([key, val]) => {
+    if (val !== undefined && val !== null && val !== "") {
+      params.set(key, String(val));
+    }
+  });
+  const str = params.toString();
+  return str ? "#" + str : "";
+};
+
+function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
+  const [urlLoaded, setUrlLoaded] = useState(false);
+  const router = useRouter();
+  const debouncingEnabled = useRef(false);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const pendingUpdates = useRef<{ [key: string]: any }>({});
+  const lastChangeTime = useRef<number>(Date.now());
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (urlLoaded) return;
+
+    // Parse both query and hash
+    const hashData = parseHash(router.asPath.split("#")[1] || "");
+    const queryData = router.query;
+
+    // Merge query into hash (query takes precedence for migration)
+    const mergedData = { ...hashData, ...queryData };
+
+    // If there was data in query, migrate it to hash and clear query
+    if (Object.keys(queryData).length > 0) {
+      const newHash = serializeToHash(mergedData);
+      // Clear query params and set hash
+      router.replace(
+        router.pathname + newHash,
+        undefined,
+        { scroll: false }
+      );
+    }
+
+    onLoad(mergedData);
+    debouncingEnabled.current = true;
+    setUrlLoaded(true);
+    // eslint-disable-next-line
+  }, [router, debouncingEnabled].concat(deps));
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
       }
-    );
-    return router.replace(
-      {
-        pathname: router.pathname,
-        query: { ...router.query, ...vals },
-      },
-      undefined,
-      { scroll: false }
-    );
-  };
+      pendingUpdates.current = {};
+    };
+  }, []);
+
+  const updateInUrl = useCallback((vals: { [key: string]: any }) => {
+    if (!router.isReady) {
+      return;
+    }
+
+    // Read current hash data
+    const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+
+    if (!debouncingEnabled.current) {
+      // Before onLoad, apply immediately
+      const newHashData = { ...currentHashData, ...vals };
+      const newHash = serializeToHash(newHashData);
+      return router.replace(
+        router.pathname + newHash,
+        undefined,
+        { scroll: false }
+      );
+    }
+
+    // Accumulate pending updates
+    pendingUpdates.current = { ...pendingUpdates.current, ...vals };
+    const now = Date.now();
+    const timeSinceLastChange = now - lastChangeTime.current;
+
+    // Clear any existing timeout
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+      debounceTimeout.current = null;
+    }
+
+    // If it's been more than 2.5 seconds since last change, apply immediately
+    if (timeSinceLastChange > 2500) {
+      lastChangeTime.current = now;
+      const updatesToApply = { ...pendingUpdates.current };
+      pendingUpdates.current = {};
+
+      const newHashData = { ...currentHashData, ...updatesToApply };
+      const newHash = serializeToHash(newHashData);
+
+      console.log(
+        "updating settings to hash",
+        router.isReady,
+        router.pathname,
+        updatesToApply,
+        newHashData,
+        newHash
+      );
+
+      return router.replace(
+        router.pathname + newHash,
+        undefined,
+        { scroll: false }
+      );
+    } else {
+      // Update last change time and set timeout for final update
+      lastChangeTime.current = now;
+
+      debounceTimeout.current = setTimeout(() => {
+        const updatesToApply = { ...pendingUpdates.current };
+        pendingUpdates.current = {};
+        debounceTimeout.current = null;
+        lastChangeTime.current = 0;
+
+        const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+        const newHashData = { ...currentHashData, ...updatesToApply };
+        const newHash = serializeToHash(newHashData);
+
+        router.replace(
+          router.pathname + newHash,
+          undefined,
+          { scroll: false }
+        );
+      }, 5000);
+    }
+  }, [router]);
+
+  return updateInUrl;
+}
+
+export default function useSettings() {
+  const [settings, updateSettings] = useState<LLMSettings>(makeSettings({}));
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  const updateInUrl = useUrlSettings(
+    (data) => {
+      const mode = (data?.mode ||
+        localStorage.getItem("chat_mode") ||
+        "default") as Mode;
+      const newSettings = makeSettings({ ...data, mode });
+      updateSettings(newSettings);
+      setSettingsLoaded(true);
+    },
+    [updateSettings, setSettingsLoaded]
+  );
 
   const changeSetting = (path: string[], value: any) => {
     updateInUrl({ [path.join(".")]: value });
@@ -296,16 +438,6 @@ export default function useSettings() {
       localStorage.setItem("chat_mode", mode);
     }
   };
-
-  useEffect(() => {
-    if (!router.isReady) return;
-
-    const mode = (router?.query?.mode ||
-      localStorage.getItem("chat_mode") ||
-      "default") as Mode;
-    updateSettings(makeSettings({ ...router.query, mode }));
-    setLoaded(router.isReady);
-  }, [router]);
 
   const randomize = useCallback(() => updateSettings(randomSettings()), []);
 
