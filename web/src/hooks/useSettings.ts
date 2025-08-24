@@ -72,6 +72,9 @@ export const MODELS: { [key: string]: Model } = {
   "openai/gpt-4.1-nano": { maxNumTokens: 128000, topKBlocks: 50 },
   "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 50 },
   "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5-chat-latest": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5-2025-08-07": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openai/gpt-5": { maxNumTokens: 128000, topKBlocks: 50 },
   "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 50 },
   "anthropic/claude-3-5-sonnet-20240620": {
     maxNumTokens: 200_000,
@@ -86,6 +89,7 @@ export const MODELS: { [key: string]: Model } = {
     topKBlocks: 50,
   },
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-opus-4-1-20250805": { maxNumTokens: 200_000, topKBlocks: 50 },
   "anthropic/claude-sonnet-4-20250514": {
     maxNumTokens: 200_000,
     topKBlocks: 50,
