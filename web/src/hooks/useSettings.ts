@@ -5,10 +5,10 @@ import type { Mode, LLMSettings, SearchFilters } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
-    | ((v: number | undefined) => any)
-    | ((v: string | undefined) => any)
-    | ((v: object | undefined) => any)
-    | ((v: any[] | undefined) => any);
+  | ((v: number | undefined) => any)
+  | ((v: string | undefined) => any)
+  | ((v: object | undefined) => any)
+  | ((v: any[] | undefined) => any);
 };
 
 // warning: when changing these prompts, also change settings.py
@@ -99,7 +99,7 @@ export const MODELS: { [key: string]: Model } = {
 };
 export const ENCODERS = ["cl100k_base"];
 export const DEFAULT_FILTERS: SearchFilters = {
-  miri_confidence: 4,
+  miri_confidence: 6,
   miri_distance: [],
   needs_tech: false,
 };

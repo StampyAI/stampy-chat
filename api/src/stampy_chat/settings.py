@@ -126,9 +126,8 @@ MODELS = {
 }
 
 DEFAULT_MIRI_FILTERS = {
-    "miri_confidence": 4,
+    "miri_confidence": 6,
     "miri_distance": [],
-    "needs_tech": None,
 }
 
 
@@ -140,7 +139,7 @@ def num_tokens(text, chars_per_token=4):
 @dataclass(frozen=True)
 class Settings:
     encoders = {}
-    
+
     prompts: frozendict = frozendict(DEFAULT_PROMPTS)
     mode: Mode = "default"
     completions: str = COMPLETIONS_MODEL
@@ -178,11 +177,11 @@ class Settings:
         **_kwargs,
     ):
         assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
-        
+
         # Freeze prompts and filters to ensure immutability
         frozen_prompts = deepfreeze(prompts)
         frozen_filters = deepfreeze(filters)
-        
+
         # Validate mode
         if frozen_prompts.get("modes", {}).get(mode) is None and mode != "default":
             raise ValueError("Invalid mode: " + mode)
@@ -190,7 +189,7 @@ class Settings:
         # Determine model-specific settings
         if completions not in MODELS:
             raise ValueError(f"Unknown model: {completions}")
-        
+
         if maxNumTokens is None:
             maxNumTokens = MODELS[completions].maxTokens
         if topKBlocks is None:
@@ -198,27 +197,31 @@ class Settings:
         maxCompletionTokens = MODELS[completions].maxCompletionTokens
 
         # Set all fields using object.__setattr__ for frozen dataclass
-        object.__setattr__(self, 'prompts', frozen_prompts)
-        object.__setattr__(self, 'mode', mode)
-        object.__setattr__(self, 'completions', completions)
-        object.__setattr__(self, 'topKBlocks', topKBlocks)
-        object.__setattr__(self, 'maxNumTokens', maxNumTokens)
-        object.__setattr__(self, 'maxCompletionTokens', maxCompletionTokens)
-        object.__setattr__(self, 'enable_hyde', enable_hyde)
-        object.__setattr__(self, 'min_response_tokens', min_response_tokens)
-        object.__setattr__(self, 'thinking_budget', thinking_budget)
-        object.__setattr__(self, 'tokensBuffer', tokensBuffer)
-        object.__setattr__(self, 'maxHistory', maxHistory)
-        object.__setattr__(self, 'maxHistorySummaryTokens', maxHistorySummaryTokens)
-        object.__setattr__(self, 'hyde_max_tokens', hyde_max_tokens)
-        object.__setattr__(self, 'historyFraction', historyFraction)
-        object.__setattr__(self, 'contextFraction', contextFraction)
-        object.__setattr__(self, 'filters', frozen_filters)
+        object.__setattr__(self, "prompts", frozen_prompts)
+        object.__setattr__(self, "mode", mode)
+        object.__setattr__(self, "completions", completions)
+        object.__setattr__(self, "topKBlocks", topKBlocks)
+        object.__setattr__(self, "maxNumTokens", maxNumTokens)
+        object.__setattr__(self, "maxCompletionTokens", maxCompletionTokens)
+        object.__setattr__(self, "enable_hyde", enable_hyde)
+        object.__setattr__(self, "min_response_tokens", min_response_tokens)
+        object.__setattr__(self, "thinking_budget", thinking_budget)
+        object.__setattr__(self, "tokensBuffer", tokensBuffer)
+        object.__setattr__(self, "maxHistory", maxHistory)
+        object.__setattr__(self, "maxHistorySummaryTokens", maxHistorySummaryTokens)
+        object.__setattr__(self, "hyde_max_tokens", hyde_max_tokens)
+        object.__setattr__(self, "historyFraction", historyFraction)
+        object.__setattr__(self, "contextFraction", contextFraction)
+        object.__setattr__(self, "filters", frozen_filters)
 
         # Validate token allocation
-        context_tokens = int(maxNumTokens * contextFraction) - num_tokens(frozen_prompts.get("system", ""))
-        history_tokens = int(maxNumTokens * historyFraction) - num_tokens(frozen_prompts.get("history", ""))
-        
+        context_tokens = int(maxNumTokens * contextFraction) - num_tokens(
+            frozen_prompts.get("system", "")
+        )
+        history_tokens = int(maxNumTokens * historyFraction) - num_tokens(
+            frozen_prompts.get("history", "")
+        )
+
         if context_tokens + history_tokens > maxNumTokens - min_response_tokens:
             raise ValueError(
                 "The context and history fractions are too large, please lower them: "
@@ -236,25 +239,26 @@ class Settings:
             elif isinstance(obj, list):
                 return tuple(freeze_deep(item) for item in obj)
             return obj
-        
-        return hash((
-            freeze_deep(self.prompts),
-            self.mode,
-            self.completions,
-            self.maxNumTokens,
-            self.topKBlocks,
-            self.tokensBuffer,
-            self.maxHistory,
-            self.maxHistorySummaryTokens,
-            self.historyFraction,
-            self.contextFraction,
-            self.min_response_tokens,
-            self.thinking_budget,
-            self.enable_hyde,
-            self.hyde_max_tokens,
-            freeze_deep(self.filters),
-        ))
 
+        return hash(
+            (
+                freeze_deep(self.prompts),
+                self.mode,
+                self.completions,
+                self.maxNumTokens,
+                self.topKBlocks,
+                self.tokensBuffer,
+                self.maxHistory,
+                self.maxHistorySummaryTokens,
+                self.historyFraction,
+                self.contextFraction,
+                self.min_response_tokens,
+                self.thinking_budget,
+                self.enable_hyde,
+                self.hyde_max_tokens,
+                freeze_deep(self.filters),
+            )
+        )
 
     @property
     def completions_provider(self):
@@ -364,10 +368,13 @@ class Settings:
     @property
     def miri_filters(self) -> dict[str, Any]:
         filters = {}
+        if self.filters.get("needs_tech"):
+            filters["needs_tech"] = True
+        else:
+            filters["needs_tech"] = {"$ne": True}
+
         if confidence := self.filters.get("miri_confidence"):
             filters["miri_confidence"] = {"$gte": confidence}
         if distance := self.filters.get("miri_distance"):
             filters["miri_distance"] = {"$in": distance}
-        if needs_tech := self.filters.get("needs_tech"):
-            filters["needs_tech"] = needs_tech
         return filters
