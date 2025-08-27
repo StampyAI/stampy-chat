@@ -52,7 +52,7 @@ HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 PRE_MESSAGE_PROMPT = ""
 
 POST_MESSAGE_PROMPT = """
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-2508241916-cdc305}
 
 {post-message-2507220220-cff788}
 
@@ -62,7 +62,7 @@ POST_MESSAGE_PROMPT = """
 """.strip()
 
 HYDE_POST_MESSAGE_PROMPT = """
-{detailed-cautious-epistem-safetyinfo-v6-2508050537-3644ff}
+{detailed-cautious-epistem-safetyinfo-v7-hyde-2508241917-fba3ad}
 
 {hyde_post_message-2507222109-597ed2}
 """.strip()
@@ -109,17 +109,21 @@ MODELS = {
     "openai/gpt-4o-mini": Model(128000, 50, 4096, OPENAI),
     "openai/o4-mini": Model(128000, 50, 4096, OPENAI),
     "openai/o3": Model(128000, 50, 4096, OPENAI),
+    # o3-pro
+    # o1-pro
     "openai/gpt-4.1-nano": Model(128000, 50, 4096, OPENAI),
     "openai/gpt-4.1-mini": Model(128000, 50, 4096, OPENAI),
     "openai/gpt-4.1": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-5-chat-latest": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-5-2025-08-07": Model(128000, 50, 4096, OPENAI),
+    "openai/gpt-5": Model(128000, 50, 4096, OPENAI),
     "anthropic/claude-3-opus-20240229": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-3-5-sonnet-20241022": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
+    "anthropic/claude-opus-4-1-20250805": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-opus-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
     "anthropic/claude-sonnet-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
-    #    "anthropic/claude-sonnet-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
-    #    "anthropic/claude-opus-4-20250514": Model(8000, 50, 8192, ANTHROPIC),
     "anthropic/claude-3-7-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
     "google/gemini-2.5-flash": Model(250_000, 50, 4096, GOOGLE),
     "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
