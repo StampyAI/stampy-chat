@@ -3,28 +3,14 @@ from typing import TypedDict, Literal, Generator, Sequence
 import anthropic
 import openai
 from google import genai
-from stampy_chat.settings import ANTHROPIC, OPENAI, GOOGLE, Settings
-from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY
+from stampy_chat.settings import ANTHROPIC, OPENAI, GOOGLE, OPENROUTER, MODELS, Settings
+from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY
 from stampy_chat.citations import Message
 
 
 class LLMChunk(TypedDict):
     type: Literal["thinking", "response"]
     text: str
-
-
-def can_think_anthropic(model: str, thinking_budget: int) -> bool:
-    return (
-        model.startswith("claude-sonnet-3.7")
-        or model.startswith("claude-sonnet-4")
-        or model.startswith("claude-opus-4")
-    ) and thinking_budget >= 1024
-
-
-def can_think_openai(model: str, thinking_budget: int) -> bool:
-    return not (model.startswith("gpt-4o") or model.startswith("gpt-4.1-")) and bool(
-        thinking_budget
-    )
 
 
 def split_system(history: Sequence[Message]) -> tuple[str, list[Message]]:
@@ -43,7 +29,7 @@ def call_anthropic(
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     params = {}
-    if can_think_anthropic(model, thinking_budget):
+    if thinking_budget > 0:
         params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
     system, history = split_system(history)
@@ -86,7 +72,7 @@ def call_openai(
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
     system, history = split_system(history)
     params = {}
-    if can_think_openai(model, thinking_budget):
+    if thinking_budget > 0:
         params["reasoning"] = {"effort": "medium"}
 
     response = client.responses.create(
@@ -125,8 +111,6 @@ def call_google(
         # Map assistant to model for Gemini
         role = "model" if msg["role"] == "assistant" else msg["role"]
         contents.append({"role": role, "parts": [{"text": msg["content"]}]})
-    if "2.5-pro" in model:
-        thinking_budget = max(thinking_budget or 0, 128)
 
     # Build config parameters
     config_params = {
@@ -160,6 +144,77 @@ def call_google(
         return response.text
 
 
+def call_openrouter(
+    history: Sequence[Message],
+    model: str,
+    max_tokens: int,
+    thinking_budget: int = 0,
+    stream: bool = True,
+) -> Generator[LLMChunk, None, None]:
+    # Remove "openrouter/" prefix to get the actual model name
+    if model.startswith("openrouter/"):
+        model = model[len("openrouter/"):]
+    
+    client = openai.OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=OPENROUTER_API_KEY,
+    )
+    
+    system, history = split_system(history)
+    
+    # Build messages
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.extend(history)
+    
+    # Build parameters
+    params = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "stream": stream,
+    }
+    
+    # Add reasoning/thinking support for compatible models  
+    extra_body = {}
+    if thinking_budget > 0:
+        # Use exact token count for more precise control (minimum 1024 per OpenRouter docs)
+        extra_body["reasoning"] = {"max_tokens": thinking_budget}
+        
+    # Optional headers for attribution
+    extra_headers = {}
+    
+    try:
+        if extra_headers:
+            params["extra_headers"] = extra_headers
+        if extra_body:
+            params["extra_body"] = extra_body
+        
+        response = client.chat.completions.create(**params)
+        
+        if stream:
+            return openrouter_stream(response)
+        else:
+            return response.choices[0].message.content
+    except Exception as e:
+        print(f"WARNING: OpenRouter API error: {e}")
+        # Could implement fallback to other providers like Anthropic does
+        raise
+
+
+def openrouter_stream(response):
+    for chunk in response:
+        if chunk.choices and chunk.choices[0].delta:
+            delta = chunk.choices[0].delta
+            # Handle reasoning tokens if present
+            if hasattr(delta, 'reasoning') and delta.reasoning:
+                yield LLMChunk(type="thinking", text=delta.reasoning)
+            # Handle regular content
+            if delta.content:
+                yield LLMChunk(type="response", text=delta.content)
+
+
 def query_llm(
     history: Sequence[Message],
     settings: Settings,
@@ -167,20 +222,29 @@ def query_llm(
     max_tokens: int | None = None,
     thinking_budget: int | None = None,
 ) -> Generator[LLMChunk, None, None]:
-    provider = settings.completions_model_provider
+    provider = settings.model_provider
     if provider == ANTHROPIC:
         func = call_anthropic
     elif provider == OPENAI:
         func = call_openai
     elif provider == GOOGLE:
         func = call_google
+    elif provider == OPENROUTER:
+        func = call_openrouter
     else:
         raise ValueError(f"Unknown provider: {provider}")
 
+    model_info = MODELS[settings.model]
+    thinking_budget = thinking_budget or 0
+    if model_info.can_think == "always" or (model_info.can_think and thinking_budget > 0):
+        thinking_budget = max(model_info.min_think, thinking_budget)
+    else:
+        thinking_budget = 0
+
     return func(
         history,
-        settings.completions_model_name,
+        settings.model_id,
         max_tokens if max_tokens is not None else settings.max_response_tokens,
-        thinking_budget if thinking_budget is not None else settings.thinking_budget,
+        thinking_budget,
         stream=stream,
     )

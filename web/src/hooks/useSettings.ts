@@ -100,6 +100,10 @@ export const MODELS: { [key: string]: Model } = {
   },
   "google/gemini-2.5-flash": { maxNumTokens: 250_000, topKBlocks: 50 },
   "google/gemini-2.5-pro": { maxNumTokens: 250_000, topKBlocks: 50 },
+  // OpenRouter models
+  "openrouter/openai/gpt-5": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openrouter/openai/gpt-oss-20b": { maxNumTokens: 128000, topKBlocks: 50 },
+  "openrouter/moonshotai/kimi-k2": { maxNumTokens: 128000, topKBlocks: 50 },
 };
 export const ENCODERS = ["cl100k_base"];
 export const DEFAULT_FILTERS: SearchFilters = {
@@ -197,7 +201,7 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  completions: withDefault("anthropic/claude-sonnet-4-20250514"),
+  model: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
   topKBlocks: withDefault(
     MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks
@@ -225,8 +229,8 @@ export const makeSettings = (overrides: LLMSettings) =>
   );
 
 const randomSettings = () => {
-  const completions = randomElement(Object.keys(MODELS));
-  const model = MODELS[completions] as Model;
+  const model_id = randomElement(Object.keys(MODELS));
+  const model = MODELS[model_id] as Model;
   const maxNumTokens = randomInt(
     Math.floor(model.maxNumTokens * 0.3),
     model.maxNumTokens
@@ -234,7 +238,7 @@ const randomSettings = () => {
   const historyFraction = randomFloat(0.2, 0.8);
   const contextFraction = randomFloat(0.2, 0.9 - historyFraction);
   return makeSettings({
-    completions,
+    model,
     maxNumTokens,
     historyFraction,
     contextFraction,
@@ -401,11 +405,15 @@ export default function useSettings() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const updateInUrl = useUrlSettings(
-    (data) => {
+    ({completions: undefined, ...data}) => {
       const mode = (data?.mode ||
         localStorage.getItem("chat_mode") ||
         "default") as Mode;
-      const newSettings = makeSettings({ ...data, mode });
+      let model = data?.model;
+      if (data?.completions !== null && data?.completions !== undefined) {
+        model = data.completions;
+      }
+      const newSettings = makeSettings({ ...data, mode, model });
       updateSettings(newSettings);
       setSettingsLoaded(true);
     },

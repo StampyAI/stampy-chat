@@ -101,7 +101,7 @@ def inject_guidance(
     last_parts = []
     last_parts.append(format_blocks(docs))
     vals = dict(
-        modelname=settings.completions_provider,
+        modelname=settings.model_given_name,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
     )
     vals['mode'] = format_prompts(settings.mode_prompt, vals)
@@ -150,7 +150,7 @@ def inject_guidance_hyde(
 
     last_parts = []
     vals = dict(
-        modelname=settings.completions_provider,
+        modelname=settings.model_given_name,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
         mode=""
     )

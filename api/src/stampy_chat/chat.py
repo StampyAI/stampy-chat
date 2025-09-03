@@ -59,7 +59,7 @@ def run_query(
 
     # Convert history to frozendict for caching
     frozen_history = tuple(frozendict(m) for m in history)
-    docs_settings = dataclasses.replace(settings, thinking_budget=0)
+    docs_settings = dataclasses.replace(settings, thinking_budget=0, max_response_tokens=settings.hyde_max_tokens)
 
     retrieval_query = query
     if settings.enable_hyde:
