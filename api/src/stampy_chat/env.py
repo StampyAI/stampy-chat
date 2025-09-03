@@ -22,13 +22,14 @@ DISCORD_LOGGING_URL = os.environ.get("LOGGING_URL")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 SENTRY_API_DSN = os.environ.get("SENTRY_API_DSN")
 
 ### Models ###
 SUMMARY_MODEL = os.environ.get("SUMMARY_MODEL", "anthropic/claude-sonnet-4-20250514")
-COMPLETIONS_MODEL = os.environ.get(
-    "COMPLETIONS_MODEL", "anthropic/claude-sonnet-4-20250514"
+MODEL = os.environ.get(
+    "MODEL", os.environ.get("COMPLETIONS_MODEL", "anthropic/claude-sonnet-4-20250514")
 )
 
 ### Pinecone ###

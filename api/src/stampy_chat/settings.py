@@ -2,12 +2,12 @@ from collections import namedtuple
 from typing import Any, Literal, TypedDict
 from dataclasses import dataclass
 
-from stampy_chat.env import COMPLETIONS_MODEL
+from stampy_chat.env import MODEL
 from frozendict import frozendict, deepfreeze
 
 
 Model = namedtuple(
-    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher"]
+    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher", "given_name", "can_think", "min_think"]
 )
 
 Mode = Literal["default", "concise", "rookie", "discord"]
@@ -98,35 +98,40 @@ DEFAULT_PROMPTS = Prompts(
 OPENAI = "openai"
 ANTHROPIC = "anthropic"
 GOOGLE = "google"
+OPENROUTER = "openrouter"
 MODELS = {
-    "openai/gpt-3.5-turbo": Model(4097, 10, 4096, OPENAI),
-    "openai/gpt-3.5-turbo-16k": Model(16385, 30, 4096, OPENAI),
-    "openai/o1": Model(128000, 50, 4096, OPENAI),
-    "openai/o1-mini": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-4": Model(8192, 20, 4096, OPENAI),
-    "openai/gpt-4-turbo-preview": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-4o": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-4o-mini": Model(128000, 50, 4096, OPENAI),
-    "openai/o4-mini": Model(128000, 50, 4096, OPENAI),
-    "openai/o3": Model(128000, 50, 4096, OPENAI),
-    # o3-pro
-    # o1-pro
-    "openai/gpt-4.1-nano": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-4.1-mini": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-4.1": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-5-chat-latest": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-5-2025-08-07": Model(128000, 50, 4096, OPENAI),
-    "openai/gpt-5": Model(128000, 50, 4096, OPENAI),
-    "anthropic/claude-3-opus-20240229": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-3-5-sonnet-20240620": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-3-5-sonnet-20241022": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-3-5-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-opus-4-1-20250805": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-opus-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-sonnet-4-20250514": Model(200_000, 50, 4096, ANTHROPIC),
-    "anthropic/claude-3-7-sonnet-latest": Model(200_000, 50, 4096, ANTHROPIC),
-    "google/gemini-2.5-flash": Model(250_000, 50, 4096, GOOGLE),
-    "google/gemini-2.5-pro": Model(250_000, 50, 4096, GOOGLE),
+    "openai/gpt-3.5-turbo":                         Model(4097,    10, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-3.5-turbo-16k":                     Model(16385,   30, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/o1":                                    Model(128000,  50, 4096, OPENAI,     "GPT",     True,       0),
+    "openai/o1-mini":                               Model(128000,  50, 4096, OPENAI,     "GPT",     True,       0),
+    "openai/gpt-4":                                 Model(8192,    20, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-4-turbo-preview":                   Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-4o":                                Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-4o-mini":                           Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/o4-mini":                               Model(128000,  50, 4096, OPENAI,     "GPT",     True,       0),
+    "openai/o3":                                    Model(128000,  50, 4096, OPENAI,     "GPT",     True,       0),
+    # o3-pro?
+    # o1-pro?
+    "openai/gpt-4.1-nano":                          Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-4.1-mini":                          Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-4.1":                               Model(128000,  50, 4096, OPENAI,     "GPT",     False,      0),
+    "openai/gpt-5-chat-latest":                     Model(128000,  50, 4096, OPENAI,     "GPT",     True,       128),
+    "openai/gpt-5-2025-08-07":                      Model(128000,  50, 4096, OPENAI,     "GPT",     True,       128),
+    "openai/gpt-5":                                 Model(128000,  50, 4096, OPENAI,     "GPT",     True,       128),
+    "anthropic/claude-3-opus-20240229":             Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  False,      0),
+    "anthropic/claude-3-5-sonnet-20240620":         Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  False,      0),
+    "anthropic/claude-3-5-sonnet-20241022":         Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  False,      0),
+    "anthropic/claude-3-5-sonnet-latest":           Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  False,      0),
+    "anthropic/claude-opus-4-1-20250805":           Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  True,       1024),
+    "anthropic/claude-opus-4-20250514":             Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  True,       1024),
+    "anthropic/claude-sonnet-4-20250514":           Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  True,       1024),
+    "anthropic/claude-3-7-sonnet-latest":           Model(200_000, 50, 4096, ANTHROPIC,  "Claude",  True,       1024),
+    "google/gemini-2.5-flash":                      Model(250_000, 50, 4096, GOOGLE,     "Gemini",  "always",   128),
+    "google/gemini-2.5-pro":                        Model(250_000, 50, 4096, GOOGLE,     "Gemini",  "always",   128),
+    # OpenRouter models
+    "openrouter/openai/gpt-5":                      Model(128000,  50, 4096, OPENROUTER, "GPT",     "always",   128),
+    "openrouter/openai/gpt-oss-20b":                Model(128000,  50, 4096, OPENROUTER, "GPT",     "always",   128),
+    "openrouter/moonshotai/kimi-k2":                Model(128000,  50, 4096, OPENROUTER, "Kimi",    False,      0),
 }
 
 DEFAULT_MIRI_FILTERS = {
@@ -146,7 +151,7 @@ class Settings:
 
     prompts: frozendict = frozendict(DEFAULT_PROMPTS)
     mode: Mode = "default"
-    completions: str = COMPLETIONS_MODEL
+    model: str = MODEL
     topKBlocks: int = None
     maxNumTokens: int = None
     maxCompletionTokens: int = None
@@ -165,7 +170,7 @@ class Settings:
         self,
         prompts: Prompts = DEFAULT_PROMPTS,
         mode: Mode = "default",
-        completions=COMPLETIONS_MODEL,
+        model=MODEL,
         topKBlocks=None,
         maxNumTokens=None,
         enable_hyde=False,
@@ -191,19 +196,19 @@ class Settings:
             raise ValueError("Invalid mode: " + mode)
 
         # Determine model-specific settings
-        if completions not in MODELS:
-            raise ValueError(f"Unknown model: {completions}")
+        if model not in MODELS:
+            raise ValueError(f"Unknown model: {model}")
 
         if maxNumTokens is None:
-            maxNumTokens = MODELS[completions].maxTokens
+            maxNumTokens = MODELS[model].maxTokens
         if topKBlocks is None:
-            topKBlocks = MODELS[completions].topKBlocks
-        maxCompletionTokens = MODELS[completions].maxCompletionTokens
+            topKBlocks = MODELS[model].topKBlocks
+        maxCompletionTokens = MODELS[model].maxCompletionTokens
 
         # Set all fields using object.__setattr__ for frozen dataclass
         object.__setattr__(self, "prompts", frozen_prompts)
         object.__setattr__(self, "mode", mode)
-        object.__setattr__(self, "completions", completions)
+        object.__setattr__(self, "model", model)
         object.__setattr__(self, "topKBlocks", topKBlocks)
         object.__setattr__(self, "maxNumTokens", maxNumTokens)
         object.__setattr__(self, "maxCompletionTokens", maxCompletionTokens)
@@ -234,7 +239,7 @@ class Settings:
             )
 
     def __repr__(self) -> str:
-        return f"<Settings mode: {self.mode}, completions: {self.completions}, tokens: {self.maxNumTokens}"
+        return f"<Settings mode: {self.mode}, model: {self.model}, tokens: {self.maxNumTokens}"
 
     def __hash__(self) -> int:
         def freeze_deep(obj):
@@ -248,7 +253,7 @@ class Settings:
             (
                 freeze_deep(self.prompts),
                 self.mode,
-                self.completions,
+                self.model,
                 self.maxNumTokens,
                 self.topKBlocks,
                 self.tokensBuffer,
@@ -263,16 +268,6 @@ class Settings:
                 freeze_deep(self.filters),
             )
         )
-
-    @property
-    def completions_provider(self):
-        if self.completions.startswith("google"):
-            return "Gemini"
-        elif self.completions.startswith("anthropic"):
-            return "Claude"
-        elif self.completions.startswith("openai"):
-            return "GPT"
-        raise ValueError(f"Unknown provider for completions model: {self.completions}")
 
     @property
     def prompt_modes(self) -> dict[Mode, str]:
@@ -352,22 +347,26 @@ class Settings:
         return min(available_tokens, self.maxCompletionTokens)
 
     @property
-    def completions_model_provider(self):
-        parts = self.completions.split("/")
-        if len(parts) == 2:
-            return parts[0]
-        raise ValueError(
-            f"Invalid completions model: {self.completions} - expected format: provider/model"
-        )
+    def model_provider(self):
+        provider, slash, model = self.model.partition("/")
+        if slash != "/":
+            raise ValueError(
+                f"Invalid model: {self.model} - expected format: provider/model"
+            )
+        return provider
 
     @property
-    def completions_model_name(self):
-        parts = self.completions.split("/")
-        if len(parts) == 2:
-            return parts[1]
-        raise ValueError(
-            f"Invalid completions model: {self.completions} - expected format: provider/model"
-        )
+    def model_id(self):
+        provider, slash, model = self.model.partition("/")
+        if slash != "/":
+            raise ValueError(
+                f"Invalid model: {self.model} - expected format: provider/model"
+            )
+        return model
+
+    @property
+    def model_given_name(self):
+        return MODELS[self.model].given_name
 
     @property
     def miri_filters(self) -> dict[str, Any]:
