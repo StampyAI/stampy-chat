@@ -1,6 +1,7 @@
 import requests
 import json
 import re
+import logging
 
 from flask import Flask, jsonify, request, Response, stream_with_context
 from flask_cors import CORS, cross_origin
@@ -22,12 +23,14 @@ from stampy_chat.citations import Message
 if SENTRY_API_DSN:
     import sentry_sdk
     from sentry_sdk.integrations.pure_eval import PureEvalIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
     sentry_sdk.init(
         dsn=SENTRY_API_DSN,
         # Add data like request headers and IP for users,
         traces_sample_rate=1.0,
         integrations=[
             PureEvalIntegration(),
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
         ],
     )
 
