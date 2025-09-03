@@ -159,7 +159,7 @@ const fetchLLM = async (
     signal: controller.signal,
     method: "POST",
     cache: "no-cache",
-    keepalive: true,
+    //keepalive: true, // claude says not to do this, it caused an error. but, TODO: why was it here? will removal cause problems? delete this comment if there have been no site-breaking issues caused by commenting this line by jan 2026.
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",

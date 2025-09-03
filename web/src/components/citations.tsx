@@ -156,7 +156,7 @@ export const CitationsBlock: React.FC<{
         // When splitting, the even parts are basic text sections, while the odd ones are
         // citations
         if (i % 2 == 0) {
-          return textRenderer(part);
+          return <span key={i}>textRenderer(part)</span>;
         } else {
           return <CitationRef citation={citations.get(part)} key={i} />;
         }
