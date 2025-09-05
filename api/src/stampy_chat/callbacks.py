@@ -199,7 +199,8 @@ def stream_callback(
         try:
             function(callback)
         except Exception as e:
-            logger.error(traceback.format_exc())
+            # Send full exception context to Sentry via logging
+            logger.error(f"Error in stream callback function: {str(e)}", exc_info=True)
             callback(e)
 
         callback(None)
