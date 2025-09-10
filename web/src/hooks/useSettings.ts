@@ -201,7 +201,7 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  model: withDefault("anthropic/claude-sonnet-4-20250514"),
+  modelID: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
   topKBlocks: withDefault(
     MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks
@@ -229,8 +229,8 @@ export const makeSettings = (overrides: LLMSettings) =>
   );
 
 const randomSettings = () => {
-  const model_id = randomElement(Object.keys(MODELS));
-  const model = MODELS[model_id] as Model;
+  const modelID = randomElement(Object.keys(MODELS));
+  const model = MODELS[modelID] as Model;
   const maxNumTokens = randomInt(
     Math.floor(model.maxNumTokens * 0.3),
     model.maxNumTokens
@@ -238,7 +238,7 @@ const randomSettings = () => {
   const historyFraction = randomFloat(0.2, 0.8);
   const contextFraction = randomFloat(0.2, 0.9 - historyFraction);
   return makeSettings({
-    model,
+    modelID,
     maxNumTokens,
     historyFraction,
     contextFraction,
@@ -409,11 +409,11 @@ export default function useSettings() {
       const mode = (data?.mode ||
         localStorage.getItem("chat_mode") ||
         "default") as Mode;
-      let model = data?.model;
+      let modelID = data?.modelID;
       if (data?.completions !== null && data?.completions !== undefined) {
-        model = data.completions;
+        modelID = data.completions;
       }
-      const newSettings = makeSettings({ ...data, mode, model });
+      const newSettings = makeSettings({ ...data, mode, modelID });
       updateSettings(newSettings);
       setSettingsLoaded(true);
     },

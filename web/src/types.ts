@@ -64,7 +64,7 @@ export type LLMSettings = {
     [key: string]: any;
   };
   mode?: Mode;
-  model?: string;
+  modelID?: string;
   completions?: string;
   encoder?: string;
   topKBlocks?: number;
