@@ -5,10 +5,10 @@ import type { Mode, LLMSettings, SearchFilters } from "../types";
 
 type LLMSettingsParsers = {
   [key: string]:
-  | ((v: number | undefined) => any)
-  | ((v: string | undefined) => any)
-  | ((v: object | undefined) => any)
-  | ((v: any[] | undefined) => any);
+    | ((v: number | undefined) => any)
+    | ((v: string | undefined) => any)
+    | ((v: object | undefined) => any)
+    | ((v: any[] | undefined) => any);
 };
 
 // warning: when changing these prompts, also change settings.py
@@ -89,7 +89,10 @@ export const MODELS: { [key: string]: Model } = {
     topKBlocks: 50,
   },
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 50 },
-  "anthropic/claude-opus-4-1-20250805": { maxNumTokens: 200_000, topKBlocks: 50 },
+  "anthropic/claude-opus-4-1-20250805": {
+    maxNumTokens: 200_000,
+    topKBlocks: 50,
+  },
   "anthropic/claude-sonnet-4-20250514": {
     maxNumTokens: 200_000,
     topKBlocks: 50,
@@ -201,7 +204,7 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  model: withDefault("anthropic/claude-sonnet-4-20250514"),
+  modelID: withDefault("anthropic/claude-sonnet-4-20250514"),
   encoder: withDefault("cl100k_base"),
   topKBlocks: withDefault(
     MODELS["anthropic/claude-sonnet-4-20250514"]?.topKBlocks
@@ -229,8 +232,8 @@ export const makeSettings = (overrides: LLMSettings) =>
   );
 
 const randomSettings = () => {
-  const model_id = randomElement(Object.keys(MODELS));
-  const model = MODELS[model_id] as Model;
+  const modelID = randomElement(Object.keys(MODELS));
+  const model = MODELS[modelID] as Model;
   const maxNumTokens = randomInt(
     Math.floor(model.maxNumTokens * 0.3),
     model.maxNumTokens
@@ -238,7 +241,7 @@ const randomSettings = () => {
   const historyFraction = randomFloat(0.2, 0.8);
   const contextFraction = randomFloat(0.2, 0.9 - historyFraction);
   return makeSettings({
-    model,
+    modelID,
     maxNumTokens,
     historyFraction,
     contextFraction,
@@ -298,11 +301,7 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
     if (Object.keys(queryData).length > 0) {
       const newHash = serializeToHash(mergedData);
       // Clear query params and set hash
-      router.replace(
-        router.pathname + newHash,
-        undefined,
-        { scroll: false }
-      );
+      router.replace(router.pathname + newHash, undefined, { scroll: false });
     }
 
     onLoad(mergedData);
@@ -321,81 +320,78 @@ function useUrlSettings(onLoad: (data: any) => void, deps: any[]) {
     };
   }, []);
 
-  const updateInUrl = useCallback((vals: { [key: string]: any }) => {
-    if (!router.isReady) {
-      return;
-    }
+  const updateInUrl = useCallback(
+    (vals: { [key: string]: any }) => {
+      if (!router.isReady) {
+        return;
+      }
 
-    // Read current hash data
-    const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+      // Read current hash data
+      const currentHashData = parseHash(router.asPath.split("#")[1] || "");
 
-    if (!debouncingEnabled.current) {
-      // Before onLoad, apply immediately
-      const newHashData = { ...currentHashData, ...vals };
-      const newHash = serializeToHash(newHashData);
-      return router.replace(
-        router.pathname + newHash,
-        undefined,
-        { scroll: false }
-      );
-    }
+      if (!debouncingEnabled.current) {
+        // Before onLoad, apply immediately
+        const newHashData = { ...currentHashData, ...vals };
+        const newHash = serializeToHash(newHashData);
+        return router.replace(router.pathname + newHash, undefined, {
+          scroll: false,
+        });
+      }
 
-    // Accumulate pending updates
-    pendingUpdates.current = { ...pendingUpdates.current, ...vals };
-    const now = Date.now();
-    const timeSinceLastChange = now - lastChangeTime.current;
+      // Accumulate pending updates
+      pendingUpdates.current = { ...pendingUpdates.current, ...vals };
+      const now = Date.now();
+      const timeSinceLastChange = now - lastChangeTime.current;
 
-    // Clear any existing timeout
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
-      debounceTimeout.current = null;
-    }
+      // Clear any existing timeout
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+        debounceTimeout.current = null;
+      }
 
-    // If it's been more than 2.5 seconds since last change, apply immediately
-    if (timeSinceLastChange > 2500) {
-      lastChangeTime.current = now;
-      const updatesToApply = { ...pendingUpdates.current };
-      pendingUpdates.current = {};
-
-      const newHashData = { ...currentHashData, ...updatesToApply };
-      const newHash = serializeToHash(newHashData);
-
-      console.log(
-        "updating settings to hash",
-        router.isReady,
-        router.pathname,
-        updatesToApply,
-        newHashData,
-        newHash
-      );
-
-      return router.replace(
-        router.pathname + newHash,
-        undefined,
-        { scroll: false }
-      );
-    } else {
-      // Update last change time and set timeout for final update
-      lastChangeTime.current = now;
-
-      debounceTimeout.current = setTimeout(() => {
+      // If it's been more than 2.5 seconds since last change, apply immediately
+      if (timeSinceLastChange > 2500) {
+        lastChangeTime.current = now;
         const updatesToApply = { ...pendingUpdates.current };
         pendingUpdates.current = {};
-        debounceTimeout.current = null;
-        lastChangeTime.current = 0;
 
-        const currentHashData = parseHash(router.asPath.split("#")[1] || "");
         const newHashData = { ...currentHashData, ...updatesToApply };
         const newHash = serializeToHash(newHashData);
 
-        router.replace(
-          router.pathname + newHash,
-          undefined,
-          { scroll: false }
+        console.log(
+          "updating settings to hash",
+          router.isReady,
+          router.pathname,
+          updatesToApply,
+          newHashData,
+          newHash
         );
-      }, 5000);
-    }
-  }, [router]);
+
+        return router.replace(router.pathname + newHash, undefined, {
+          scroll: false,
+        });
+      } else {
+        // Update last change time and set timeout for final update
+        lastChangeTime.current = now;
+
+        debounceTimeout.current = setTimeout(() => {
+          const updatesToApply = { ...pendingUpdates.current };
+          pendingUpdates.current = {};
+          debounceTimeout.current = null;
+          lastChangeTime.current = 0;
+
+          const currentHashData = parseHash(router.asPath.split("#")[1] || "");
+          const newHashData = { ...currentHashData, ...updatesToApply };
+          const newHash = serializeToHash(newHashData);
+
+          router.replace(router.pathname + newHash, undefined, {
+            scroll: false,
+          });
+        }, 5000);
+      }
+    },
+    [router]
+  );
 
   return updateInUrl;
 }
@@ -405,15 +401,15 @@ export default function useSettings() {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const updateInUrl = useUrlSettings(
-    ({completions: undefined, ...data}) => {
+    ({ completions: undefined, ...data }) => {
       const mode = (data?.mode ||
         localStorage.getItem("chat_mode") ||
         "default") as Mode;
-      let model = data?.model;
+      let modelID = data?.modelID;
       if (data?.completions !== null && data?.completions !== undefined) {
-        model = data.completions;
+        modelID = data.completions;
       }
-      const newSettings = makeSettings({ ...data, mode, model });
+      const newSettings = makeSettings({ ...data, mode, modelID });
       updateSettings(newSettings);
       setSettingsLoaded(true);
     },

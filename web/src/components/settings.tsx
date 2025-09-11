@@ -78,20 +78,20 @@ export const ChatSettings = ({
       style={{ height: "fit-content" }}
     >
       <SectionHeader text="Models" />
-      <label htmlFor="model" className="col-span-2">
+      <label htmlFor="model-id" className="col-span-2">
         Model:
       </label>
       <Select
-        name="model"
-        value={settings.model || ""}
+        name="model-id"
+        value={settings.modelID || ""}
         updater={(event: ChangeEvent) => {
           const value = (event.target as HTMLInputElement).value;
           const { maxNumTokens, topKBlocks } =
             MODELS[value as keyof typeof MODELS] || {};
           const prevNumTokens =
-            MODELS[settings.model as keyof typeof MODELS]?.maxNumTokens;
+            MODELS[settings.modelID as keyof typeof MODELS]?.maxNumTokens;
           const prevTopKBlocks =
-            MODELS[settings.model as keyof typeof MODELS]?.topKBlocks;
+            MODELS[settings.modelID as keyof typeof MODELS]?.topKBlocks;
 
           if (settings.maxNumTokens === prevNumTokens) {
             changeVal("maxNumTokens", maxNumTokens);
@@ -104,7 +104,7 @@ export const ChatSettings = ({
           if (settings.topKBlocks === prevTopKBlocks) {
             changeVal("topKBlocks", topKBlocks);
           }
-          changeVal("model", value);
+          changeVal("modelID", value);
         }}
         options={Object.keys(MODELS)}
       />
@@ -125,7 +125,7 @@ export const ChatSettings = ({
         field="maxNumTokens"
         label="Tokens"
         min="1"
-        max={MODELS[settings.model as keyof typeof MODELS]?.maxNumTokens}
+        max={MODELS[settings.modelID as keyof typeof MODELS]?.maxNumTokens}
         updater={updateNum("maxNumTokens")}
       />
       <NumberInput
