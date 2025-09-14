@@ -86,7 +86,7 @@ def set_text_fragment(url, text, max_length=24):
 
 
 def retrieve_docs(query: str, settings: Settings) -> list[Block]:
-    """Retrieve the documents for the query."""
+    """Retrieve the documents for the query, keeping only highest-scoring chunk per document."""
     pc = Pinecone(
         api_key=PINECONE_API_KEY,
         environment=PINECONE_ENVIRONMENT,
@@ -102,7 +102,47 @@ def retrieve_docs(query: str, settings: Settings) -> list[Block]:
         namespaces=[PINECONE_NAMESPACE],
         filter=settings.miri_filters,
     )
-    return [clean_block(i, r.metadata) for i, r in enumerate(results.matches, 1)]
+
+    # Track best chunk per document, deduplicating by title and URL separately
+    seen_docs = {}  # key: normalized_key, value: (score, match, reference_num)
+    seen_titles = {}  # title -> normalized_key
+    seen_urls = {}   # base_url -> normalized_key
+    reference_counter = 1
+
+    for match in results.matches:
+        metadata = match.metadata
+        title = metadata.get("title", "").strip()
+        url = metadata.get("url", "")
+
+        # Remove fragment from URL for deduplication
+        parsed_url = urllib.parse.urlparse(url)
+        base_url = urllib.parse.urlunparse(parsed_url._replace(fragment=""))
+
+        score = match.score
+
+        # Check if we've seen this document before (by title or URL)
+        doc_key = None
+        if title and title in seen_titles:
+            doc_key = seen_titles[title]
+        elif base_url and base_url in seen_urls:
+            doc_key = seen_urls[base_url]
+
+        if doc_key is None:
+            # New document
+            doc_key = (title, base_url)  # Use tuple as unique key
+            if title:
+                seen_titles[title] = doc_key
+            if base_url:
+                seen_urls[base_url] = doc_key
+            seen_docs[doc_key] = (score, match, reference_counter)
+            reference_counter += 1
+        elif score > seen_docs[doc_key][0]:
+            # Better score than existing document
+            seen_docs[doc_key] = (score, match, seen_docs[doc_key][2])
+
+    # Sort by score (descending) and return cleaned blocks
+    sorted_docs = sorted(seen_docs.values(), key=lambda x: x[0], reverse=True)
+    return [clean_block(ref_num, match.metadata) for _, match, ref_num in sorted_docs]
 
 
 def get_top_k_blocks(query: str, k: int) -> list[Block]:
