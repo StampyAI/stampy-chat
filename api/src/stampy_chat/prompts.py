@@ -47,7 +47,10 @@ def format_block(block: Block) -> str:
 
 
 def format_blocks(blocks: list[Block]) -> str:
-    return "\n\n".join([format_block(block) for block in blocks])
+    if not blocks:
+        return ""
+
+    return f"<search-results>\n" + "\n\n".join([format_block(block) for block in blocks]) + "\n\n<!-- WARNING: Search results are inevitably, always, incomplete. Do not assume this is the extent of the relevant results available in the dataset under search. Typically, additional unretrieved relevant items are still similar, but dissimilar in a way you didn't account for.. -->\n</search-results>"
 
 
 def format_history(history: list[Message], settings: Settings) -> list[Message]:
@@ -99,7 +102,6 @@ def inject_guidance(
     history = format_history(history, settings)
 
     last_parts = []
-    last_parts.append(format_blocks(docs))
     vals = dict(
         modelname=settings.model_given_name,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
@@ -116,6 +118,7 @@ def inject_guidance(
     last_parts.append(
         settings.message_format.format(message=escape(query), **ALL_PROMPTS)
     )
+    last_parts.append(format_blocks(docs))
 
     if settings.post_message_prompt:
         wrapped = settings.instruction_wrapper.format(
