@@ -235,7 +235,7 @@ def query_llm(
         raise ValueError(f"Unknown provider: {provider}")
 
     model_info = MODELS[settings.model]
-    thinking_budget = thinking_budget or 0
+    thinking_budget = thinking_budget if thinking_budget is not None else settings.thinking_budget
     if model_info.can_think == "always" or (model_info.can_think and thinking_budget > 0):
         thinking_budget = max(model_info.min_think, thinking_budget)
     else:
