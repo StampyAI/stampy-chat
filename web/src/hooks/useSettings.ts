@@ -36,16 +36,12 @@ const DEFAULT_PROMPTS = {
   history_summary: "{stampy-history_summary-2507231056-b048af}",
   pre_message: "",
   post_message: `
-{detailed-cautious-epistem-safetyinfo-v7-2508241916-cdc305}
-
-{post-message-2507220220-cff788}
-
-{socratic-avoid-bad-questions-harder-2507220153-a11064}
+{post_message_new-2509192043-03cc46}
 
 {mode}`,
   hyde_pre_message: "",
   hyde_post_message:
-    "{detailed-cautious-epistem-safetyinfo-v7-hyde-2508241917-fba3ad}\n\n{hyde_post_message-2507222109-597ed2}",
+    "{post_message_new_hyde-2509192059-119db6}",
   message_format: "<from-public-user>\n{message}\n</from-public-user>",
   modes: {
     default: "",
