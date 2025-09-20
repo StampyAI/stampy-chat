@@ -36,13 +36,13 @@ const DEFAULT_PROMPTS = {
   history_summary: "{stampy-history_summary-2507231056-b048af}",
   pre_message: "",
   post_message: `
-{post_message_new-2509192043-03cc46}
+{post_message_new_noconfabwarn-2509230637-b187dc}
 
 {mode}`,
   hyde_pre_message: "",
   hyde_post_message:
-    "{post_message_new_hyde-2509192059-119db6}",
-  message_format: "<from-public-user>\n{message}\n</from-public-user>",
+    "{post_message_new_noconfabwarn_hyde-2509230634-645a9b}",
+  message_format: "<from-public-user id=\"{message_id}\">\n{message}\n</from-public-user>",
   modes: {
     default: "",
     concise: "{mode-concise-2507231147-db01d9}",

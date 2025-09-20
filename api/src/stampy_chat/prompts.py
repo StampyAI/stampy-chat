@@ -59,13 +59,13 @@ def format_history(history: list[Message], settings: Settings) -> list[Message]:
             {
                 "role": "user",
                 "content": settings.message_format.format(
-                    message=escape(message["content"]), **ALL_PROMPTS
+                    message_id=index, message=escape(message["content"]), **ALL_PROMPTS
                 ),
             }
             if message["role"] == "user"
             else message
         )
-        for message in history
+        for index, message in enumerate(history)
     ]
 
 
@@ -105,6 +105,7 @@ def inject_guidance(
     vals = dict(
         modelname=settings.model_given_name,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
+        message_id=len(history),
     )
     vals['mode'] = format_prompts(settings.mode_prompt, vals)
     if settings.pre_message_prompt:
@@ -116,7 +117,7 @@ def inject_guidance(
         last_parts.append(wrapped)
 
     last_parts.append(
-        settings.message_format.format(message=escape(query), **ALL_PROMPTS)
+        settings.message_format.format(message_id=len(history), message=escape(query), **ALL_PROMPTS)
     )
     last_parts.append(format_blocks(docs))
 
@@ -155,7 +156,8 @@ def inject_guidance_hyde(
     vals = dict(
         modelname=settings.model_given_name,
         date=datetime.datetime.now().strftime("%B %d, %Y"),
-        mode=""
+        mode="",
+        message_id=len(history),
     )
     if settings.hyde_pre_message_prompt:
         wrapped = settings.instruction_wrapper.format(
@@ -166,7 +168,7 @@ def inject_guidance_hyde(
         last_parts.append(wrapped)
 
     last_parts.append(
-        settings.message_format.format(message=escape(query), **ALL_PROMPTS)
+        settings.message_format.format(message_id=len(history), message=escape(query), **ALL_PROMPTS)
     )
 
     if settings.hyde_post_message_prompt:
@@ -202,7 +204,8 @@ def inline_all_templates(prompts: dict) -> dict:
         modelname='{modelname}',
         date='{date}',
         mode='{mode}',
-        message='{message}'
+        message='{message}',
+        message_id='{message_id}'
     )
     
     inlined = {}
