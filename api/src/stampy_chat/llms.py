@@ -4,8 +4,17 @@ import anthropic
 import openai
 from google import genai
 from stampy_chat.settings import ANTHROPIC, OPENAI, GOOGLE, OPENROUTER, MODELS, Settings
-from stampy_chat.env import OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, OPENROUTER_API_KEY
+from stampy_chat.env import (
+    OPENAI_API_KEY,
+    ANTHROPIC_API_KEY,
+    GOOGLE_API_KEY,
+    OPENROUTER_API_KEY,
+)
 from stampy_chat.citations import Message
+
+
+class RateLimitError(RuntimeError):
+    pass
 
 
 class LLMChunk(TypedDict):
@@ -19,6 +28,13 @@ def split_system(history: Sequence[Message]) -> tuple[str, list[Message]]:
     return system, history
 
 
+def can_think_anthropic(model: str, thinking_budget: int) -> bool:
+    return (
+        not (model.startswith("claude-3-5-sonnet") or model.startswith("claude-3-opus"))
+        and thinking_budget >= 1024
+    )
+
+
 def call_anthropic(
     history: Sequence[Message],
     model: str,
@@ -29,7 +45,8 @@ def call_anthropic(
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     params = {}
-    if thinking_budget > 0:
+    thinking_budget = min(thinking_budget, max_tokens - 20)
+    if can_think_anthropic(model, thinking_budget):
         params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
     system, history = split_system(history)
@@ -44,8 +61,7 @@ def call_anthropic(
             **params,
         )
     except (anthropic.RateLimitError, anthropic.InternalServerError) as e:
-        print("WARNING: falling back to google due to anthropic api error:", e)
-        return call_google(history, model, max_tokens, thinking_budget, stream)
+        raise RateLimitError(e)
 
     if stream:
         return anthropic_stream(response)
@@ -153,21 +169,21 @@ def call_openrouter(
 ) -> Generator[LLMChunk, None, None]:
     # Remove "openrouter/" prefix to get the actual model name
     if model.startswith("openrouter/"):
-        model = model[len("openrouter/"):]
-    
+        model = model[len("openrouter/") :]
+
     client = openai.OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=OPENROUTER_API_KEY,
     )
-    
+
     system, history = split_system(history)
-    
+
     # Build messages
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.extend(history)
-    
+
     # Build parameters
     params = {
         "model": model,
@@ -175,24 +191,24 @@ def call_openrouter(
         "max_tokens": max_tokens,
         "stream": stream,
     }
-    
-    # Add reasoning/thinking support for compatible models  
+
+    # Add reasoning/thinking support for compatible models
     extra_body = {}
     if thinking_budget > 0:
         # Use exact token count for more precise control (minimum 1024 per OpenRouter docs)
         extra_body["reasoning"] = {"max_tokens": thinking_budget}
-        
+
     # Optional headers for attribution
     extra_headers = {}
-    
+
     try:
         if extra_headers:
             params["extra_headers"] = extra_headers
         if extra_body:
             params["extra_body"] = extra_body
-        
+
         response = client.chat.completions.create(**params)
-        
+
         if stream:
             return openrouter_stream(response)
         else:
@@ -208,7 +224,7 @@ def openrouter_stream(response):
         if chunk.choices and chunk.choices[0].delta:
             delta = chunk.choices[0].delta
             # Handle reasoning tokens if present
-            if hasattr(delta, 'reasoning') and delta.reasoning:
+            if hasattr(delta, "reasoning") and delta.reasoning:
                 yield LLMChunk(type="thinking", text=delta.reasoning)
             # Handle regular content
             if delta.content:
@@ -235,16 +251,27 @@ def query_llm(
         raise ValueError(f"Unknown provider: {provider}")
 
     model_info = MODELS[settings.model]
-    thinking_budget = thinking_budget if thinking_budget is not None else settings.thinking_budget
-    if model_info.can_think == "always" or (model_info.can_think and thinking_budget > 0):
+    thinking_budget = (
+        thinking_budget if thinking_budget is not None else settings.thinking_budget
+    )
+    if model_info.can_think == "always" or (
+        model_info.can_think and thinking_budget > 0
+    ):
         thinking_budget = max(model_info.min_think, thinking_budget)
     else:
         thinking_budget = 0
 
-    return func(
-        history,
-        settings.model_id,
-        max_tokens if max_tokens is not None else settings.max_response_tokens,
-        thinking_budget,
-        stream=stream,
-    )
+    max_tokens = max_tokens if max_tokens is not None else settings.max_response_tokens
+    try:
+        return func(
+            history,
+            settings.model_id,
+            max_tokens,
+            thinking_budget,
+            stream=stream,
+        )
+    except RateLimitError as e:
+        print(f"WARNING: falling back to google due to anthropic api error: {e}")
+        return call_google(
+            history, settings.model_id, max_tokens, thinking_budget, stream
+        )
