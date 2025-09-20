@@ -52,13 +52,13 @@ HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 PRE_MESSAGE_PROMPT = ""
 
 POST_MESSAGE_PROMPT = """
-{post_message_new-2509192043-03cc46}
+{post_message_new_noconfabwarn-2509230637-b187dc}
 
 {mode}
 """.strip()
 
 HYDE_POST_MESSAGE_PROMPT = """
-{post_message_new_hyde-2509192059-119db6}
+{post_message_new_noconfabwarn_hyde-2509230634-645a9b}
 """.strip()
 
 INSTRUCTION_WRAPPER = """
@@ -74,7 +74,7 @@ PROMPT_MODES: dict[Mode, str] = {
     "discord": "{mode-discord-2507231144-ffe1d1}",
 }
 
-MESSAGE_FORMAT = "<from-public-user>\n{message}\n</from-public-user>"
+MESSAGE_FORMAT = "<from-public-user id=\"{message_id}\">\n{message}\n</from-public-user>"
 
 DEFAULT_PROMPTS = Prompts(
     system=SYSTEM_PROMPT,
