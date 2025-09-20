@@ -165,6 +165,7 @@ class Settings:
         prompts: Prompts = DEFAULT_PROMPTS,
         mode: Mode = "default",
         model=MODEL,
+        modelID=None,
         topKBlocks=None,
         maxNumTokens=None,
         enable_hyde=False,
@@ -179,6 +180,8 @@ class Settings:
         filters=DEFAULT_MIRI_FILTERS,
         **_kwargs,
     ):
+        if modelID is not None:
+            model = modelID
         assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
 
         # Freeze prompts and filters to ensure immutability
