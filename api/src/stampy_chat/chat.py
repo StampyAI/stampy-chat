@@ -68,6 +68,7 @@ def run_query(
             call.on_hyde_done(retrieval_query)
 
     docs = retrieve_docs_cached(retrieval_query, docs_settings)
+    docs = docs[:settings.topKBlocks]
     for call in callbacks:
         call.on_citations_retrieved(docs)
 
