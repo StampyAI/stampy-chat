@@ -98,6 +98,7 @@ def retrieve_docs(query: str, settings: Settings) -> list[Block]:
     results = index.query_namespaces(
         vector=list(vector),
         metric="cosine",
+        top_k=50,
         include_metadata=True,
         namespaces=[PINECONE_NAMESPACE],
         filter=settings.miri_filters,
