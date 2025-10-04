@@ -119,6 +119,7 @@ MODELS = {
     "anthropic/claude-opus-4-1-20250805":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
     "anthropic/claude-opus-4-20250514":             Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
     "anthropic/claude-sonnet-4-20250514":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
+    "anthropic/claude-sonnet-4-5-20250929":         Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
     "anthropic/claude-3-7-sonnet-latest":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
     "google/gemini-2.5-flash":                      Model(250_000, 20, 4096, GOOGLE,     "Gemini",  "always",   128),
     "google/gemini-2.5-pro":                        Model(250_000, 20, 4096, GOOGLE,     "Gemini",  "always",   128),
