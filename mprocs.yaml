@@ -9,9 +9,16 @@ procs:
       FLASK_ENV: development
     autostart: true
     autorestart: true
-  
+  mcp:
+    shell: cd api && pipenv run python mcp_server.py
+    autostart: true
+    autorestart: true
   web:
     shell: cd web && npm run dev
+    autostart: true
+    autorestart: true
+  caddy:
+    shell: 'if [ -e Caddyfile ] && which caddy; then sed -i ''s/[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/''"$(curl checkip.amazonaws.com | grep --only-matching ''[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+'')"''/'' Caddyfile; caddy run; fi'
     autostart: true
     autorestart: true
   ui:

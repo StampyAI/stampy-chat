@@ -26,6 +26,7 @@ google-genai = "*"
 pinecone = "*"
 voyageai = "*"
 sentry-sdk = {version = "*", extras = ["flask", "pure_eval"]}
+fastmcp = "*"
 
 [dev-packages]
 pytest = "*"
