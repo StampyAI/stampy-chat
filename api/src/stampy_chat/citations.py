@@ -95,7 +95,7 @@ def set_text_fragment(url, text, max_length=24):
     return urllib.parse.urlunparse(parsed._replace(fragment=fragment))
 
 
-def retrieve_docs(query: str, settings: Settings) -> list[Block]:
+def retrieve_docs(query: str, settings: Settings, filter: dict | None = None) -> list[Block]:
     """Retrieve the documents for the query, keeping only highest-scoring chunk per document."""
     pc = Pinecone(
         api_key=PINECONE_API_KEY,
@@ -105,13 +105,17 @@ def retrieve_docs(query: str, settings: Settings) -> list[Block]:
     index = pc.Index(PINECONE_INDEX_NAME)
 
     vector = embed_query(query, settings)
+
+    # Use custom filter if provided, otherwise use settings filters
+    query_filter = filter if filter is not None else settings.miri_filters
+
     results = index.query_namespaces(
         vector=list(vector),
         metric="cosine",
         top_k=50,
         include_metadata=True,
         namespaces=[PINECONE_NAMESPACE],
-        filter=settings.miri_filters,
+        filter=query_filter,
     )
 
     # Track best chunk per document, deduplicating by title and URL separately
@@ -156,8 +160,8 @@ def retrieve_docs(query: str, settings: Settings) -> list[Block]:
     return [clean_block(ref_num, match.metadata) for _, match, ref_num in sorted_docs]
 
 
-def get_top_k_blocks(query: str, k: int) -> list[Block]:
-    return retrieve_docs(query, Settings())[:k]
+def get_top_k_blocks(query: str, k: int, filter: dict | None = None) -> list[Block]:
+    return retrieve_docs(query, Settings(), filter)[:k]
 
 def fix_text(received_text: str|None) -> str|None:
     """
