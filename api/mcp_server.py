@@ -30,8 +30,21 @@ def search_alignment_research(query: str, k: int = 20, filter: dict | None = Non
     Args:
         query: The search query string
         k: Number of results to return (default: 20, max: 50)
-        filter: Optional Pinecone metadata filter dict. Supports operators like $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or.
-                Example: {"year": {"$gte": 2020}, "genre": {"$eq": "technical"}}
+        filter: Optional Pinecone metadata filter dict. Supports operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+
+                Available metadata fields:
+                - title (str): Document title
+                - authors (list[str]): Author names
+                - date_published (str|timestamp): ISO date or unix timestamp
+                - tags (list[str]): Topic tags
+                - url (str): Source URL
+                - needs_tech (bool): True = doc damaged, needs import fix
+                - miri_confidence (int): MIRI relevance score 0-10
+
+                Examples:
+                {"miri_confidence": {"$gte": 8}}
+                {"needs_tech": false}
+                {"$and": [{"date_published": {"$gte": "2020-01-01"}}, {"miri_confidence": {"$gte": 7}}]}
 
     Returns:
         Formatted XML blocks with search results and citations
@@ -62,8 +75,21 @@ def search_alignment_research_raw(query: str, k: int = 20, filter: dict | None =
     Args:
         query: The search query string
         k: Number of results to return (default: 20, max: 50)
-        filter: Optional Pinecone metadata filter dict. Supports operators like $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or.
-                Example: {"year": {"$gte": 2020}, "genre": {"$eq": "technical"}}
+        filter: Optional Pinecone metadata filter dict. Supports operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+
+                Available metadata fields:
+                - title (str): Document title
+                - authors (list[str]): Author names
+                - date_published (str|timestamp): ISO date or unix timestamp
+                - tags (list[str]): Topic tags
+                - url (str): Source URL
+                - needs_tech (bool): True = doc damaged, needs import fix
+                - miri_confidence (int): MIRI relevance score 0-10; default: 5
+
+                Examples:
+                {"miri_confidence": {"$gte": 8}}
+                {"needs_tech": false}
+                {"$and": [{"date_published": {"$gte": "2020-01-01"}}, {"miri_confidence": {"$gte": 7}}]}
 
     Returns:
         List of block dictionaries with metadata and text
