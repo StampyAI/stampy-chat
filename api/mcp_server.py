@@ -17,97 +17,81 @@ mcp = FastMCP("Stampy Backend RAG")
 
 
 @mcp.tool
-def search_alignment_research(query: str, k: int = 20, filter: dict | None = None) -> str:
+def search_alignment_research(
+    query: str, k: int = 20, filter: dict | None = None, format: str = "formatted"
+) -> str | list[dict]:
     """
     Search AI alignment research database for relevant content.
 
-    Returns formatted citation blocks with source information including:
-    - Title and authors
-    - Publication date
-    - URL with text fragment for precise location
-    - Relevant text excerpt
-
     Args:
         query: The search query string
         k: Number of results to return (default: 20, max: 50)
+        format: Output format - "formatted" returns XML citation blocks, "json" returns raw dicts (default: "formatted")
         filter: Optional Pinecone metadata filter dict. Supports operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
                 Available metadata fields:
                 - title (str): Document title
                 - authors (list[str]): Author names
-                - date_published (str|timestamp): ISO date or unix timestamp
+                - date_published (str): ISO date string
                 - tags (list[str]): Topic tags
                 - url (str): Source URL
                 - needs_tech (bool): True = doc damaged, needs import fix
-                - miri_confidence (int): MIRI relevance score 0-10
+                - quality_score (int): Content quality/relevance 0-10
 
                 Examples:
-                {"miri_confidence": {"$gte": 8}}
+                {"quality_score": {"$gte": 8}}
                 {"needs_tech": false}
-                {"$and": [{"date_published": {"$gte": "2020-01-01"}}, {"miri_confidence": {"$gte": 7}}]}
+                {"$and": [{"date_published": {"$gte": "2020-01-01"}}, {"quality_score": {"$gte": 7}}]}
 
     Returns:
-        Formatted XML blocks with search results and citations
+        If format="formatted": Formatted XML blocks with search results and citations
+        If format="json": List of block dictionaries with metadata and text
     """
-    logger.info(f"MCP search request: query='{query}' k={k} filter={filter}")
+    # Remap quality_* fields to internal miri_* fields
+    if filter:
+        filter = _remap_quality_fields(filter)
+
+    logger.info(f"MCP search request: query='{query}' k={k} format={format} filter={filter}")
 
     # Clamp k to reasonable bounds
     k = max(1, min(50, k))
 
     try:
         blocks = get_top_k_blocks(query, k, filter)
-        formatted = format_blocks(blocks)
-
         logger.info(f"MCP search returned {len(blocks)} results")
-        return formatted
+
+        if format == "json":
+            return [dict(block) for block in blocks]
+        else:
+            return format_blocks(blocks)
     except Exception as e:
         logger.error(f"MCP search error: {e}", exc_info=True)
-        return f"<error>Search failed: {str(e)}</error>"
+        if format == "json":
+            raise
+        else:
+            return f"<error>Search failed: {str(e)}</error>"
 
 
-@mcp.tool
-def search_alignment_research_raw(query: str, k: int = 20, filter: dict | None = None) -> list[dict]:
-    """
-    Search AI alignment research database and return raw block data.
+def _remap_quality_fields(filter: dict) -> dict:
+    """Remap MCP client-facing quality_* fields to internal miri_* fields."""
+    if not filter:
+        return filter
 
-    Returns unformatted block data as JSON for custom processing.
+    # Deep copy to avoid mutating input
+    result = {}
 
-    Args:
-        query: The search query string
-        k: Number of results to return (default: 20, max: 50)
-        filter: Optional Pinecone metadata filter dict. Supports operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
+    for key, value in filter.items():
+        if key == "quality_score":
+            result["miri_confidence"] = value
+        elif key == "quality_distance":
+            raise ValueError("quality_distance filter is deprecated and no longer supported")
+        elif key in ("$and", "$or"):
+            # Recursively remap nested filters
+            result[key] = [_remap_quality_fields(f) for f in value]
+        else:
+            result[key] = value
 
-                Available metadata fields:
-                - title (str): Document title
-                - authors (list[str]): Author names
-                - date_published (str|timestamp): ISO date or unix timestamp
-                - tags (list[str]): Topic tags
-                - url (str): Source URL
-                - needs_tech (bool): True = doc damaged, needs import fix
-                - miri_confidence (int): MIRI relevance score 0-10; default: 5
-
-                Examples:
-                {"miri_confidence": {"$gte": 8}}
-                {"needs_tech": false}
-                {"$and": [{"date_published": {"$gte": "2020-01-01"}}, {"miri_confidence": {"$gte": 7}}]}
-
-    Returns:
-        List of block dictionaries with metadata and text
-    """
-    logger.info(f"MCP raw search request: query='{query}' k={k} filter={filter}")
-
-    # Clamp k to reasonable bounds
-    k = max(1, min(50, k))
-
-    try:
-        blocks = get_top_k_blocks(query, k, filter)
-        logger.info(f"MCP raw search returned {len(blocks)} results")
-
-        # Convert TypedDict to plain dict for JSON serialization
-        return [dict(block) for block in blocks]
-    except Exception as e:
-        logger.error(f"MCP raw search error: {e}", exc_info=True)
-        raise
+    return result
 
 
 if __name__ == "__main__":
