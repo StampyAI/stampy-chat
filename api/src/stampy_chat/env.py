@@ -35,7 +35,7 @@ MODEL = os.environ.get(
 ### Pinecone ###
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 PINECONE_ENVIRONMENT = os.environ.get("PINECONE_ENVIRONMENT", "us-east1-gcp")
-PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "alignment-search")
+PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "stampy-chat-context-2")
 PINECONE_INDEX = None
 PINECONE_NAMESPACE = os.environ.get(
     "PINECONE_NAMESPACE", "alignment-search"
@@ -66,5 +66,6 @@ REMOTE_CHAT_INSTANCE = os.environ.get(
 ### Embedding ###
 VOYAGEAI_API_KEY = os.environ.get("VOYAGEAI_API_KEY")
 VOYAGEAI_EMBEDDINGS_MODEL = os.environ.get(
-    "VOYAGEAI_EMBEDDINGS_MODEL", "voyage-3-large"
+    "VOYAGEAI_EMBEDDINGS_MODEL", "voyage-context-3"
 )
+MAX_EMBEDDING_TOKENS = int(os.environ.get("MAX_EMBEDDING_TOKENS", "120000"))
