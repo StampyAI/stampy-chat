@@ -35,7 +35,17 @@ class Block(TypedDict):
 def embed_query(query: str, settings: Settings) -> list[float] | list[int]:
     """Embed the query."""
     voyageai_client = voyageai.Client(api_key=VOYAGEAI_API_KEY)
-    return voyageai_client.embed([query], model=VOYAGEAI_EMBEDDINGS_MODEL).embeddings[0]
+
+    if VOYAGEAI_EMBEDDINGS_MODEL == "voyage-context-3":
+        # voyage-context-3 requires contextualized API with single-chunk documents
+        result = voyageai_client.contextualized_embed(
+            inputs=[[query]],
+            model=VOYAGEAI_EMBEDDINGS_MODEL,
+            input_type="query",
+        )
+        return result.results[0].embeddings[0]
+    else:
+        return voyageai_client.embed([query], model=VOYAGEAI_EMBEDDINGS_MODEL).embeddings[0]
 
 
 def clean_block(reference: int, block) -> Block:
