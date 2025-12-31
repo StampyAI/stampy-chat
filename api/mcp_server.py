@@ -19,7 +19,8 @@ mcp = FastMCP("Stampy Backend RAG")
 
 @mcp.tool
 def search_alignment_research(
-    query: str, k: int = 20, filter: dict | None = None, format: str = "formatted"
+    query: str, k: int = 20, filter: dict | None = None, format: str = "formatted",
+    snippets_per_doc: int = 1,
 ) -> str | list[dict]:
     """
     Search AI alignment research database for relevant content.
@@ -28,6 +29,7 @@ def search_alignment_research(
         query: The search query string
         k: Number of results to return (default: 20, max: 50)
         format: Output format - "formatted" returns XML citation blocks, "json" returns raw dicts (default: "formatted")
+        snippets_per_doc: Max chunks to return per document (default: 1). Higher values return more context from same doc.
         filter: Optional Pinecone metadata filter dict. Supports operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $and, $or
 
                 Available metadata fields:
@@ -58,13 +60,14 @@ def search_alignment_research(
         filter = _convert_date_fields(filter)
         filter = _remap_quality_fields(filter)
 
-    logger.info(f"MCP search request: query='{query}' k={k} format={format} filter={filter}")
+    logger.info(f"MCP search request: query='{query}' k={k} format={format} snippets_per_doc={snippets_per_doc} filter={filter}")
 
-    # Clamp k to reasonable bounds
+    # Clamp to reasonable bounds
     k = max(1, min(50, k))
+    snippets_per_doc = max(1, min(10, snippets_per_doc))
 
     try:
-        blocks = get_top_k_blocks(query, k, filter)
+        blocks = get_top_k_blocks(query, k, filter, snippets_per_doc)
         logger.info(f"MCP search returned {len(blocks)} results")
 
         if format == "json":

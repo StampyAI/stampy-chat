@@ -95,8 +95,8 @@ def set_text_fragment(url, text, max_length=24):
     return urllib.parse.urlunparse(parsed._replace(fragment=fragment))
 
 
-def retrieve_docs(query: str, settings: Settings, filter: dict | None = None) -> list[Block]:
-    """Retrieve the documents for the query, keeping only highest-scoring chunk per document."""
+def retrieve_docs(query: str, settings: Settings, filter: dict | None = None, snippets_per_doc: int = 1) -> list[Block]:
+    """Retrieve the documents for the query, keeping up to snippets_per_doc chunks per document."""
     pc = Pinecone(
         api_key=PINECONE_API_KEY,
         environment=PINECONE_ENVIRONMENT,
@@ -118,8 +118,10 @@ def retrieve_docs(query: str, settings: Settings, filter: dict | None = None) ->
         filter=query_filter,
     )
 
-    # Track best chunk per document, deduplicating by title and URL separately
-    seen_docs = {}  # key: normalized_key, value: (score, match, reference_num)
+    # Track chunks per document, deduplicating by title and URL separately
+    # seen_docs: key -> list of (score, match) tuples, sorted by score desc
+    seen_docs = {}  # key: normalized_key, value: list[(score, match)]
+    doc_refs = {}   # key: normalized_key, value: reference_num
     seen_titles = {}  # title -> normalized_key
     seen_urls = {}   # base_url -> normalized_key
     reference_counter = 1
@@ -144,24 +146,32 @@ def retrieve_docs(query: str, settings: Settings, filter: dict | None = None) ->
 
         if doc_key is None:
             # New document
-            doc_key = (title, base_url)  # Use tuple as unique key
-            if title:
-                seen_titles[title] = doc_key
-            if base_url:
-                seen_urls[base_url] = doc_key
-            seen_docs[doc_key] = (score, match, reference_counter)
+            doc_key = (title, base_url)
+            if title: seen_titles[title] = doc_key
+            if base_url: seen_urls[base_url] = doc_key
+            seen_docs[doc_key] = [(score, match)]
+            doc_refs[doc_key] = reference_counter
             reference_counter += 1
-        elif score > seen_docs[doc_key][0]:
-            # Better score than existing document
-            seen_docs[doc_key] = (score, match, seen_docs[doc_key][2])
+        else:
+            # Existing doc - add chunk if under limit
+            chunks = seen_docs[doc_key]
+            if len(chunks) < snippets_per_doc:
+                chunks.append((score, match))
+                chunks.sort(key=lambda x: x[0], reverse=True)
 
-    # Sort by score (descending) and return cleaned blocks
-    sorted_docs = sorted(seen_docs.values(), key=lambda x: x[0], reverse=True)
-    return [clean_block(ref_num, match.metadata) for _, match, ref_num in sorted_docs]
+    # Flatten and sort by score
+    all_chunks = []
+    for doc_key, chunks in seen_docs.items():
+        ref_num = doc_refs[doc_key]
+        for score, match in chunks:
+            all_chunks.append((score, match, ref_num))
+    all_chunks.sort(key=lambda x: x[0], reverse=True)
+
+    return [clean_block(ref_num, match.metadata) for _, match, ref_num in all_chunks]
 
 
-def get_top_k_blocks(query: str, k: int, filter: dict | None = None) -> list[Block]:
-    return retrieve_docs(query, Settings(), filter)[:k]
+def get_top_k_blocks(query: str, k: int, filter: dict | None = None, snippets_per_doc: int = 1) -> list[Block]:
+    return retrieve_docs(query, Settings(), filter, snippets_per_doc)[:k]
 
 def fix_text(received_text: str|None) -> str|None:
     """
