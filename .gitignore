@@ -154,4 +154,5 @@ stampy-ui/
 api/output-requirements.txt
 
 /Caddyfile
+*.parquet
 
