@@ -28,7 +28,7 @@ class Prompts(TypedDict):
 
 # warning: when changing these prompts, also change useSettings.ts
 SYSTEM_PROMPT = """
-<miri-core-points>
+<core-reference-documents>
 <entire-source id="LL">
 {yudkowsky-list-of-lethalities-2507132226-e11d43}
 </entire-source>
@@ -41,10 +41,10 @@ SYSTEM_PROMPT = """
 {miri-the-briefing-2507132220-44fbe5}
 </entire-source>
 
-<main-points>
+<summary-points>
 {miri-the-problem-main-points-2507132222-1916a0}
-</main-points>
-</miri-core-points>
+</summary-points>
+</core-reference-documents>
 """.strip()
 HISTORY_PROMPT = "{stampy-history-2507211352-060b74}"
 HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
@@ -52,13 +52,13 @@ HISTORY_SUMMARIZE_PROMPT = "{stampy-history_summary-2507231056-b048af}"
 PRE_MESSAGE_PROMPT = ""
 
 POST_MESSAGE_PROMPT = """
-{post_message_new_noconfabwarn-2509230637-b187dc}
+{post_message_new_noconfabwarn-2602182346-ce4775}
 
 {mode}
 """.strip()
 
 HYDE_POST_MESSAGE_PROMPT = """
-{post_message_new_noconfabwarn_hyde-2509230634-645a9b}
+{post_message_new_noconfabwarn_hyde-2602182346-8694d7}
 """.strip()
 
 INSTRUCTION_WRAPPER = """
