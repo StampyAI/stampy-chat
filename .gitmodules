@@ -1,0 +1,3 @@
+[submodule "ard"]
+	path = ard
+	url = https://github.com/StampyAI/alignment-research-dataset.git
