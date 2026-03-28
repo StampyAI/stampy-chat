@@ -41,3 +41,9 @@ Javascript tools - excerpt from web/package.json:
   ...
 }
 ```
+
+
+## Living Memory
+
+- `session 137` 2026-03-27: observed stampy-chat MCP server at api/mcp_server.py runs on port 3002 via FastMCP HTTP transport. Uses Pinecone for semantic search (via stampy_chat.citations) and MySQL alignment_research_dataset DB for full-text retrieval. ARD text cleaning imported via importlib.util from ard symlink (bypasses heavy align_data.__init__). ARD MySQL `authors` field is comma-separated string, not list. Article text can be huge (19MB raw); clean_text from ard/align_data/embeddings/clean.py strips base64/SVG/Plotly; 99th percentile cleaned length ~130k chars. `watchexec -w mcp_server.py -r` for dev reload but races on port binding -- use --restart-timeout 2s or kill old process first. (stampy-mcp-architecture).
+  ttl: 2
