@@ -20,4 +20,5 @@ jobs:
             ./update.sh
             service website restart
             service backend restart
+            service mcp restart
             popd
