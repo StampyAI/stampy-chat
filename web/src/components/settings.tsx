@@ -144,14 +144,6 @@ export const ChatSettings = ({
         max={settings.maxNumTokens}
         updater={updateNum("maxHistorySummaryTokens")}
       />
-      <Checkbox
-        checked={settings?.enable_hyde || false}
-        field="enable_hyde"
-        label="Enable Hyde"
-        updater={(checked: boolean) =>
-          changeSettings([["enable_hyde"], checked])
-        }
-      />
       <NumberInput
         field="thinking_budget"
         value={settings.thinking_budget}
@@ -322,22 +314,6 @@ export const ChatPrompts = ({
           className="border-gray w-full border px-1"
           value={settings?.prompts?.pre_message}
           onChange={updatePrompt("pre_message")}
-        />
-      </Details>
-      <Details>
-        <summary>Hyde pre-message prompt</summary>
-        <TextareaAutosize
-          className="border-gray w-full border px-1"
-          value={settings?.prompts?.hyde_pre_message}
-          onChange={updatePrompt("hyde_pre_message")}
-        />
-      </Details>
-      <Details>
-        <summary>Hyde post-message prompt</summary>
-        <TextareaAutosize
-          className="border-gray w-full border px-1"
-          value={settings?.prompts?.hyde_post_message}
-          onChange={updatePrompt("hyde_post_message")}
         />
       </Details>
       <Details>

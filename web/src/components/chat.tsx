@@ -8,8 +8,11 @@ import {
 import { initialQuestions } from "../settings";
 
 import type {
+  Citation,
+  ContentBlock,
   CurrentSearch,
   Entry,
+  AssistantEntry as AssistantEntryType,
   LLMSettings,
   Followup,
   SearchResult,
@@ -79,36 +82,10 @@ export const ChatResponse = ({
     case "prompt":
       return <p>Loading: Preparing context...</p>;
     case "llm":
-      return (
-        <div>
-          <p>
-            {current.thinkingCount && current.thinkingCount > 0 ? (
-              <>
-                Loading: Thinking (usually 10s-30s)
-                {getSpinner(current.thinkingCount)}
-              </>
-            ) : (
-              <>Loading...</>
-            )}
-          </p>
-          {current.thinkingCount &&
-            current.thinkingCount > 0 &&
-            onRequestQuickAnswer && (
-              <p>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onRequestQuickAnswer();
-                  }}
-                >
-                  Get a quick answer
-                </a>
-              </p>
-            )}
-        </div>
-      );
+      return <p>Loading...</p>;
+    case "thinking":
     case "streaming":
+    case "turn":
       return <AssistantEntry entry={current} />;
     case "followups":
       return (
@@ -129,12 +106,26 @@ const makeHistory = (query: string, entries: Entry[]): HistoryEntry[] => {
     return entry.role;
   };
 
-  const history = entries
+  const history: HistoryEntry[] = entries
     .filter((entry) => entry.role !== "error")
-    .map((entry) => ({
-      role: getRole(entry),
-      content: entry.content.trim(),
-    }));
+    .map((entry) => {
+      const role = getRole(entry);
+      // For assistant entries with blocks, send structured content (strip thinking, drop ui_output)
+      if (role === "assistant" && "blocks" in entry) {
+        const { blocks } = entry as AssistantEntryType;
+        if (blocks?.length) {
+          const cleaned: ContentBlock[] = blocks
+            .filter((b) => b.type !== "thinking")
+            .map((b) =>
+              b.type === "tool_result"
+                ? { type: "tool_result" as const, tool: b.tool, tool_use_id: b.tool_use_id, model_output: b.model_output, ui_output: b.ui_output }
+                : b
+            ) as ContentBlock[];
+          return { role, content: cleaned };
+        }
+      }
+      return { role, content: entry.content.trim() };
+    });
   return [...history, { role: "user", content: query }];
 };
 
@@ -209,6 +200,11 @@ const Chat = ({
 
     const history = makeHistory(query, entries);
 
+    // Collect citations from prior assistant entries for cross-turn reference resolution
+    const priorCitations: Citation[] = entries
+      .filter((e): e is AssistantEntryType => e.role === "assistant" && "citations" in e)
+      .flatMap((e) => e.citations || []);
+
     let quickAnswerRequested = false;
 
     setOnRequestQuickAnswer(() => () => {
@@ -222,7 +218,8 @@ const Chat = ({
       history,
       updateCurrent,
       sessionId,
-      controller
+      controller,
+      priorCitations,
     );
 
     // If aborted and quick answer was requested, retry without thinking
@@ -238,7 +235,8 @@ const Chat = ({
         history,
         updateCurrent,
         sessionId,
-        newController
+        newController,
+        priorCitations,
       );
     }
 
@@ -254,7 +252,7 @@ const Chat = ({
     controller: AbortController,
     followup: Followup
   ) => {
-    setCurrent({ role: "assistant", content: "", phase: "started" });
+    setCurrent({ role: "assistant", blocks: [], content: "", phase: "started" });
     const result = await getStampyContent(followup.pageid, controller);
     if (!controller.signal.aborted) {
       addResult(followup.text, result);

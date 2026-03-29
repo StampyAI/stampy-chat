@@ -39,9 +39,6 @@ const DEFAULT_PROMPTS = {
 {post_message_new_noconfabwarn-2602182346-ce4775}
 
 {mode}`,
-  hyde_pre_message: "",
-  hyde_post_message:
-    "{post_message_new_noconfabwarn_hyde-2602182346-8694d7}",
   message_format: "<from-public-user id=\"{message_id}\">\n{message}\n</from-public-user>",
   modes: {
     default: "",
@@ -55,58 +52,15 @@ interface Model {
   topKBlocks: number;
 }
 export const MODELS: { [key: string]: Model } = {
-  "openai/gpt-3.5-turbo": { maxNumTokens: 4095, topKBlocks: 10 },
-  "openai/gpt-3.5-turbo-16k": { maxNumTokens: 16385, topKBlocks: 30 },
-  "openai/o1": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/o1-mini": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4": { maxNumTokens: 8192, topKBlocks: 20 },
-  "openai/gpt-4-turbo-preview": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4o": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4o-mini": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/o4-mini": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/o3": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4.1-nano": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4.1-mini": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-4.1": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-5-chat-latest": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-5-2025-08-07": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openai/gpt-5": { maxNumTokens: 128000, topKBlocks: 20 },
-  "anthropic/claude-3-opus-20240229": { maxNumTokens: 200000, topKBlocks: 20 },
-  "anthropic/claude-3-5-sonnet-20240620": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "anthropic/claude-3-5-sonnet-20241022": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "anthropic/claude-3-5-sonnet-latest": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
+  "anthropic/claude-sonnet-4-6": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-opus-4-6": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-haiku-4-5": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-sonnet-4-5-20250929": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-opus-4-5-20251101": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 20 },
-  "anthropic/claude-opus-4-1-20250805": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "anthropic/claude-sonnet-4-20250514": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "anthropic/claude-sonnet-4-5-20250929": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "anthropic/claude-3-7-sonnet-latest": {
-    maxNumTokens: 200_000,
-    topKBlocks: 20,
-  },
-  "google/gemini-2.5-flash": { maxNumTokens: 250_000, topKBlocks: 20 },
-  "google/gemini-2.5-pro": { maxNumTokens: 250_000, topKBlocks: 20 },
-  // OpenRouter models
-  "openrouter/openai/gpt-5": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openrouter/openai/gpt-oss-20b": { maxNumTokens: 128000, topKBlocks: 20 },
-  "openrouter/moonshotai/kimi-k2": { maxNumTokens: 128000, topKBlocks: 20 },
+  "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 20 },
+  "anthropic/claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 20 },
 };
 export const ENCODERS = ["cl100k_base"];
 export const DEFAULT_FILTERS: SearchFilters = {
@@ -204,21 +158,20 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  modelID: withDefault("anthropic/claude-sonnet-4-5-20250929"),
+  modelID: withDefault("anthropic/claude-sonnet-4-6"),
   encoder: withDefault("cl100k_base"),
   topKBlocks: withDefault(
-    MODELS["anthropic/claude-sonnet-4-5-20250929"]?.topKBlocks
+    MODELS["anthropic/claude-sonnet-4-6"]?.topKBlocks
   ), //  the number of blocks to use as citations
   maxNumTokens: withDefault(
-    MODELS["anthropic/claude-sonnet-4-5-20250929"]?.maxNumTokens
+    MODELS["anthropic/claude-sonnet-4-6"]?.maxNumTokens
   ),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history
   maxHistorySummaryTokens: withDefault(200), //  the max number of tokens to use in the history summary
   historyFraction: withDefault(0.25), //  the (approximate) fraction of num_tokens to use for history text before truncating
   contextFraction: withDefault(0.5), //  the (approximate) fraction of num_tokens to use for context text before truncating
-  enable_hyde: withDefault(false), //  whether to enable hyde functionality
-  thinking_budget: withDefault(0), // 0 or >=1024
+  thinking_budget: withDefault(2048), // 0 or >=1024
   filters: withDefault(DEFAULT_FILTERS),
 };
 
