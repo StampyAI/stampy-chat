@@ -27,9 +27,9 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 SENTRY_API_DSN = os.environ.get("SENTRY_API_DSN")
 
 ### Models ###
-SUMMARY_MODEL = os.environ.get("SUMMARY_MODEL", "anthropic/claude-sonnet-4-20250514")
+SUMMARY_MODEL = os.environ.get("SUMMARY_MODEL", "anthropic/claude-sonnet-4-6")
 MODEL = os.environ.get(
-    "MODEL", os.environ.get("COMPLETIONS_MODEL", "anthropic/claude-sonnet-4-20250514")
+    "MODEL", os.environ.get("COMPLETIONS_MODEL", "anthropic/claude-sonnet-4-6")
 )
 
 ### Pinecone ###

@@ -7,7 +7,7 @@ from frozendict import frozendict, deepfreeze
 
 
 Model = namedtuple(
-    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "publisher", "given_name", "can_think", "min_think"]
+    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "can_think", "min_think"]
 )
 
 Mode = Literal["default", "concise", "rookie", "discord"]
@@ -19,8 +19,6 @@ class Prompts(TypedDict):
     history_summary: str
     pre_message: str
     post_message: str
-    hyde_pre_message: str
-    hyde_post_message: str
     modes: dict[Mode, str]
     message_format: str
     instruction_wrapper: str
@@ -57,10 +55,6 @@ POST_MESSAGE_PROMPT = """
 {mode}
 """.strip()
 
-HYDE_POST_MESSAGE_PROMPT = """
-{post_message_new_noconfabwarn_hyde-2602182346-8694d7}
-""".strip()
-
 INSTRUCTION_WRAPPER = """
 <instructions>
 {content}
@@ -82,51 +76,23 @@ DEFAULT_PROMPTS = Prompts(
     history_summary=HISTORY_SUMMARIZE_PROMPT,
     pre_message=PRE_MESSAGE_PROMPT,
     post_message=POST_MESSAGE_PROMPT,
-    hyde_pre_message="",
-    hyde_post_message=HYDE_POST_MESSAGE_PROMPT,
     modes=PROMPT_MODES,
     message_format=MESSAGE_FORMAT,
     instruction_wrapper=INSTRUCTION_WRAPPER,
 )
 
-OPENAI = "openai"
-ANTHROPIC = "anthropic"
-GOOGLE = "google"
-OPENROUTER = "openrouter"
 MODELS = {
-    "openai/gpt-3.5-turbo":                         Model(4097,    10, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-3.5-turbo-16k":                     Model(16385,   30, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/o1":                                    Model(128000,  20, 4096, OPENAI,     "GPT",     True,       0),
-    "openai/o1-mini":                               Model(128000,  20, 4096, OPENAI,     "GPT",     True,       0),
-    "openai/gpt-4":                                 Model(8192,    20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-4-turbo-preview":                   Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-4o":                                Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-4o-mini":                           Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/o4-mini":                               Model(128000,  20, 4096, OPENAI,     "GPT",     True,       0),
-    "openai/o3":                                    Model(128000,  20, 4096, OPENAI,     "GPT",     True,       0),
-    # o3-pro?
-    # o1-pro?
-    "openai/gpt-4.1-nano":                          Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-4.1-mini":                          Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-4.1":                               Model(128000,  20, 4096, OPENAI,     "GPT",     False,      0),
-    "openai/gpt-5-chat-latest":                     Model(128000,  20, 4096, OPENAI,     "GPT",     True,       128),
-    "openai/gpt-5-2025-08-07":                      Model(128000,  20, 4096, OPENAI,     "GPT",     True,       128),
-    "openai/gpt-5":                                 Model(128000,  20, 4096, OPENAI,     "GPT",     True,       128),
-    "anthropic/claude-3-opus-20240229":             Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  False,      0),
-    "anthropic/claude-3-5-sonnet-20240620":         Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  False,      0),
-    "anthropic/claude-3-5-sonnet-20241022":         Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  False,      0),
-    "anthropic/claude-3-5-sonnet-latest":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  False,      0),
-    "anthropic/claude-opus-4-1-20250805":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
-    "anthropic/claude-opus-4-20250514":             Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
-    "anthropic/claude-sonnet-4-20250514":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
-    "anthropic/claude-sonnet-4-5-20250929":         Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
-    "anthropic/claude-3-7-sonnet-latest":           Model(200_000, 20, 4096, ANTHROPIC,  "Claude",  True,       1024),
-    "google/gemini-2.5-flash":                      Model(250_000, 20, 4096, GOOGLE,     "Gemini",  "always",   128),
-    "google/gemini-2.5-pro":                        Model(250_000, 20, 4096, GOOGLE,     "Gemini",  "always",   128),
-    # OpenRouter models
-    "openrouter/openai/gpt-5":                      Model(128000,  20, 4096, OPENROUTER, "GPT",     "always",   128),
-    "openrouter/openai/gpt-oss-20b":                Model(128000,  20, 4096, OPENROUTER, "GPT",     "always",   128),
-    "openrouter/moonshotai/kimi-k2":                Model(128000,  20, 4096, OPENROUTER, "Kimi",    False,      0),
+    # Current models (dateless IDs)
+    "anthropic/claude-sonnet-4-6":                  Model(200_000, 20, 16000, True,  1024),
+    "anthropic/claude-opus-4-6":                    Model(200_000, 20, 16000, True,  1024),
+    "anthropic/claude-haiku-4-5":                   Model(200_000, 20, 8192,  False, 0),
+    # Dated aliases (still work)
+    "anthropic/claude-sonnet-4-5-20250929":         Model(200_000, 20, 8192,  True,  1024),
+    "anthropic/claude-opus-4-5-20251101":           Model(200_000, 20, 16000, True,  1024),
+    "anthropic/claude-sonnet-4-20250514":           Model(200_000, 20, 4096,  True,  1024),
+    "anthropic/claude-opus-4-20250514":             Model(200_000, 20, 4096,  True,  1024),
+    "anthropic/claude-3-7-sonnet-latest":           Model(200_000, 20, 4096,  True,  1024),
+    "anthropic/claude-3-5-sonnet-latest":           Model(200_000, 20, 4096,  False, 0),
 }
 
 DEFAULT_MIRI_FILTERS = {
@@ -137,7 +103,9 @@ DEFAULT_MIRI_FILTERS = {
 
 def num_tokens(text, chars_per_token=4):
     """Calculate the number of tokens in a string."""
-    return len(text) // chars_per_token
+    if isinstance(text, str):
+        return len(text) // chars_per_token
+    return 0  # block-structured content -- can't easily count
 
 
 @dataclass(frozen=True)
@@ -150,13 +118,11 @@ class Settings:
     topKBlocks: int = None
     maxNumTokens: int = None
     maxCompletionTokens: int = None
-    enable_hyde: bool = False
     min_response_tokens: int = 10
     thinking_budget: int = 2048
     tokensBuffer: int = 100
     maxHistory: int = 10
     maxHistorySummaryTokens: int = 200
-    hyde_max_tokens: int = 100
     historyFraction: float = 0.25
     contextFraction: float = 0.5
     filters: frozendict = frozendict(DEFAULT_MIRI_FILTERS)
@@ -169,13 +135,11 @@ class Settings:
         modelID=None,
         topKBlocks=None,
         maxNumTokens=None,
-        enable_hyde=False,
         min_response_tokens=10,
         thinking_budget=2048,
         tokensBuffer=100,
         maxHistory=10,
         maxHistorySummaryTokens=200,
-        hyde_max_tokens=100,
         historyFraction=0.25,
         contextFraction=0.5,
         filters=DEFAULT_MIRI_FILTERS,
@@ -183,17 +147,12 @@ class Settings:
     ):
         if modelID is not None:
             model = modelID
-        assert not any("hyde" in x for x in _kwargs.keys()), f"derp: {str(_kwargs)}"
 
-        # Freeze prompts and filters to ensure immutability
         frozen_prompts = deepfreeze(prompts)
-        frozen_filters = deepfreeze(filters)
 
-        # Validate mode
         if frozen_prompts.get("modes", {}).get(mode) is None and mode != "default":
             raise ValueError("Invalid mode: " + mode)
 
-        # Determine model-specific settings
         if model not in MODELS:
             raise ValueError(f"Unknown model: {model}")
 
@@ -203,38 +162,20 @@ class Settings:
             topKBlocks = MODELS[model].topKBlocks
         maxCompletionTokens = MODELS[model].maxCompletionTokens
 
-        # Set all fields using object.__setattr__ for frozen dataclass
         object.__setattr__(self, "prompts", frozen_prompts)
         object.__setattr__(self, "mode", mode)
         object.__setattr__(self, "model", model)
         object.__setattr__(self, "topKBlocks", topKBlocks)
         object.__setattr__(self, "maxNumTokens", maxNumTokens)
         object.__setattr__(self, "maxCompletionTokens", maxCompletionTokens)
-        object.__setattr__(self, "enable_hyde", enable_hyde)
         object.__setattr__(self, "min_response_tokens", min_response_tokens)
         object.__setattr__(self, "thinking_budget", thinking_budget)
         object.__setattr__(self, "tokensBuffer", tokensBuffer)
         object.__setattr__(self, "maxHistory", maxHistory)
         object.__setattr__(self, "maxHistorySummaryTokens", maxHistorySummaryTokens)
-        object.__setattr__(self, "hyde_max_tokens", hyde_max_tokens)
         object.__setattr__(self, "historyFraction", historyFraction)
         object.__setattr__(self, "contextFraction", contextFraction)
-        object.__setattr__(self, "filters", frozen_filters)
-
-        # Validate token allocation
-        context_tokens = int(maxNumTokens * contextFraction) - num_tokens(
-            frozen_prompts.get("system", "")
-        )
-        history_tokens = int(maxNumTokens * historyFraction) - num_tokens(
-            frozen_prompts.get("history", "")
-        )
-
-        if context_tokens + history_tokens > maxNumTokens - min_response_tokens:
-            raise ValueError(
-                "The context and history fractions are too large, please lower them: "
-                f"max context tokens: {context_tokens}, max history tokens: {history_tokens}, "
-                f"max total tokens: {maxNumTokens}, minimum response tokens {min_response_tokens}"
-            )
+        object.__setattr__(self, "filters", deepfreeze(filters))
 
     def __repr__(self) -> str:
         return f"<Settings mode: {self.mode}, model: {self.model}, tokens: {self.maxNumTokens}"
@@ -247,25 +188,20 @@ class Settings:
                 return tuple(freeze_deep(item) for item in obj)
             return obj
 
-        return hash(
-            (
-                freeze_deep(self.prompts),
-                self.mode,
-                self.model,
-                self.maxNumTokens,
-                self.topKBlocks,
-                self.tokensBuffer,
-                self.maxHistory,
-                self.maxHistorySummaryTokens,
-                self.historyFraction,
-                self.contextFraction,
-                self.min_response_tokens,
-                self.thinking_budget,
-                self.enable_hyde,
-                self.hyde_max_tokens,
-                freeze_deep(self.filters),
-            )
-        )
+        return hash((
+            freeze_deep(self.prompts),
+            self.mode,
+            self.model,
+            self.maxNumTokens,
+            self.topKBlocks,
+            self.tokensBuffer,
+            self.maxHistory,
+            self.maxHistorySummaryTokens,
+            self.historyFraction,
+            self.contextFraction,
+            self.min_response_tokens,
+            self.thinking_budget,
+        ))
 
     @property
     def prompt_modes(self) -> dict[Mode, str]:
@@ -296,31 +232,12 @@ class Settings:
         return self.prompts["post_message"]
 
     @property
-    def hyde_system_prompt(self):
-        return self.prompts.get("hyde_pre_message", self.system_prompt)
-
-    @property
-    def hyde_pre_message_prompt(self):
-        return self.prompts["hyde_pre_message"]
-
-    @property
-    def hyde_post_message_prompt(self):
-        return self.prompts["hyde_post_message"]
-
-    @property
     def message_format(self):
         return self.prompts.get("message_format", MESSAGE_FORMAT)
 
     @property
     def instruction_wrapper(self):
         return self.prompts.get("instruction_wrapper", INSTRUCTION_WRAPPER)
-
-    @property
-    def context_tokens(self):
-        """The max number of tokens to be used for the context"""
-        return int(self.maxNumTokens * self.contextFraction) - num_tokens(
-            self.system_prompt
-        )
 
     @property
     def history_tokens(self):
@@ -331,31 +248,14 @@ class Settings:
 
     @property
     def max_response_tokens(self):
-        available_tokens = (
-            self.maxNumTokens
-            - self.maxHistorySummaryTokens
-            - self.context_tokens
-            - num_tokens(self.system_prompt)
-            - self.history_tokens
-            - num_tokens(self.history_prompt)
-            - num_tokens(self.pre_message_prompt)
-            - num_tokens(self.post_message_prompt)
-            + self.thinking_budget
-        )
-        return min(available_tokens, self.maxCompletionTokens)
-
-    @property
-    def model_provider(self):
-        provider, slash, model = self.model.partition("/")
-        if slash != "/":
-            raise ValueError(
-                f"Invalid model: {self.model} - expected format: provider/model"
-            )
-        return provider
+        model_info = MODELS[self.model]
+        if model_info.can_think and self.thinking_budget > 0:
+            return self.maxCompletionTokens + max(model_info.min_think, self.thinking_budget)
+        return self.maxCompletionTokens
 
     @property
     def model_id(self):
-        provider, slash, model = self.model.partition("/")
+        _, slash, model = self.model.partition("/")
         if slash != "/":
             raise ValueError(
                 f"Invalid model: {self.model} - expected format: provider/model"
@@ -364,7 +264,7 @@ class Settings:
 
     @property
     def model_given_name(self):
-        return MODELS[self.model].given_name
+        return "Claude"
 
     @property
     def miri_filters(self) -> dict[str, Any]:

@@ -1,8 +1,10 @@
 import { API_URL, STAMPY_URL, STAMPY_CONTENT_URL } from "../settings";
 import type {
   AssistantEntry,
+  ContentBlock,
   StampyMessage,
   Followup,
+  Citation,
   CurrentSearch,
   SearchResult,
   LLMSettings,
@@ -16,7 +18,7 @@ const EVENT_END_HEADER = "event: close";
 export type EntryRole = "error" | "stampy" | "assistant" | "user" | "deleted";
 export type HistoryEntry = {
   role: EntryRole;
-  content: string;
+  content: string | ContentBlock[];
 };
 
 const ignoreAbort = (error: Error) => {
@@ -57,25 +59,52 @@ export async function* iterateData(res: Response) {
 const makeEntry = () =>
   ({
     role: "assistant",
+    blocks: [],
     content: "",
     citations: [],
     citationsMap: new Map(),
     timings: [],
   } as AssistantEntry);
 
+/** Extract citations from tool result ui_output (search results). */
+const extractCitationsFromBlocks = (blocks: ContentBlock[]): Citation[] => {
+  const citations: Citation[] = [];
+  for (const block of blocks) {
+    if (block.type !== "tool_result") continue;
+    if (!Array.isArray(block.ui_output)) continue;
+    for (const item of block.ui_output) {
+      if (item.title && item.url) {
+        citations.push(item as Citation);
+      }
+    }
+  }
+  return citations;
+};
+
 export const extractAnswer = async (
   res: Response,
   setCurrent: (e: CurrentSearch) => void,
-  settings?: LLMSettings
+  settings?: LLMSettings,
+  priorCitations?: Citation[],
 ): Promise<SearchResult> => {
   var result: AssistantEntry = makeEntry();
   var followups: Followup[] = [];
   const startTime = Date.now();
-  var thinkingCount = 0;
+  const prior = priorCitations || [];
 
   const addTiming = (name: string) => {
     if (!result.timings) result.timings = [];
     result.timings.push({ time: Date.now() - startTime, name });
+  };
+
+  /** Append to or create the last block of a given type. */
+  const appendToBlock = (type: "thinking" | "text", key: "thinking" | "text", delta: string) => {
+    const last = result.blocks[result.blocks.length - 1];
+    if (last && last.type === type) {
+      (last as any)[key] += delta;
+    } else {
+      result.blocks = [...result.blocks, { type, [key]: delta } as ContentBlock];
+    }
   };
 
   if (settings) {
@@ -83,67 +112,70 @@ export const extractAnswer = async (
   }
   for await (var data of iterateData(res)) {
     switch (data.state) {
-      case "loading":
-        setCurrent({ phase: data.phase, ...result });
+      case "thinking":
+        addTiming("thinking");
+        appendToBlock("thinking", "thinking", data.content || "");
+        result = { ...result, blocks: [...result.blocks] };
+        setCurrent({ phase: "thinking", ...result });
         break;
 
-      case "citations":
-        addTiming("got citations");
-        result = {
-          ...result,
-          citations: data?.citations || result?.citations || [],
-        };
-        setCurrent({ phase: data.phase, ...result });
-        break;
-
-      case "streaming":
-        // incrementally build up the response
-        const content = formatCitations((result?.content || "") + data.content);
+      case "streaming": {
         addTiming("content");
+        appendToBlock("text", "text", data.content || "");
+        const content = formatCitations(result.content + (data.content || ""));
+        const citations = [...prior, ...extractCitationsFromBlocks(result.blocks)];
         result = {
           ...result,
+          blocks: [...result.blocks],
           content,
-          role: "assistant",
-          citationsMap: findCitations(content, result?.citations || []),
+          citations,
+          citationsMap: findCitations(content, citations),
         };
         setCurrent({ phase: "streaming", ...result });
         break;
+      }
 
-      case "prompt":
-        addTiming("got prompt");
-        result = {
-          ...result,
-          promptedHistory: data.promptedHistory,
-        };
-        setCurrent({ phase: "prompt", ...result });
+      case "turn":
+        addTiming("turn");
+        if (data.role === "assistant") {
+          if (Array.isArray(data.content)) {
+            for (const block of data.content) {
+              if (block.type === "tool_use") {
+                result.blocks.push(block);
+              }
+            }
+          }
+        } else if (data.role === "tool") {
+          // Tool result turn
+          result.blocks.push({
+            type: "tool_result",
+            tool: data.tool,
+            tool_use_id: data.tool_use_id,
+            model_output: data.model_output || "",
+            ui_output: data.ui_output,
+          });
+          // Update citations from tool results
+          const citations = [...prior, ...extractCitationsFromBlocks(result.blocks)];
+          result = { ...result, citations };
+        }
+        setCurrent({ phase: "turn", ...result });
         break;
 
       case "followups":
         addTiming("followups");
-        // add any potential followup questions
         followups = data.followups.map((value: any) => value as Followup);
-        console.log("followups", followups);
         break;
-      case "done":
-        break;
-      case "enrich":
-        addTiming("got hyde");
-        result = {
-          ...result,
-          hydeResult: data.content,
-        };
-        setCurrent({ phase: "enrich", ...result });
-        break;
-      case "thinking":
-        addTiming("thinking");
-        thinkingCount++;
-        setCurrent({ phase: "llm", thinkingCount, ...result });
-        break;
+
       case "done":
         addTiming("done");
         break;
+
       case "error":
         throw data.error;
+
+      case "loading":
+        setCurrent({ phase: data.phase, ...result });
+        break;
     }
   }
   return { result, followups };
@@ -173,7 +205,8 @@ export const queryLLM = async (
   history: HistoryEntry[],
   setCurrent: (e?: CurrentSearch) => void,
   sessionId: string | undefined,
-  controller: AbortController
+  controller: AbortController,
+  priorCitations?: Citation[],
 ): Promise<SearchResult> => {
   setCurrent({ ...makeEntry(), phase: "started" });
   // do SSE on a POST request.
@@ -186,7 +219,7 @@ export const queryLLM = async (
   }
 
   try {
-    return await extractAnswer(res, setCurrent, settings);
+    return await extractAnswer(res, setCurrent, settings, priorCitations);
   } catch (e) {
     if ((e as Error)?.name === "AbortError") {
       return { result: { role: "error", content: "aborted" } };

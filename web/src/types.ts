@@ -16,6 +16,12 @@ export type Followup = {
   score: number;
 };
 
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "thinking"; thinking: string }
+  | { type: "tool_use"; id?: string; name: string; input: Record<string, any> }
+  | { type: "tool_result"; tool: string; tool_use_id?: string; model_output: string; ui_output: any };
+
 export type Entry = UserEntry | AssistantEntry | ErrorMessage | StampyMessage;
 
 export type UserEntry = {
@@ -26,13 +32,12 @@ export type UserEntry = {
 
 export type AssistantEntry = {
   role: "assistant";
-  content: string;
+  blocks: ContentBlock[];
+  content: string; // derived: concatenation of text blocks
   citations?: Citation[];
   citationsMap?: Map<string, Citation>;
   deleted?: boolean;
-  promptedHistory?: Array<{ role: string; content: string }>;
   timings?: Array<{ time: number; name: string }>;
-  hydeResult?: string;
   settings?: LLMSettings;
 };
 
@@ -54,7 +59,7 @@ export type SearchResult = {
   result: Entry;
 };
 export type CurrentSearch =
-  | (AssistantEntry & { phase?: string; thinkingCount?: number })
+  | (AssistantEntry & { phase?: string })
   | undefined;
 
 export type Mode = "rookie" | "concise" | "default" | "discord";
@@ -66,14 +71,12 @@ export type LLMSettings = {
   mode?: Mode;
   modelID?: string;
   completions?: string;
-  encoder?: string;
   topKBlocks?: number;
   maxNumTokens?: number;
   tokensBuffer?: number;
   maxHistory?: number;
   historyFraction?: number;
   contextFraction?: number;
-  enable_hyde?: boolean;
   thinking_budget?: number;
   [key: string]: any;
 };

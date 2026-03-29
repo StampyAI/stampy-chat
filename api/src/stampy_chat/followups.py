@@ -3,7 +3,6 @@ from typing import TypedDict
 from urllib.parse import quote
 
 from stampy_chat import logging
-from stampy_chat.callbacks import CallbackHandler
 
 logger = logging.getLogger(__name__)
 
@@ -74,12 +73,3 @@ def multisearch_authored(queries: list[str]) -> list[Followup]:
     return followups
 
 
-def search_followups(query: str, response: str, callbacks: list[CallbackHandler]):
-    for call in callbacks:
-        call.on_followups_start({"query": query, "response": response})
-
-    follows = multisearch_authored([query, response])
-    for call in callbacks:
-        call.on_followups_end(follows)
-
-    return follows
