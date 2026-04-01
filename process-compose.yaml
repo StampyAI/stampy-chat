@@ -1,0 +1,59 @@
+# run multiple dev servers in parallel
+# install: https://f1bonacc1.github.io/process-compose/installation/
+# run with: process-compose
+
+version: "0.5"
+
+log_level: info
+log_length: 50000
+
+processes:
+  api:
+    command: pipenv run python main.py
+    working_dir: ./api
+    environment:
+      - FLASK_ENV=development
+    availability:
+      restart: always
+
+  mcp:
+    command: pipenv run python mcp_server.py
+    working_dir: ./api
+    availability:
+      restart: always
+
+  web:
+    command: npm run dev -- --hostname 0.0.0.0
+    working_dir: ./web
+    availability:
+      restart: always
+
+  # commented because the mechanisms for preventing restart loop when not available weren't working, need to fix that
+  #caddy:
+  #  command: |
+  #    if [ -e Caddyfile ] && which caddy; then
+  #      sed -i 's/[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/'"$(curl checkip.amazonaws.com | grep --only-matching '[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+')"'/' Caddyfile
+  #      caddy run || sleep 600
+  #    fi || sleep 600
+  #  availability:
+  #    restart: always
+
+  ui:
+    command: |
+      if [ -e ../stampy-ui ]; then cd ../stampy-ui
+      elif [ -e stampy-ui ]; then cd stampy-ui
+      else exit 0
+      fi
+      npx remix dev --manual -c "npx wrangler dev --ip 0.0.0.0 ./build/index.js"
+    availability:
+      restart: always
+
+  log_viewer:
+    command: |
+      if [ -e temp/log_viewer.py ]; then
+        cd temp && uv run log_viewer.py
+      else
+        sleep 100000000
+      fi
+    availability:
+      restart: always

@@ -195,4 +195,4 @@ def inline_prompts():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=FLASK_PORT)
+    app.run(debug=True, use_debugger=False, port=FLASK_PORT, host="0.0.0.0")

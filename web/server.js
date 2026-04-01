@@ -8,7 +8,7 @@ const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT) || 3000;
 const sslCert = process.env.SSL_CRT_FILE;
 const sslKey = process.env.SSL_KEY_FILE;
-const host = process.env.HOST || "127.0.0.1";
+const host = process.env.HOST || "0.0.0.0";
 
 const app = next({ dev });
 const handle = app.getRequestHandler();
