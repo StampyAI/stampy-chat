@@ -483,4 +483,4 @@ def _remap_quality_fields(filter: dict) -> dict:
 
 if __name__ == "__main__":
     logger.info("Starting Stampy Chat MCP server on port 3002")
-    mcp.run(transport="http", host="127.0.0.1", port=3002)
+    mcp.run(transport="http", host="0.0.0.0", port=3002)
