@@ -25,3 +25,8 @@ jobs:
         run: |
           cd api
           pipenv run pytest
+      - name: Typecheck frontend
+        run: |
+          cd web
+          npm ci
+          npx tsc --noEmit
