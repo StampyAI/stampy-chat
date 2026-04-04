@@ -25,3 +25,11 @@ jobs:
         run: |
           cd api
           pipenv run pytest
+      - name: Typecheck frontend
+        env:
+          SKIP_ENV_VALIDATION: "1"
+          SENTRY_AUTH_TOKEN: ""
+        run: |
+          cd web
+          npm ci
+          npm run build
