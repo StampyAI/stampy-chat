@@ -52,6 +52,7 @@ export const AssistantEntry: React.FC<{ entry: AssistantType }> = ({
       const elements: React.ReactNode[] = [];
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
+        if (!block) continue;
         if (block.type === "thinking") {
           elements.push(<Thinking key={i} thinking={block.thinking} />);
         } else if (block.type === "tool_use") {
