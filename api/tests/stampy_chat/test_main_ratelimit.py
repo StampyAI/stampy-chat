@@ -1,5 +1,9 @@
 import json
-import main
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parents[2]))  # api/ is not on sys.path under bare `pytest`
+import main  # noqa: E402
 
 
 def test_stream_refusal_is_an_sse_error_event(monkeypatch):
