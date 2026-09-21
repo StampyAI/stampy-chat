@@ -15,6 +15,8 @@ from stampy_chat.prompts import inline_all_templates
 from stampy_chat.db.session import make_session
 from stampy_chat.db.models import Rating
 from stampy_chat.citations import Message
+from stampy_chat.ratelimit import Limiter, MESSAGES, STATUS, client_ip
+import time
 
 
 # ---------------------------------- web setup ---------------------------------
@@ -35,6 +37,18 @@ if SENTRY_API_DSN:
 app = Flask(__name__)
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
+limiter = Limiter()
+
+
+def refused(query, session_id, as_stream):
+    """Rate-limit check. Returns a response to send instead of answering, or None."""
+    reason = limiter.check(client_ip(request), session_id, query or "", time.time())
+    if not reason: return None
+    logging.getLogger(__name__).warning("rate-limited %s: %s (%d chars)", client_ip(request), reason, len(query or ""))
+    if as_stream:  # the UIs render an SSE error event; a non-200 shows only "POST Error: 429"
+        events = [json.dumps({"state": "error", "error": MESSAGES[reason]}), json.dumps({"state": "done"})]
+        return Response(stream(events), mimetype="text/event-stream")
+    return jsonify({"error": MESSAGES[reason], "reason": reason}), STATUS.get(reason, 429)
 
 # ---------------------------------- sse stuff ---------------------------------
 
@@ -99,6 +113,8 @@ def chat():
 
     history = clean_history(history)
 
+    if r := refused(query, session_id, as_stream): return r
+
     if not as_stream:
         # Non-streaming: collect full response
         response = ""
@@ -123,6 +139,7 @@ def chat():
 @app.route("/chat/<path:param>", methods=["GET"])
 @cross_origin()
 def chat_simplified(param=""):
+    if r := refused(param, None, False): return r
     response = ""
     follows = []
     for event in run_query(None, param, [], Settings()):
