@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 ARD_URI = DB_CONNECTION_URI.rsplit("/", 1)[0] + "/alignment_research_dataset"
-ard_engine = create_engine(ARD_URI, echo=False)
+ard_engine = create_engine(ARD_URI, echo=False, pool_pre_ping=True, pool_recycle=1800)
 
 articles = table("articles",
     column("hash_id"), column("title"), column("url"),
