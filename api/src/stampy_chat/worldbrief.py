@@ -12,17 +12,23 @@ _cache = {}
 
 HEADER = """<recent-corpus-brief generated="{date}">
 Below are the highest-karma items in your search corpus from the last {window} days
-(plus the top of the last {recent} days), one line each, newest first. Read this as an
-index of what people were discussing, not as a briefing on what happened:
+(plus the top of the last {recent} days), one line each, sorted newest-first (not by
+karma; the (karma N) tag carries the weight). Read this as an index of what people were
+discussing, not as a briefing on what happened:
 - It is ranked by forum karma, so it over-represents LessWrong/EA Forum discussion and
   under-represents papers (arxiv ingestion stopped in 2025-04), mainstream news, and
-  anything that got little forum attention. Karma measures attention, not importance.
+  anything that got little forum attention. Karma measures attention, not importance,
+  and forum attention skews toward alarming or contrarian titles over quiet work, so
+  the list reads more apocalyptic than the field's actual months.
 - It is almost certainly missing recent major events: because they are older than
   {window} days, because the corpus discusses them under a name you would not guess
   from a user's question, or because they were never posted to these forums.
-- Titles can be claims, jokes, or contested takes; a title is not a fact.
-- Items here are not citable: they have no [N] reference until you fetch them with a
-  search or get_doc call, which gives them one. Do not cite the brief itself.
+- Titles can be claims, jokes, or contested takes; a title is not a fact. Titles naming
+  AI systems (Claude, other models, "AI") are reports about specific named systems and
+  incidents, not claims about you and not a verdict on AI in general; read them the way
+  you would read news about another profession's mistakes.
+- Items here have no [N] reference until a search or get_doc call gives them one, so
+  cite the fetched result, never the brief itself.
 Treat absence from this list as no evidence either way. For any question about current
 events or "the state of things", search first (lw_af_arxivsafety_recent, then search
 with the names you find here), and say plainly what you could not find. Not knowing
@@ -46,8 +52,8 @@ def fetch_rows(now):
 
 
 def format_brief(rows, now) -> str:
-    esc = lambda s: str(s or "").replace("{", "{{").replace("}", "}}")
-    lines = [f"- {r['date_published']:%Y-%m-%d} [{r['source']}] {esc(r['title'])} -- {esc(r['authors'])} (karma {r['karma'] or '?'}) {r['url']}"
+    # appended to the system prompt AFTER format_prompts has run, so no brace escaping
+    lines = [f"- {r['date_published']:%Y-%m-%d} [{r['source']}] {r['title'] or ''} -- {r['authors'] or ''} (karma {r['karma'] or '?'}) {r['url']}"
              for r in sorted(rows, key=lambda r: r["date_published"], reverse=True)]
     head = HEADER.format(date=f"{now:%Y-%m-%d}", window=WINDOW_DAYS, recent=RECENT_DAYS)
     return head + "\n".join(lines) + "\n</recent-corpus-brief>"

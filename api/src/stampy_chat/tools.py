@@ -609,8 +609,8 @@ def make_anthropic_tools(tool_events: list, start_id: int = 1) -> list:
                     model_output, ui_output = fn(**kwargs)
                 except TypeError as e:  # bad kwargs from the model: tell it, don't kill the request
                     if "argument" not in str(e): raise
-                    valid = ", ".join(schema["properties"])
-                    return f"Error: {e}. Valid arguments: {valid}"
+                    model_output, ui_output = f"Error: {e}. Valid arguments: {', '.join(schema['properties'])}", None
+                # the event below must be appended even on error: chat.py pairs events to tool_use ids by position
                 # Advance counter past the highest reference in these results
                 if fn.__name__ in _ID_TOOLS and isinstance(ui_output, list):
                     refs = [int(b["reference"]) for b in ui_output if b.get("reference")]

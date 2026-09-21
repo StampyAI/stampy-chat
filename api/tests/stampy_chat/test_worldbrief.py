@@ -7,9 +7,9 @@ ROWS = [
     dict(title="Tiny", url="u3", source="blogs", authors="", date_published=datetime(2026, 9, 20), karma=None),
 ]
 
-def test_format_escapes_braces_and_orders_by_date():
+def test_format_keeps_braces_and_orders_by_date():
     text = wb.format_brief(ROWS, datetime(2026, 9, 21))
-    assert "Big {{event}}" in text and "2026-09-21" in text
+    assert "Big {event}" in text and "2026-09-21" in text  # appended after formatting: braces are literal
     assert text.index("Tiny") < text.index("Big") < text.index("Old but big")
     assert "almost certainly missing" in text
 

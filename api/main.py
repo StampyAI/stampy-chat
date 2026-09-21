@@ -40,15 +40,24 @@ app.config["CORS_HEADERS"] = "Content-Type"
 limiter = Limiter()
 
 
-def refused(query, session_id, as_stream):
+def refused(query, as_stream):
     """Rate-limit check. Returns a response to send instead of answering, or None."""
-    reason = limiter.check(client_ip(request), session_id, query or "", time.time())
+    reason = limiter.check(client_ip(request), query or "", time.time())
     if not reason: return None
     logging.getLogger(__name__).warning("rate-limited %s: %s (%d chars)", client_ip(request), reason, len(query or ""))
     if as_stream:  # the UIs render an SSE error event; a non-200 shows only "POST Error: 429"
         events = [json.dumps({"state": "error", "error": MESSAGES[reason]}), json.dumps({"state": "done"})]
-        return Response(stream(events), mimetype="text/event-stream")
-    return jsonify({"error": MESSAGES[reason], "reason": reason}), STATUS.get(reason, 429)
+        return Response(stream(events), mimetype="text/event-stream", headers={"X-RateLimited": reason})
+    return jsonify({"error": MESSAGES[reason], "reason": reason}), STATUS.get(reason, 429), {"X-RateLimited": reason}
+
+
+def settled(events, query):
+    """Pass events through; afterwards charge the answer's real cost (one unit per model call)."""
+    ip, calls = client_ip(request), 0
+    for event in events:
+        if event.get("state") == "turn" and event.get("role") == "assistant": calls += 1
+        yield event
+    limiter.settle(ip, calls, time.time())
 
 # ---------------------------------- sse stuff ---------------------------------
 
@@ -113,18 +122,18 @@ def chat():
 
     history = clean_history(history)
 
-    if r := refused(query, session_id, as_stream): return r
+    if r := refused(query, as_stream): return r
 
     if not as_stream:
         # Non-streaming: collect full response
         response = ""
-        for event in run_query(session_id, query, history, Settings(**settings), followups):
+        for event in settled(run_query(session_id, query, history, Settings(**settings), followups), query):
             if event.get("state") == "streaming":
                 response += event.get("content", "")
         return jsonify(response)
 
     def generate():
-        for event in run_query(session_id, query, history, Settings(**settings), followups):
+        for event in settled(run_query(session_id, query, history, Settings(**settings), followups), query):
             yield json.dumps(event)
 
     return Response(
@@ -139,10 +148,10 @@ def chat():
 @app.route("/chat/<path:param>", methods=["GET"])
 @cross_origin()
 def chat_simplified(param=""):
-    if r := refused(param, None, False): return r
+    if r := refused(param, False): return r
     response = ""
     follows = []
-    for event in run_query(None, param, [], Settings()):
+    for event in settled(run_query(None, param, [], Settings()), param):
         if event.get("state") == "streaming":
             response += event.get("content", "")
         elif event.get("state") == "followups":
