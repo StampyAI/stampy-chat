@@ -15,6 +15,8 @@ from stampy_chat.citations import Message
 from stampy_chat.prompts import format_history, truncate_history, format_prompts
 from stampy_chat.tools import make_anthropic_tools
 from stampy_chat.followups import multisearch_authored
+from stampy_chat.citefix import Rewriter
+from stampy_chat.worldbrief import world_brief
 from stampy_chat.env import ANTHROPIC_API_KEY
 
 logger = logging.getLogger(__name__)
@@ -94,7 +96,7 @@ def run_query(
     )
     system = format_prompts(settings.system_prompt, vals)
     history_instruction = format_prompts(settings.history_prompt, vals)
-    system = system + "\n\n" + history_instruction
+    system = system + "\n\n" + history_instruction + "\n\n" + world_brief()
 
     # Format history: strip thinking, preserve tool_use/tool_result, wrap human text
     messages = format_history(query, history, settings, vals)
@@ -146,6 +148,7 @@ def run_query(
                 tool_events.clear()
 
             turn_content = []
+            cites = Rewriter()  # [TP]/[TB]/[LL] -> markdown links, held across split tokens
             logger.info(f"[turn {turn_num}] stream started")
 
             for event in message:
@@ -169,15 +172,21 @@ def run_query(
                         if turn_content and turn_content[-1]["type"] == "thinking":
                             turn_content[-1]["thinking"] += event.delta.thinking
                     elif event.delta.type == "text_delta":
-                        yield {"state": "streaming", "content": event.delta.text}
-                        response_text += event.delta.text
+                        text = cites.feed(event.delta.text)
+                        if text: yield {"state": "streaming", "content": text}
+                        response_text += text
                         if turn_content and turn_content[-1]["type"] == "text":
-                            turn_content[-1]["text"] += event.delta.text
+                            turn_content[-1]["text"] += text
                     elif event.delta.type == "input_json_delta":
                         if turn_content and turn_content[-1]["type"] == "tool_use":
                             turn_content[-1].setdefault("_input_json", "")
                             turn_content[-1]["_input_json"] += event.delta.partial_json
                 elif event.type == "content_block_stop":
+                    if turn_content and turn_content[-1]["type"] == "text":
+                        text = cites.flush()
+                        if text: yield {"state": "streaming", "content": text}
+                        response_text += text
+                        turn_content[-1]["text"] += text
                     if turn_content and turn_content[-1]["type"] == "tool_use":
                         raw = turn_content[-1].pop("_input_json", "{}")
                         try: turn_content[-1]["input"] = json.loads(raw)

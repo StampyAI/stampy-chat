@@ -66,7 +66,7 @@ user's vocabulary, (c) 84 s latency, (d) the prompt's own reference docs are
 
 ## Bugs found, fixed in PR (branch fix-lost-logs)
 1. query/chunks VARCHAR(1028) -> LONGTEXT. ALTER already applied on prod 16:14.
-2. pool_pre_ping + pool_recycle on both engines.
+2. pool_pre_ping + pool_recycle on all three engines (MySQL is on the same host, reached via its public IP; idle connections still time out).
 3. get_doc(hash_id=) TypeError (19x/30d, kills the request) -> alias + wrapper
    returns an Error string. Tests: api/tests/stampy_chat/test_tools.py.
 Not fixed: 3x anthropic.BadRequestError "tool_use ids without tool_result"
