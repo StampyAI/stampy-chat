@@ -10,7 +10,7 @@ from stampy_chat.env import DB_CONNECTION_URI
 logger = logging.getLogger(__name__)
 
 # We create a single engine for the entire application
-engine = create_engine(DB_CONNECTION_URI, echo=False)
+engine = create_engine(DB_CONNECTION_URI, echo=False, pool_pre_ping=True, pool_recycle=1800)
 
 
 @contextmanager
@@ -39,7 +39,7 @@ class ItemAdder:
         :param int batch_size: will commit the session once this many items have been added
         :param int save_every: will commit the session if this many seconds have passed since the last addition
         """
-        self.engine = engine or create_engine(DB_CONNECTION_URI, echo=False)
+        self.engine = engine or create_engine(DB_CONNECTION_URI, echo=False, pool_pre_ping=True, pool_recycle=1800)
         self.batch_size = batch_size
         self.save_every = save_every
         self.batch = []

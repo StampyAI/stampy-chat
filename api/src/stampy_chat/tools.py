@@ -358,17 +358,19 @@ def lw_af_arxivsafety_recent(
 
 def lw_af_arxivsafety_get_doc(
     id: str | None = None, url: str | None = None, title: str | None = None,
-    max_chars: int = MAX_DOC_CHARS, offset: int = 0,
+    max_chars: int = MAX_DOC_CHARS, offset: int = 0, hash_id: str | None = None,
 ) -> tuple[str, dict]:
     """Retrieve full text of a single article from the alignment research corpus. Use after finding an interesting result via search to read the complete document. Accepts hash_id, URL, or exact title. Non-semantic content (base64, SVGs, Plotly data) is stripped; long articles are truncated (default 130k chars). Use offset to paginate through longer articles.
 
     Args:
         id: Article hash_id (shown as hash_id in formatted results, or 'id' in json results). Preferred lookup method.
+        hash_id: Alias for id.
         url: Article URL. Partial match.
         title: Exact article title.
         max_chars: Max characters to return (default 130000). The cleaned text length is reported in the response so you can decide whether to request more.
         offset: Character offset into cleaned text (default 0). Use to retrieve subsequent pages of a long article.
     """
+    id = id or hash_id
     if not any([id, url, title]):
         return "Error: provide at least one of: id, url, title", {}
 
@@ -603,7 +605,12 @@ def make_anthropic_tools(tool_events: list, start_id: int = 1) -> list:
                     kwargs["ids_start_at"] = next_id[0]
                 if fn.__name__ == "lw_af_arxivsafety_get_doc":
                     kwargs.setdefault("max_chars", CHAT_DOC_CHARS)
-                model_output, ui_output = fn(**kwargs)
+                try:
+                    model_output, ui_output = fn(**kwargs)
+                except TypeError as e:  # bad kwargs from the model: tell it, don't kill the request
+                    if "argument" not in str(e): raise
+                    valid = ", ".join(schema["properties"])
+                    return f"Error: {e}. Valid arguments: {valid}"
                 # Advance counter past the highest reference in these results
                 if fn.__name__ in _ID_TOOLS and isinstance(ui_output, list):
                     refs = [int(b["reference"]) for b in ui_output if b.get("reference")]

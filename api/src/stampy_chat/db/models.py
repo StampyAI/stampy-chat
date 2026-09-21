@@ -51,7 +51,7 @@ class Interaction(Base):
     interaction_no: Mapped[int] = mapped_column(Integer)
 
     # The actual query provided by the user
-    query: Mapped[str] = mapped_column(String(1028))
+    query: Mapped[str] = mapped_column(LONGTEXT)
 
     # The full prompt as sent to the LLM
     prompt: Mapped[Optional[str]] = mapped_column(LONGTEXT)
@@ -60,7 +60,7 @@ class Interaction(Base):
     response: Mapped[Optional[str]] = mapped_column(LONGTEXT)
 
     # The ids of the chunks used for the prompt
-    chunks: Mapped[Optional[str]] = mapped_column(String(1028))  # TODO: Change this to a proper format
+    chunks: Mapped[Optional[str]] = mapped_column(LONGTEXT)  # TODO: Change this to a proper format
     date_created: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     # Any moderation data
