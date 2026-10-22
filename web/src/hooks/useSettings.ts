@@ -57,10 +57,6 @@ export const MODELS: { [key: string]: Model } = {
   "anthropic/claude-haiku-4-5": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-sonnet-4-5-20250929": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-opus-4-5-20251101": { maxNumTokens: 200_000, topKBlocks: 20 },
-  "anthropic/claude-sonnet-4-20250514": { maxNumTokens: 200_000, topKBlocks: 20 },
-  "anthropic/claude-opus-4-20250514": { maxNumTokens: 200_000, topKBlocks: 20 },
-  "anthropic/claude-3-7-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 20 },
-  "anthropic/claude-3-5-sonnet-latest": { maxNumTokens: 200_000, topKBlocks: 20 },
 };
 export const ENCODERS = ["cl100k_base"];
 export const DEFAULT_FILTERS: SearchFilters = {

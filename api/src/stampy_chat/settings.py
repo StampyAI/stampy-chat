@@ -89,10 +89,6 @@ MODELS = {
     # Dated aliases (still work)
     "anthropic/claude-sonnet-4-5-20250929":         Model(200_000, 20, 8192,  True,  1024),
     "anthropic/claude-opus-4-5-20251101":           Model(200_000, 20, 16000, True,  1024),
-    "anthropic/claude-sonnet-4-20250514":           Model(200_000, 20, 4096,  True,  1024),
-    "anthropic/claude-opus-4-20250514":             Model(200_000, 20, 4096,  True,  1024),
-    "anthropic/claude-3-7-sonnet-latest":           Model(200_000, 20, 4096,  True,  1024),
-    "anthropic/claude-3-5-sonnet-latest":           Model(200_000, 20, 4096,  False, 0),
 }
 
 DEFAULT_MIRI_FILTERS = {
