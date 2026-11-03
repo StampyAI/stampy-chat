@@ -135,6 +135,7 @@ def run_query(
     turn_num = 0
     tool_names_used = []  # for logging which tools were called
     prev_tool_use_ids = []  # tool_use IDs from previous turn, for pairing with tool_results
+    refused = False
     try:
         for message in runner:
             turn_num += 1
@@ -199,8 +200,7 @@ def run_query(
                         except (json.JSONDecodeError, ValueError): turn_content[-1]["input"] = {"_raw": raw}
                 elif event.type == "message_delta" and event.delta.stop_reason == "refusal":
                     logger.warning(f"[turn {turn_num}] refusal: {getattr(event.delta, 'stop_details', None)}")
-                    yield {"state": "error", "error": "Stampy declined to answer this one. Try rephrasing the question."}
-                    return
+                    refused = True  # last event of the stream: the runner ends here, and the error goes out after logging
 
             # Clean up any _input_json keys left by abnormal stream termination
             for block in turn_content:
@@ -228,9 +228,14 @@ def run_query(
     # Log interaction (tools used replaces old prompted_history/context logging)
     try:
         tools_summary = ", ".join(tool_names_used) if tool_names_used else "(no tools)"
+        if refused: tools_summary += " (refused)"
         logger.interaction(session_id, query, response_text, history, tools_summary, [])
     except (DatabaseError, mysql.connector.errors.DatabaseError):
         logger.error(traceback.format_exc())
+
+    if refused:
+        yield {"state": "error", "error": "Stampy declined to answer this one. Try rephrasing the question."}
+        return
 
     # Followups
     if followups:
