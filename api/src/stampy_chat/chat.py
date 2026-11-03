@@ -109,7 +109,13 @@ def run_query(
     model_info = MODELS[settings.model]
     thinking_budget = settings.thinking_budget
     thinking_params = {}
-    if model_info.can_think and thinking_budget > 0:
+    if model_info.adaptive:
+        # These models reject budget_tokens and disabled thinking: depth is set by effort, and
+        # between_tools is the lowest setting. "summarized" keeps streaming thinking text to the UI.
+        think = thinking_budget > 0
+        thinking_params["thinking"] = {"type": "adaptive", "display": "summarized"} if think else {"type": "between_tools"}
+        thinking_params["output_config"] = {"effort": "medium" if think else "low"}
+    elif model_info.can_think and thinking_budget > 0:
         thinking_budget = max(model_info.min_think, thinking_budget)
         thinking_params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
@@ -191,6 +197,10 @@ def run_query(
                         raw = turn_content[-1].pop("_input_json", "{}")
                         try: turn_content[-1]["input"] = json.loads(raw)
                         except (json.JSONDecodeError, ValueError): turn_content[-1]["input"] = {"_raw": raw}
+                elif event.type == "message_delta" and event.delta.stop_reason == "refusal":
+                    logger.warning(f"[turn {turn_num}] refusal: {getattr(event.delta, 'stop_details', None)}")
+                    yield {"state": "error", "error": "Stampy declined to answer this one. Try rephrasing the question."}
+                    return
 
             # Clean up any _input_json keys left by abnormal stream termination
             for block in turn_content:
