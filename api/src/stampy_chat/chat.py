@@ -234,7 +234,7 @@ def run_query(
         logger.error(traceback.format_exc())
 
     if refused:
-        q = query.replace("@", "@\u200b")  # zero-width space so the query can't ping anyone
+        q = query.replace("@", "@\u200b").replace("`", "`\u200b")  # zero-width space: no pings, no code-block breakout
         logging.DiscordHandler().to_discord(f"Refusal ({settings.model}): {q}")
         yield {"state": "error", "error": "Stampy declined to answer this one. Try rephrasing the question."}
         return
