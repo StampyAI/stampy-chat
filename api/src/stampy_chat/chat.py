@@ -109,7 +109,13 @@ def run_query(
     model_info = MODELS[settings.model]
     thinking_budget = settings.thinking_budget
     thinking_params = {}
-    if model_info.can_think and thinking_budget > 0:
+    if model_info.adaptive:
+        # These models reject budget_tokens and disabled thinking: depth is set by effort, and
+        # between_tools is the lowest setting. "summarized" keeps streaming thinking text to the UI.
+        think = thinking_budget > 0
+        thinking_params["thinking"] = {"type": "adaptive", "display": "summarized"} if think else {"type": "between_tools"}
+        thinking_params["output_config"] = {"effort": "medium" if think else "low"}
+    elif model_info.can_think and thinking_budget > 0:
         thinking_budget = max(model_info.min_think, thinking_budget)
         thinking_params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
 
@@ -129,6 +135,7 @@ def run_query(
     turn_num = 0
     tool_names_used = []  # for logging which tools were called
     prev_tool_use_ids = []  # tool_use IDs from previous turn, for pairing with tool_results
+    refused = False
     try:
         for message in runner:
             turn_num += 1
@@ -191,6 +198,9 @@ def run_query(
                         raw = turn_content[-1].pop("_input_json", "{}")
                         try: turn_content[-1]["input"] = json.loads(raw)
                         except (json.JSONDecodeError, ValueError): turn_content[-1]["input"] = {"_raw": raw}
+                elif event.type == "message_delta" and event.delta.stop_reason == "refusal":
+                    logger.warning(f"[turn {turn_num}] refusal: {getattr(event.delta, 'stop_details', None)}")
+                    refused = True  # last event of the stream: the runner ends here, and the error goes out after logging
 
             # Clean up any _input_json keys left by abnormal stream termination
             for block in turn_content:
@@ -218,9 +228,16 @@ def run_query(
     # Log interaction (tools used replaces old prompted_history/context logging)
     try:
         tools_summary = ", ".join(tool_names_used) if tool_names_used else "(no tools)"
+        if refused: tools_summary += " (refused)"
         logger.interaction(session_id, query, response_text, history, tools_summary, [])
     except (DatabaseError, mysql.connector.errors.DatabaseError):
         logger.error(traceback.format_exc())
+
+    if refused:
+        q = query.replace("@", "@\u200b").replace("`", "`\u200b")  # zero-width space: no pings, no code-block breakout
+        logging.DiscordHandler().to_discord(f"Refusal ({settings.model}): {q}")
+        yield {"state": "error", "error": "Stampy declined to answer this one. Try rephrasing the question."}
+        return
 
     # Followups
     if followups:

@@ -52,6 +52,7 @@ interface Model {
   topKBlocks: number;
 }
 export const MODELS: { [key: string]: Model } = {
+  "anthropic/claude-sonnet-5-5": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-sonnet-4-6": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-opus-4-6": { maxNumTokens: 200_000, topKBlocks: 20 },
   "anthropic/claude-haiku-4-5": { maxNumTokens: 200_000, topKBlocks: 20 },
@@ -154,13 +155,13 @@ const withDefault = (defaultVal: any) => {
 const SETTINGS_PARSERS = {
   prompts: withDefault(DEFAULT_PROMPTS),
   mode: (v: string | undefined) => (v || "default") as Mode,
-  modelID: withDefault("anthropic/claude-sonnet-4-6"),
+  modelID: withDefault("anthropic/claude-sonnet-5-5"),
   encoder: withDefault("cl100k_base"),
   topKBlocks: withDefault(
-    MODELS["anthropic/claude-sonnet-4-6"]?.topKBlocks
+    MODELS["anthropic/claude-sonnet-5-5"]?.topKBlocks
   ), //  the number of blocks to use as citations
   maxNumTokens: withDefault(
-    MODELS["anthropic/claude-sonnet-4-6"]?.maxNumTokens
+    MODELS["anthropic/claude-sonnet-5-5"]?.maxNumTokens
   ),
   tokensBuffer: withDefault(50), //  the number of tokens to leave as a buffer when calculating remaining tokens
   maxHistory: withDefault(10), //  the max number of previous items to use as history

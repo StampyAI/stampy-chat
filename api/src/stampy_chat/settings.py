@@ -7,7 +7,8 @@ from frozendict import frozendict, deepfreeze
 
 
 Model = namedtuple(
-    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "can_think", "min_think"]
+    "Model", ["maxTokens", "topKBlocks", "maxCompletionTokens", "can_think", "min_think", "adaptive"],
+    defaults=[False],  # adaptive: thinking is controlled by effort, budget_tokens is rejected
 )
 
 Mode = Literal["default", "concise", "rookie", "discord"]
@@ -83,7 +84,8 @@ DEFAULT_PROMPTS = Prompts(
 
 MODELS = {
     # Current models (dateless IDs)
-    "anthropic/claude-sonnet-4-6":                  Model(200_000, 20, 16000, True,  1024),
+    "anthropic/claude-sonnet-5-5":                  Model(200_000, 20, 32000, True,  1024, True),
+    "anthropic/claude-sonnet-4-6":                 Model(200_000, 20, 16000, True,  1024),
     "anthropic/claude-opus-4-6":                    Model(200_000, 20, 16000, True,  1024),
     "anthropic/claude-haiku-4-5":                   Model(200_000, 20, 8192,  False, 0),
     # Dated aliases (still work)
